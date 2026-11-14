@@ -41,6 +41,7 @@
   let usuario = null;
   let temUsuarios = true;
   let inatividadeMin = 15;
+  let expiraEm = null; // quando (Date.now) o modo desliga sozinho, se ninguém usar
   let jaConsultou = false;
   let botao = null;
   let faixa = null;
@@ -123,13 +124,15 @@
     }
   }
 
-  async function consultarEstado() {
+  // caminho 'renovar' = mesma resposta, mas conta como uso (clique no contador).
+  async function consultarEstado(caminho) {
     try {
-      const r = await fetch('/api/gerente/estado', { cache: 'no-store' });
+      const r = await fetch('/api/gerente/' + (caminho === 'renovar' ? 'renovar' : 'estado'), { cache: 'no-store' });
       if (!r.ok) { pararVerificacao(); return; }
       const d = await r.json();
       temUsuarios = !!d.temUsuarios;
       if (d.inatividadeMin) inatividadeMin = d.inatividadeMin;
+      expiraEm = d.restanteSeg === null || d.restanteSeg === undefined ? null : Date.now() + d.restanteSeg * 1000;
       aplicar(!!d.ativo, d.usuario || null);
     } catch (e) {
       // Sem conexão com o servidor: mantém como está.
@@ -316,6 +319,7 @@
       if (!b) return;
       if (b.dataset.faixa === 'sair') sair();
       if (b.dataset.faixa === 'senha') telaTrocarSenha();
+      if (b.dataset.faixa === 'renovar') consultarEstado('renovar');
     });
     atualizarFaixa();
   }
@@ -340,18 +344,44 @@
     if (!faixa) return;
     if (!ativo || !usuario) { faixa.innerHTML = ''; medirFaixa(); return; }
     faixa.innerHTML =
-      '<span class="faixa-quem">' + ICONE_ABERTO +
-      ' <span class="faixa-titulo">MODO GERENCIADOR LIGADO</span> — <strong>' + esc(usuario.nome) + '</strong>' +
-      ' <span class="faixa-login">(' + esc(usuario.login) + ')</span></span>' +
-      '<span class="faixa-aviso">desliga sozinho após ' + esc(inatividadeMin) + ' min sem uso</span>' +
+      '<span class="faixa-quem" title="Modo Gerenciador ligado · usuário ' + esc(usuario.login) + '">' + ICONE_ABERTO +
+      ' <span class="faixa-titulo">Gerente</span> <strong>' + esc(usuario.nome) + '</strong></span>' +
+      '<button type="button" class="faixa-tempo" data-faixa="renovar"></button>' +
       '<span class="faixa-acoes">' +
       '<a href="/contatos.html" class="faixa-btn">Contatos</a>' +
       '<a href="/usuarios.html" class="faixa-btn">Usuários</a>' +
-      '<button type="button" class="faixa-btn" data-faixa="senha">Trocar senha</button>' +
-      '<button type="button" class="faixa-btn faixa-sair" data-faixa="sair">Sair do modo gerenciador</button>' +
+      '<button type="button" class="faixa-btn" data-faixa="senha"><span class="faixa-longo">Trocar senha</span><span class="faixa-curto">Senha</span></button>' +
+      '<button type="button" class="faixa-btn faixa-sair" data-faixa="sair" title="Sair do modo gerenciador">Sair</button>' +
       '</span>';
+    atualizarContador();
     medirFaixa();
   }
+
+  // "desliga em 12 min": conta para baixo; no último minuto fica laranja e
+  // pisca. Clicar renova o prazo (conta como uso).
+  function atualizarContador() {
+    const el = faixa && faixa.querySelector('.faixa-tempo');
+    if (!el) return;
+    const seg = expiraEm === null ? inatividadeMin * 60 : Math.max(0, (expiraEm - Date.now()) / 1000);
+    const min = Math.max(1, Math.ceil(seg / 60));
+    el.innerHTML = 'desliga em <b>' + min + '</b> min';
+    el.classList.toggle('acabando', seg <= 60);
+    el.title = 'Desliga sozinho depois de ' + inatividadeMin + ' min sem uso. Clique para renovar o prazo.';
+  }
+  setInterval(atualizarContador, 10 * 1000);
+
+  // Qualquer pedido desta tela ao servidor conta como uso: o prazo recomeça.
+  const fetchOriginal = window.fetch.bind(window);
+  window.fetch = function (entrada, opcoes) {
+    try {
+      const url = new URL(typeof entrada === 'string' ? entrada : entrada.url, location.href);
+      if (ativo && url.origin === location.origin && url.pathname.indexOf('/api/') === 0 && url.pathname !== '/api/gerente/estado') {
+        expiraEm = Date.now() + inatividadeMin * 60 * 1000;
+        setTimeout(atualizarContador, 0);
+      }
+    } catch (e) { /* endereço estranho: não mexe no contador */ }
+    return fetchOriginal(entrada, opcoes);
+  };
 
   // ---------- aviso no lugar do conteúdo (páginas só de gerente) ----------
 

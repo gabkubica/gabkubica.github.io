@@ -2967,27 +2967,48 @@ html[data-gerente="sim"] body::after {
   pointer-events: none;
   z-index: 9999;
 }
+/* Faixa do gerente (opção A, 2026-11-14): uma linha fina, preta como o topo,
+   formando um bloco só com ele. Amarelo só no cadeado, no nome e no Sair. */
+html[data-gerente="sim"] header { border-bottom: 0; }
 html[data-gerente="sim"] .barra-gerente,
 [data-tema="escuro"][data-gerente="sim"] .barra-gerente {
-  background: var(--gerente-faixa);
+  background: var(--gerente-escuro);
   color: var(--gerente-tinta);
-  border-bottom: 0;
-  font-size: 15px;
-  padding: 9px 20px;
+  border-top: 1px solid #2e2e33;
+  border-bottom: 3px solid var(--gerente-cor);
+  font-size: 13px;
+  padding: 5px 20px;
+  gap: 6px 12px;
+  flex-wrap: nowrap;
 }
-html[data-gerente="sim"] .barra-gerente .faixa-titulo { font-weight: 800; letter-spacing: 0.5px; color: var(--gerente-cor); }
-html[data-gerente="sim"] .barra-gerente .faixa-quem svg { color: var(--gerente-cor); }
-html[data-gerente="sim"] .barra-gerente .faixa-login,
-html[data-gerente="sim"] .barra-gerente .faixa-aviso { opacity: 0.75; }
-html[data-gerente="sim"] .btn-gerente {
-  background: var(--gerente-cor);
-  color: var(--gerente-escuro);
-  border-color: var(--gerente-cor);
+html[data-gerente="sim"] .barra-gerente .faixa-quem { color: var(--gerente-cor); white-space: nowrap; }
+html[data-gerente="sim"] .barra-gerente .faixa-titulo { font-weight: 800; letter-spacing: 0.3px; }
+html[data-gerente="sim"] .barra-gerente .faixa-quem strong { color: var(--gerente-tinta); font-weight: 600; }
+html[data-gerente="sim"] .barra-gerente .faixa-tempo {
+  border: 0; border-radius: 999px; background: #2e2e33; color: #d4d4d8; cursor: pointer;
+  padding: 2px 10px; font-size: 12px; white-space: nowrap; font-weight: 400;
 }
-html[data-gerente="sim"] .barra-gerente .faixa-btn { border-color: rgba(255, 255, 255, 0.35); }
-html[data-gerente="sim"] .barra-gerente .faixa-btn:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.6); }
-html[data-gerente="sim"] .barra-gerente .faixa-sair { background: var(--gerente-cor); border-color: var(--gerente-cor); color: var(--gerente-escuro); }
-html[data-gerente="sim"] .barra-gerente .faixa-sair:hover { background: #ffc61a; border-color: #ffc61a; }
+html[data-gerente="sim"] .barra-gerente .faixa-tempo:hover { background: #3a3a40; }
+html[data-gerente="sim"] .barra-gerente .faixa-tempo.acabando { background: #b45309; color: #fff; animation: faixa-pisca 1s ease-in-out infinite alternate; }
+@keyframes faixa-pisca { from { opacity: 1; } to { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { html[data-gerente="sim"] .barra-gerente .faixa-tempo.acabando { animation: none; } }
+html[data-gerente="sim"] .barra-gerente .faixa-acoes { gap: 2px; flex-wrap: nowrap; }
+html[data-gerente="sim"] .barra-gerente .faixa-btn {
+  border: 0; border-radius: 999px; background: transparent; color: #d4d4d8; padding: 3px 10px; white-space: nowrap;
+}
+html[data-gerente="sim"] .barra-gerente .faixa-btn:hover { background: rgba(255, 255, 255, 0.10); color: #fff; }
+html[data-gerente="sim"] .barra-gerente .faixa-sair { background: var(--gerente-cor); color: var(--gerente-escuro); font-weight: 700; margin-left: 4px; }
+html[data-gerente="sim"] .barra-gerente .faixa-sair:hover { background: #ffc61a; color: var(--gerente-escuro); }
+.barra-gerente .faixa-curto { display: none; }
+html[data-gerente="sim"] .btn-gerente { background: var(--gerente-cor); color: var(--gerente-escuro); border-color: var(--gerente-cor); }
+/* Celular: nome + contador na 1ª linha, botões na 2ª (rolam de lado se faltar espaço). */
+@media (max-width: 640px) {
+  html[data-gerente="sim"] .barra-gerente { flex-wrap: wrap; padding: 5px 10px; }
+  html[data-gerente="sim"] .barra-gerente .faixa-tempo { margin-left: auto; }
+  html[data-gerente="sim"] .barra-gerente .faixa-acoes { flex-basis: 100%; margin-left: 0; overflow-x: auto; scrollbar-width: none; }
+  .barra-gerente .faixa-longo { display: none; }
+  .barra-gerente .faixa-curto { display: inline; }
+}
 @media print {
   html[data-gerente="sim"] body::after { display: none; }
 }
@@ -3257,3 +3278,10 @@ a.a-caminho:hover { text-decoration: underline; }
 [data-tema="escuro"] .pn-cartao.pn-alerta .pn-val { color: #fbbf24; }
 @media (max-width: 900px) { .pn-geral { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) { .pn-cartoes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .pn-val { font-size: 26px; } }
+/* Celular estreito: o topo não pode passar da tela (o cadeado ficava cortado). */
+@media (max-width: 480px) {
+  header { padding-left: 12px; padding-right: 12px; column-gap: 8px; grid-template-columns: minmax(0, 1fr) auto; }
+  header .marca { min-width: 0; }
+  header .marca h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .topo-direita { gap: 6px; }
+}
