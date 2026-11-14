@@ -28,9 +28,7 @@
 (function () {
   const PAGINAS_GERENTE = [
     '/caixa.html',
-    '/faturamento.html',
-    '/produtividade.html',
-    '/analises.html',
+    '/numeros.html',
     '/londrisoft.html',
     '/funcionarios.html',
     '/usuarios.html',

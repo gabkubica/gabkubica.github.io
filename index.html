@@ -24,28 +24,23 @@
   </header>
 
   <main>
-    <div class="card">
-      <h2>Visão geral</h2>
-      <div class="resumos">
-        <div class="card-resumo">
-          <div class="rotulo">OS abertas</div>
-          <div class="valor" id="resumoOs">-</div>
+    <!-- Visão geral: só o que importa no dia, em dois grupos. Faturamento e
+         gráficos ficam em Análises (numeros.html, gerente). -->
+    <div class="card pn-geral">
+      <div class="pn-grupo">
+        <h2>Hoje na oficina</h2>
+        <div class="pn-cartoes">
+          <a class="pn-cartao" href="/ordens-servico.html"><span class="pn-rot">OS abertas</span><span class="pn-val" id="resumoOs">–</span><span class="pn-sub">em andamento</span></a>
+          <a class="pn-cartao" href="/patio.html"><span class="pn-rot">Carros no pátio</span><span class="pn-val" id="resumoPatio">–</span><span class="pn-sub">ver o pátio</span></a>
+          <a class="pn-cartao" href="/externos.html"><span class="pn-rot">Externos hoje</span><span class="pn-val" id="resumoExternos">–</span><span class="pn-sub">agendados para hoje</span></a>
         </div>
-        <div class="card-resumo">
-          <div class="rotulo">Carros no pátio</div>
-          <a class="valor valor-link" id="resumoPatio" href="/patio.html">-</a>
-        </div>
-        <div class="card-resumo">
-          <div class="rotulo">Peças aguardando entrada</div>
-          <a class="valor valor-link" id="resumoEntrada" href="/entrada-estoque.html">-</a>
-        </div>
-        <div class="card-resumo">
-          <div class="rotulo">Funcionários ativos</div>
-          <div class="valor" id="resumoFunc">-</div>
-        </div>
-        <div class="card-resumo">
-          <div class="rotulo">Itens abaixo do mínimo</div>
-          <a class="valor valor-link" id="resumoItens" href="/itens.html?estoque_baixo=1">-</a>
+      </div>
+      <div class="pn-grupo">
+        <h2>Precisa de atenção</h2>
+        <div class="pn-cartoes">
+          <a class="pn-cartao" id="cartaoBoletos" href="/despesas.html"><span class="pn-rot">Boletos vencidos</span><span class="pn-val" id="resumoBoletos">–</span><span class="pn-sub" id="resumoBoletosSub">a pagar</span></a>
+          <a class="pn-cartao" id="cartaoEntrada" href="/entrada-estoque.html"><span class="pn-rot">Peças para dar entrada</span><span class="pn-val" id="resumoEntrada">–</span><span class="pn-sub">dos boletos</span></a>
+          <a class="pn-cartao" id="cartaoItens" href="/itens.html?estoque_baixo=1"><span class="pn-rot">Abaixo do mínimo</span><span class="pn-val" id="resumoItens">–</span><span class="pn-sub">peças para repor</span></a>
         </div>
       </div>
     </div>
@@ -86,16 +81,14 @@
         <h3>Financeiro</h3>
         <div class="modulos">
           <a class="modulo" href="/caixa.html">Caixa do dia</a>
-          <a class="modulo" href="/faturamento.html">Faturamento</a>
           <a class="modulo" href="/despesas.html">Despesas</a>
         </div>
       </div>
 
       <div class="setor">
-        <h3>Relatórios</h3>
+        <h3>Gestão</h3>
         <div class="modulos">
-          <a class="modulo" href="/produtividade.html">Produtividade</a>
-          <a class="modulo" href="/analises.html">Análises</a>
+          <a class="modulo" href="/numeros.html">Análises</a>
           <a class="modulo modulo-londrisoft" href="/londrisoft.html">Ponte Londrisoft</a>
         </div>
       </div>
@@ -103,17 +96,35 @@
   </main>
 
   <script>
+    // Número no cartão; o cartão fica em destaque quando há algo a fazer.
+    function marcar(id, cartao, n) {
+      document.getElementById(id).textContent = n;
+      if (cartao) document.getElementById(cartao).classList.toggle('pn-alerta', Number(n) > 0);
+    }
     async function carregarResumo() {
-      try {
-        const resp = await fetch('/api/dashboard');
-        const dados = await resp.json();
-        document.getElementById('resumoOs').textContent = dados.os_abertas;
-        document.getElementById('resumoPatio').textContent = dados.carros_patio;
-        document.getElementById('resumoEntrada').textContent = dados.aguardando_entrada;
-        document.getElementById('resumoFunc').textContent = dados.funcionarios;
-        document.getElementById('resumoItens').textContent = dados.itens_baixo_estoque;
-      } catch (e) {
-        document.getElementById('resumoOs').textContent = 'erro';
+      const hoje = new Date().toLocaleDateString('en-CA');
+      const [dash, pend, agenda] = await Promise.all([
+        fetch('/api/dashboard').then((r) => r.json()).catch(() => null),
+        fetch('/api/boletos/pendencias').then((r) => r.json()).catch(() => null),
+        fetch('/api/ordens-servico/agenda?inicio=' + hoje + '&fim=' + hoje).then((r) => r.json()).catch(() => null),
+      ]);
+      if (dash) {
+        marcar('resumoOs', null, dash.os_abertas);
+        marcar('resumoPatio', null, dash.carros_patio);
+        marcar('resumoEntrada', 'cartaoEntrada', dash.aguardando_entrada);
+        marcar('resumoItens', 'cartaoItens', dash.itens_baixo_estoque);
+      }
+      if (pend) {
+        const n = pend.atrasados.length + pend.hoje.length;
+        marcar('resumoBoletos', 'cartaoBoletos', n);
+        const total = (pend.totalAtrasados || 0) + (pend.totalHoje || 0);
+        document.getElementById('resumoBoletosSub').textContent = n
+          ? total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + (pend.hoje.length ? ' · ' + pend.hoje.length + ' vence(m) hoje' : '')
+          : 'tudo em dia';
+      }
+      if (agenda) {
+        const lista = agenda.agendamentos || [];
+        marcar('resumoExternos', null, lista.length);
       }
     }
     carregarResumo();

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análises - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/graficos.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ANÁLISES</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Números da loja: tudo que antes ficava espalhado em Faturamento,
+       Análises e Produtividade, organizado em abas por assunto.
+       Servidor: /api/numeros (src/routes/numeros.js), /api/analises/*,
+       /api/produtividade, /api/dashboard. Só gerente. -->
+  <main class="os-main nu-main">
+    <div class="nu-topo">
+      <a href="/" class="btn-voltar">← Painel</a>
+      <h2>Análises</h2>
+      <span class="nu-espaco"></span>
+      <div class="nu-periodo" id="periodo" role="group" aria-label="Período">
+        <button type="button" data-p="hoje">Hoje</button>
+        <button type="button" data-p="mes">Este mês</button>
+        <button type="button" data-p="mes_passado">Mês passado</button>
+        <button type="button" data-p="90">90 dias</button>
+        <button type="button" data-p="ano">Este ano</button>
+      </div>
+      <span class="nu-datas" id="datas"></span>
+    </div>
+
+    <nav class="nu-abas" id="abas" role="tablist">
+      <button type="button" class="nu-aba" data-aba="vendas" role="tab">Vendas</button>
+      <button type="button" class="nu-aba" data-aba="financeiro" role="tab">Financeiro</button>
+      <button type="button" class="nu-aba" data-aba="estoque" role="tab">Estoque</button>
+      <button type="button" class="nu-aba" data-aba="servicos" role="tab">Serviços</button>
+      <button type="button" class="nu-aba" data-aba="equipe" role="tab">Equipe</button>
+    </nav>
+    <div id="mensagens"></div>
+
+    <!-- ===== VENDAS ===== -->
+    <section class="nu-painel" data-painel="vendas">
+      <div class="nu-kpis" id="kVendas"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao nu-largo">
+          <h3>Faturamento mês a mês</h3>
+          <p class="nu-explica">OS, vendas no balcão e serviços externos concluídos em cada mês.</p>
+          <div id="gFatMes"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>De onde vem o dinheiro</h3>
+          <p class="nu-explica">Faturamento do período por tipo de atendimento.</p>
+          <div id="gTipo"></div>
+          <p class="nu-explica" style="margin:14px 0 8px">E por peça ou mão de obra:</p>
+          <div id="gPecaServ"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Como o cliente paga</h3>
+          <p class="nu-explica">Formas de pagamento no período.</p>
+          <div id="gFormas"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Peças que mais venderam</h3>
+          <p class="nu-explica">Pelo valor vendido no período.</p>
+          <div id="gPecas"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Melhores clientes</h3>
+          <p class="nu-explica">Quem mais gastou no período (clique para ver o histórico).</p>
+          <div id="gClientes"></div>
+        </div>
+        <div class="nu-cartao nu-largo">
+          <h3>Dia da semana mais forte</h3>
+          <p class="nu-explica">Média de faturamento por dia da semana, no período.</p>
+          <div id="gSemana"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FINANCEIRO ===== -->
+    <section class="nu-painel" data-painel="financeiro" hidden>
+      <div class="nu-kpis" id="kFin"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao nu-largo">
+          <div class="nu-cartao-topo"><div><h3>Entrou × saiu, mês a mês</h3>
+            <p class="nu-explica">Faturamento contra despesas (boletos pagos e despesas avulsas).</p></div>
+            <a href="/caixa.html">Caixa do dia →</a></div>
+          <div id="gEntraSai"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Resultado mês a mês</h3>
+          <p class="nu-explica">O que sobrou: faturamento menos despesas.</p>
+          <div id="gResultado"></div>
+        </div>
+        <div class="nu-cartao">
+          <div class="nu-cartao-topo"><div><h3>Boletos a pagar</h3>
+            <p class="nu-explica">O que vence em cada uma das próximas 8 semanas.</p></div>
+            <a href="/despesas.html">Boletos →</a></div>
+          <div id="gSemanas"></div>
+          <div id="gAtrasados"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Para quem mais pagamos</h3>
+          <p class="nu-explica">Boletos pagos no período, por fornecedor.</p>
+          <div id="gFornecedores"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Despesas do período</h3>
+          <p class="nu-explica">Boletos de fornecedor e despesas avulsas (lançadas no Caixa).</p>
+          <div id="gTipoDespesa"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ESTOQUE ===== -->
+    <section class="nu-painel" data-painel="estoque" hidden>
+      <div class="nu-kpis" id="kEst"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao">
+          <h3>Onde está o dinheiro</h3>
+          <p class="nu-explica">Peças com mais valor parado na prateleira hoje (pelo custo).</p>
+          <div id="gMaiores"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Dinheiro parado</h3>
+          <p class="nu-explica" id="explicaParado">Peças que não saíram em nenhuma OS ou venda nos últimos 90 dias.</p>
+          <div id="gParados"></div>
+        </div>
+        <div class="nu-cartao nu-largo">
+          <h3>Precisa de atenção</h3>
+          <p class="nu-explica">Clique para abrir a lista.</p>
+          <div class="nu-kpis" id="kAtencao" style="margin:0"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SERVIÇOS ===== -->
+    <section class="nu-painel" data-painel="servicos" hidden>
+      <div class="nu-kpis" id="kServ"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao nu-largo">
+          <h3>OS abertas × concluídas, mês a mês</h3>
+          <p class="nu-explica">Se as abertas passam das concluídas por muito tempo, o pátio enche.</p>
+          <div id="gOsMes"></div>
+        </div>
+        <div class="nu-cartao">
+          <div class="nu-cartao-topo"><div><h3>OS em aberto agora</h3>
+            <p class="nu-explica">Em que etapa estão (sem contar vendas no balcão).</p></div>
+            <a href="/patio.html">Pátio →</a></div>
+          <div id="gEtapas"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Serviços mais feitos</h3>
+          <p class="nu-explica">Quantas vezes cada serviço foi feito no período.</p>
+          <div id="gServicos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== EQUIPE ===== -->
+    <section class="nu-painel" data-painel="equipe" hidden>
+      <div class="nu-kpis" id="kEquipe"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao nu-largo">
+          <h3>Quanto cada um lançou</h3>
+          <p class="nu-explica">Peças e serviços em OS concluídas no período, por responsável.</p>
+          <div id="gEquipe"></div>
+        </div>
+        <div class="nu-cartao nu-largo">
+          <div class="nu-cartao-topo"><div><h3>Dia a dia</h3>
+            <p class="nu-explica">Quanto a pessoa lançou em cada dia do período.</p></div>
+            <select id="selFunc" aria-label="Funcionário"></select></div>
+          <div id="gDia"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const G = Graficos;
+    const moeda = G.moeda;
+    const $ = (id) => document.getElementById(id);
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.replaceChildren();
+      const d = document.createElement('div');
+      d.className = tipo;
+      d.textContent = texto;
+      m.appendChild(d);
+    }
+    async function api(url) {
+      const r = await fetch(url);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || 'Erro ao carregar.');
+      return d;
+    }
+
+    // ---------- período ----------
+    const iso = (d) => d.toLocaleDateString('en-CA');
+    function periodo(p) {
+      const hoje = new Date();
+      const y = hoje.getFullYear(), m = hoje.getMonth();
+      if (p === 'hoje') return { inicio: iso(hoje), fim: iso(hoje), nome: 'hoje' };
+      if (p === 'mes_passado') return { inicio: iso(new Date(y, m - 1, 1)), fim: iso(new Date(y, m, 0)), nome: 'no mês passado' };
+      if (p === '90') return { inicio: iso(new Date(y, m, hoje.getDate() - 89)), fim: iso(hoje), nome: 'nos últimos 90 dias' };
+      if (p === 'ano') return { inicio: iso(new Date(y, 0, 1)), fim: iso(hoje), nome: 'este ano' };
+      return { inicio: iso(new Date(y, m, 1)), fim: iso(hoje), nome: 'este mês' };
+    }
+    const br = (s) => s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+    const brCurto = (s) => s.slice(8, 10) + '/' + s.slice(5, 7);
+    let escolha = 'mes';
+    try { escolha = localStorage.getItem('numeros-periodo') || 'mes'; } catch { /* sem localStorage */ }
+
+    // ---------- cartões de número (KPI) ----------
+    function variacao(atual, anterior, invertido) {
+      if (!anterior) return '<span>sem comparação</span>';
+      const p = Math.round(((atual - anterior) / Math.abs(anterior)) * 100);
+      if (p === 0) return '<span>igual ao período anterior</span>';
+      const bom = invertido ? p < 0 : p > 0;
+      return '<span class="' + (bom ? 'nu-sobe' : 'nu-desce') + '">' + (p > 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span> vs. período anterior';
+    }
+    function kpi(rot, val, sub, extra) {
+      const tag = extra && extra.href ? 'a' : 'div';
+      return '<' + tag + ' class="nu-kpi' + (extra && extra.alerta ? ' nu-alerta' : '') + '"' + (extra && extra.href ? ' href="' + extra.href + '" style="text-decoration:none;color:inherit"' : '') + '>' +
+        '<div class="nu-kpi-rot">' + rot + '</div><div class="nu-kpi-val">' + val + '</div>' +
+        (sub ? '<div class="nu-kpi-sub">' + sub + '</div>' : '') + '</' + tag + '>';
+    }
+
+    // Meses: tira os primeiros meses zerados (sistema começou há pouco), mas mostra pelo menos 6.
+    function mesesUteis(mensal, campos) {
+      let i = 0;
+      while (i < mensal.length - 6 && campos.every((c) => !mensal[i][c])) i++;
+      return mensal.slice(i);
+    }
+
+    // ---------- desenhar cada aba ----------
+    function abaVendas(n, v) {
+      const p = n.periodo, a = n.anterior;
+      $('kVendas').innerHTML =
+        kpi('Faturamento', moeda(p.faturamento), variacao(p.faturamento, a.faturamento)) +
+        kpi('Atendimentos', p.documentos, variacao(p.documentos, a.documentos)) +
+        kpi('Ticket médio', moeda(v.ticket_medio), 'quanto cada atendimento deixa, em média') +
+        kpi('Lucro nas peças', moeda(v.lucro_pecas), v.pecas_sem_custo ? v.pecas_sem_custo + ' peça(s) sem custo cadastrado ficaram de fora' : 'venda menos custo das peças vendidas');
+      const meses = mesesUteis(n.mensal, ['faturamento']);
+      G.barras($('gFatMes'), {
+        rotulos: meses.map((m) => m.rotulo), destaque: meses.length - 1,
+        series: [{ nome: 'Faturamento', valores: meses.map((m) => m.faturamento), cor: 1 }],
+        formato: 'moeda', vazio: 'Ainda não há faturamento.',
+        dica: (i) => '<div style="color:var(--texto-suave)">' + meses[i].os_concluidas + ' atendimento(s)</div>',
+      });
+      G.ranking($('gTipo'), { itens: v.por_tipo.map((t) => ({ nome: t.tipo, valor: t.valor, sub: t.quantidade + ' atendimento(s)' })), formato: 'moeda', porcentagem: true, cor: 1 });
+      G.ranking($('gPecaServ'), { itens: [{ nome: 'Peças', valor: v.receita_pecas, cor: 1 }, { nome: 'Serviços (mão de obra)', valor: v.receita_servicos, cor: 3 }], formato: 'moeda', porcentagem: true });
+      G.ranking($('gFormas'), { itens: v.formas.map((f) => ({ nome: f.forma || 'Não informada', valor: f.valor, sub: f.quantidade + ' pagamento(s)' })), formato: 'moeda', porcentagem: true, cor: 1 });
+      G.ranking($('gPecas'), {
+        itens: v.itens.slice(0, 10).map((x) => ({ nome: x.nome, valor: x.receita, sub: x.quantidade + ' un. · lucro ' + moeda(x.lucro) })),
+        formato: 'moeda', cor: 1, vazio: 'Nenhuma peça vendida no período.',
+      });
+      G.ranking($('gClientes'), {
+        itens: v.clientes.slice(0, 10).map((c) => ({ nome: c.nome, valor: c.valor, sub: c.documentos + ' atendimento(s)', href: c.cliente_id ? '/clientes.html?historico=' + c.cliente_id : null })),
+        formato: 'moeda', cor: 1, vazio: 'Nenhum cliente no período.',
+      });
+      G.barras($('gSemana'), {
+        rotulos: v.dias_semana.map((d) => d.dia.slice(0, 3)), rotulosLongos: v.dias_semana.map((d) => d.dia),
+        series: [{ nome: 'Média', valores: v.dias_semana.map((d) => d.media), cor: 1 }], formato: 'moeda', altura: 190,
+        dica: (i) => '<div style="color:var(--texto-suave)">' + v.dias_semana[i].documentos + ' atendimento(s) no período</div>',
+      });
+    }
+
+    function abaFinanceiro(n) {
+      const p = n.periodo, a = n.anterior, b = n.boletos;
+      $('kFin').innerHTML =
+        kpi('Entrou (faturamento)', moeda(p.faturamento), variacao(p.faturamento, a.faturamento)) +
+        kpi('Saiu (despesas)', moeda(p.despesas), variacao(p.despesas, a.despesas, true)) +
+        kpi('Resultado', '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>', variacao(p.resultado, a.resultado)) +
+        kpi('Boletos atrasados', moeda(b.atrasados.valor), b.atrasados.quantidade ? b.atrasados.quantidade + ' boleto(s) vencido(s) sem pagar' : 'nenhum atrasado',
+          { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' });
+      const meses = mesesUteis(n.mensal, ['faturamento', 'despesas']);
+      G.barras($('gEntraSai'), {
+        rotulos: meses.map((m) => m.rotulo),
+        series: [{ nome: 'Entrou', valores: meses.map((m) => m.faturamento), cor: 3 }, { nome: 'Saiu', valores: meses.map((m) => m.despesas), cor: 2 }],
+        formato: 'moeda', vazio: 'Ainda não há movimento.',
+        dica: (i) => '<div style="color:var(--texto-suave)">Sobrou: <b>' + moeda(meses[i].resultado) + '</b></div>',
+      });
+      G.barras($('gResultado'), {
+        rotulos: meses.map((m) => m.rotulo), series: [{ nome: 'Resultado', valores: meses.map((m) => m.resultado), cor: 1 }],
+        formato: 'moeda', altura: 200, vazio: 'Ainda não há movimento.',
+      });
+      G.barras($('gSemanas'), {
+        rotulos: b.semanas.map((s) => s.rotulo), rotulosLongos: b.semanas.map((s) => 'Semana de ' + s.rotulo),
+        series: [{ nome: 'A pagar', valores: b.semanas.map((s) => s.valor), cor: 4 }], formato: 'moeda', altura: 180,
+        vazio: 'Nenhum boleto vence nas próximas 8 semanas.',
+        dica: (i) => '<div style="color:var(--texto-suave)">' + b.semanas[i].quantidade + ' boleto(s)</div>',
+      });
+      $('gAtrasados').innerHTML = b.atrasados.quantidade
+        ? '<div class="nu-aviso">⚠ Além disso, <strong>' + b.atrasados.quantidade + ' boleto(s) atrasado(s)</strong> somando <strong>' + moeda(b.atrasados.valor) + '</strong>. <a href="/despesas.html">Ver boletos</a></div>'
+        : '';
+      G.ranking($('gFornecedores'), {
+        itens: b.fornecedores.map((f) => ({ nome: f.nome, valor: f.valor, sub: f.boletos + ' boleto(s)', apagado: f.outros })),
+        formato: 'moeda', cor: 2, porcentagem: true, vazio: 'Nenhum boleto pago no período.',
+      });
+      G.ranking($('gTipoDespesa'), {
+        itens: [{ nome: 'Boletos de fornecedor', valor: p.despesas_boletos }, { nome: 'Despesas avulsas', valor: p.despesas_manuais }],
+        formato: 'moeda', cor: 2, porcentagem: true, vazio: 'Nenhuma despesa no período.',
+      });
+    }
+
+    function abaEstoque(e, d) {
+      $('kEst').innerHTML =
+        kpi('Patrimônio em estoque', moeda(e.valor_custo), e.unidades + ' peças, pelo preço de custo') +
+        kpi('Se vender tudo', moeda(e.valor_venda), 'pelo preço de levar (sem instalação)') +
+        kpi('Lucro guardado', moeda(e.lucro_potencial), 'margem de ' + Math.round(e.margem_potencial) + '% sobre o custo') +
+        kpi('Dinheiro parado', moeda(e.parados.valor), e.parados.quantidade + ' peça(s) sem sair há ' + e.dias_parado + ' dias', { alerta: e.parados.quantidade > 0 });
+      G.ranking($('gMaiores'), {
+        itens: e.maiores.map((x) => ({ nome: x.nome, valor: x.valor, sub: [x.codigo, x.localizacao ? 'local ' + x.localizacao : null, x.estoque + ' un.'].filter(Boolean).join(' · ') })),
+        formato: 'moeda', cor: 1, vazio: 'Estoque vazio.',
+      });
+      $('explicaParado').textContent = 'Peças que não saíram em nenhuma OS ou venda nos últimos ' + e.dias_parado + ' dias' +
+        (e.parados.quantidade > e.parados.itens.length ? ' (as ' + e.parados.itens.length + ' de maior valor).' : '.');
+      G.ranking($('gParados'), {
+        itens: e.parados.itens.map((x) => ({ nome: x.nome, valor: x.valor, sub: [x.codigo, x.localizacao ? 'local ' + x.localizacao : null, x.estoque + ' un.'].filter(Boolean).join(' · ') })),
+        formato: 'moeda', cor: 2, vazio: 'Nenhuma peça parada. Ótimo!',
+      });
+      $('kAtencao').innerHTML =
+        kpi('Abaixo do mínimo', d.itens_baixo_estoque, 'peças para repor', { alerta: d.itens_baixo_estoque > 0, href: '/itens.html?estoque_baixo=1' }) +
+        kpi('Aguardando entrada', d.aguardando_entrada, 'peças de boleto para conferir', { href: '/entrada-estoque.html' }) +
+        kpi('Estoque negativo', e.negativos, 'saiu mais do que entrou: conferir', { alerta: e.negativos > 0, href: '/itens.html' });
+    }
+
+    function abaServicos(n, prod) {
+      const o = n.os;
+      const abertas = o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros;
+      $('kServ').innerHTML =
+        kpi('OS em aberto', abertas, 'agora, sem contar externos', { href: '/patio.html' }) +
+        kpi('Concluídas', o.concluidas, 'no período' + (o.concluidas ? ' · ' + o.concluidas_no_dia + ' no mesmo dia' : '')) +
+        kpi('Tempo até concluir', o.tempo_medio_dias === null ? '—' : G.fmt(o.tempo_medio_dias, 'dias'), 'média, da abertura à conclusão') +
+        kpi('Externos em aberto', o.externos_abertos, 'serviços fora da loja', { href: '/externos.html' });
+      const meses = mesesUteis(n.mensal, ['os_abertas', 'os_concluidas']);
+      G.barras($('gOsMes'), {
+        rotulos: meses.map((m) => m.rotulo),
+        series: [{ nome: 'Abertas', valores: meses.map((m) => m.os_abertas), cor: 1 }, { nome: 'Concluídas', valores: meses.map((m) => m.os_concluidas), cor: 3 }],
+        formato: 'numero', vazio: 'Ainda não há OS.',
+      });
+      G.ranking($('gEtapas'), {
+        itens: [
+          { nome: 'Recepção', valor: o.etapas.recepcao, sub: 'carro chegou, falta orçar' },
+          { nome: 'Orçamento', valor: o.etapas.orcamento, sub: 'esperando o cliente aprovar' },
+          { nome: 'Execução', valor: o.etapas.execucao, sub: 'serviço sendo feito' },
+          { nome: 'Outras', valor: o.etapas.outros },
+        ],
+        formato: 'numero', cor: 1, porcentagem: true, vazio: 'Nenhuma OS em aberto.',
+      });
+      G.ranking($('gServicos'), {
+        itens: prod.por_servico.slice(0, 10).map((s) => ({ nome: s.nome, valor: s.quantidade, sub: moeda(s.valor_total) })),
+        formato: 'numero', cor: 3, vazio: 'Nenhum serviço feito no período.',
+      });
+    }
+
+    let periodoAtual = null;
+    function abaEquipe(prod) {
+      const f = prod.por_funcionario.filter((x) => x.total_valor > 0).sort((a, b) => b.total_valor - a.total_valor);
+      const total = f.reduce((s, x) => s + x.total_valor, 0);
+      const top = f[0];
+      $('kEquipe').innerHTML =
+        kpi('Total lançado', moeda(total), 'peças + serviços em OS concluídas') +
+        kpi('Quem mais lançou', top ? esc(top.nome) : '—', top ? moeda(top.total_valor) : '') +
+        kpi('Peças', moeda(f.reduce((s, x) => s + x.pecas_valor, 0)), f.reduce((s, x) => s + x.pecas_quantidade, 0) + ' lançamento(s)') +
+        kpi('Serviços', moeda(f.reduce((s, x) => s + x.servicos_valor, 0)), f.reduce((s, x) => s + x.servicos_quantidade, 0) + ' serviço(s)');
+      G.empilhado($('gEquipe'), {
+        series: [{ nome: 'Peças', cor: 1 }, { nome: 'Serviços', cor: 3 }],
+        itens: f.map((x) => ({ nome: x.nome, sub: x.cargo, partes: [x.pecas_valor, x.servicos_valor] })),
+        formato: 'moeda', vazio: 'Ninguém lançou nada no período.',
+      });
+      const sel = $('selFunc');
+      const antes = sel.value;
+      sel.innerHTML = prod.por_funcionario.map((x) => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
+      sel.value = antes && prod.por_funcionario.some((x) => String(x.id) === antes) ? antes : (top ? String(top.id) : sel.value);
+      carregarDia();
+    }
+    async function carregarDia() {
+      const id = $('selFunc').value;
+      if (!id || !periodoAtual) return;
+      try {
+        const d = await api('/api/produtividade/funcionario/' + id + '/dia?inicio=' + periodoAtual.inicio + '&fim=' + periodoAtual.fim);
+        const s = d.serie;
+        const usarBarras = s.length <= 45;
+        (usarBarras ? G.barras : G.linha)($('gDia'), {
+          rotulos: s.map((x) => brCurto(x.data)), rotulosLongos: s.map((x) => br(x.data)),
+          series: usarBarras
+            ? [{ nome: 'Peças', valores: s.map((x) => x.pecas_valor), cor: 1 }, { nome: 'Serviços', valores: s.map((x) => x.servicos_valor), cor: 3 }]
+            : [{ nome: 'Total', valores: s.map((x) => x.total_valor), cor: 1 }],
+          formato: 'moeda', altura: 200, vazio: 'Nada lançado no período.',
+        });
+      } catch (e) {
+        $('gDia').innerHTML = '<div class="gr-vazio">' + esc(e.message) + '</div>';
+      }
+    }
+    $('selFunc').addEventListener('change', carregarDia);
+    // Entrou no Modo Gerenciador agora: a tela apareceu, desenha os gráficos.
+    window.addEventListener('gerente:mudou', () => setTimeout(() => G.redesenhar(), 50));
+
+    // ---------- carregar ----------
+    let estoqueCache = null;
+    async function carregar() {
+      const p = periodo(escolha);
+      periodoAtual = p;
+      document.querySelectorAll('#periodo button').forEach((b) => b.classList.toggle('ativo', b.dataset.p === escolha));
+      $('datas').textContent = p.inicio === p.fim ? br(p.inicio) : br(p.inicio) + ' a ' + br(p.fim);
+      document.querySelector('main').classList.add('nu-carregando');
+      try {
+        const q = '?inicio=' + p.inicio + '&fim=' + p.fim;
+        const [n, v, prod, dash, est] = await Promise.all([
+          api('/api/numeros' + q),
+          api('/api/analises/vendas' + q),
+          api('/api/produtividade' + q),
+          api('/api/dashboard'),
+          estoqueCache ? Promise.resolve(estoqueCache) : api('/api/analises/estoque'),
+        ]);
+        estoqueCache = est;
+        $('mensagens').replaceChildren();
+        abaVendas(n, v);
+        abaFinanceiro(n);
+        abaEstoque(est, dash);
+        abaServicos(n, prod);
+        abaEquipe(prod);
+      } catch (e) {
+        // Fora do Modo Gerenciador o servidor recusa; a página já mostra o aviso.
+        if (window.Gerente && !Gerente.ativo()) return;
+        mostrarMensagem(e.message, 'erro');
+      } finally {
+        document.querySelector('main').classList.remove('nu-carregando');
+      }
+    }
+
+    $('periodo').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-p]');
+      if (!b || b.dataset.p === escolha) return;
+      escolha = b.dataset.p;
+      try { localStorage.setItem('numeros-periodo', escolha); } catch { /* ok */ }
+      carregar();
+    });
+
+    // ---------- abas (lembradas no endereço: numeros.html#financeiro) ----------
+    function abrirAba(nome) {
+      if (!document.querySelector('[data-painel="' + nome + '"]')) nome = 'vendas';
+      document.querySelectorAll('.nu-aba').forEach((b) => {
+        b.classList.toggle('ativa', b.dataset.aba === nome);
+        b.setAttribute('aria-selected', b.dataset.aba === nome);
+      });
+      document.querySelectorAll('.nu-painel').forEach((s) => { s.hidden = s.dataset.painel !== nome; });
+      G.redesenhar(document.querySelector('[data-painel="' + nome + '"]'));
+      if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
+    }
+    $('abas').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-aba]');
+      if (b) abrirAba(b.dataset.aba);
+    });
+    window.addEventListener('hashchange', () => abrirAba(location.hash.slice(1)));
+    abrirAba(location.hash.slice(1) || 'vendas');
+    carregar();
+  </script>
+</body>
+</html>
