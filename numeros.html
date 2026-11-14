@@ -14,6 +14,7 @@
   <script src="/js/atalhos.js"></script>
   <script src="/js/gerente.js"></script>
   <script src="/js/graficos.js"></script>
+  <script src="/js/exportar.js"></script>
 </head>
 <body>
   <header>
@@ -41,7 +42,13 @@
         <button type="button" data-p="ano">Este ano</button>
       </div>
       <span class="nu-datas" id="datas"></span>
+      <span class="nu-exportar">
+        <button type="button" class="secundario" id="btnPdf" title="Relatório com as 5 abas (Salvar como PDF)">PDF</button>
+        <button type="button" class="secundario" id="btnPlanilha" title="Todos os números do período, para abrir no Excel">Planilha</button>
+      </span>
     </div>
+    <!-- Só no PDF/impressão -->
+    <div class="so-imp nu-cab-imp"><strong>Auto Vidros Sport · Análises</strong><span id="periodoImp"></span></div>
 
     <nav class="nu-abas" id="abas" role="tablist">
       <button type="button" class="nu-aba" data-aba="vendas" role="tab">Vendas</button>
@@ -54,6 +61,7 @@
 
     <!-- ===== VENDAS ===== -->
     <section class="nu-painel" data-painel="vendas">
+      <h2 class="so-imp nu-tit-imp">Vendas</h2>
       <div class="nu-kpis" id="kVendas"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
@@ -93,6 +101,7 @@
 
     <!-- ===== FINANCEIRO ===== -->
     <section class="nu-painel" data-painel="financeiro" hidden>
+      <h2 class="so-imp nu-tit-imp">Financeiro</h2>
       <div class="nu-kpis" id="kFin"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
@@ -128,6 +137,7 @@
 
     <!-- ===== ESTOQUE ===== -->
     <section class="nu-painel" data-painel="estoque" hidden>
+      <h2 class="so-imp nu-tit-imp">Estoque</h2>
       <div class="nu-kpis" id="kEst"></div>
       <div class="nu-grade">
         <div class="nu-cartao">
@@ -150,6 +160,7 @@
 
     <!-- ===== SERVIÇOS ===== -->
     <section class="nu-painel" data-painel="servicos" hidden>
+      <h2 class="so-imp nu-tit-imp">Serviços</h2>
       <div class="nu-kpis" id="kServ"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
@@ -173,6 +184,7 @@
 
     <!-- ===== EQUIPE ===== -->
     <section class="nu-painel" data-painel="equipe" hidden>
+      <h2 class="so-imp nu-tit-imp">Equipe</h2>
       <div class="nu-kpis" id="kEquipe"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
@@ -417,6 +429,7 @@
 
     // ---------- carregar ----------
     let estoqueCache = null;
+    let ultimo = null; // o que está na tela agora (para a planilha)
     async function carregar() {
       const p = periodo(escolha);
       periodoAtual = p;
@@ -433,6 +446,8 @@
           estoqueCache ? Promise.resolve(estoqueCache) : api('/api/analises/estoque'),
         ]);
         estoqueCache = est;
+        ultimo = { p, n, v, prod, est, dash };
+        $('periodoImp').textContent = 'Período: ' + $('datas').textContent + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         $('mensagens').replaceChildren();
         abaVendas(n, v);
         abaFinanceiro(n);
@@ -447,6 +462,52 @@
         document.querySelector('main').classList.remove('nu-carregando');
       }
     }
+
+    // ---------- exportar ----------
+    // PDF: as 5 abas, uma por página (a tela volta ao normal depois).
+    function nomeArquivo() { return 'Análises ' + (ultimo ? ultimo.p.inicio + ' a ' + ultimo.p.fim : ''); }
+    $('btnPdf').addEventListener('click', () => {
+      document.body.classList.add('nu-imprimir-tudo');
+      G.redesenhar();
+      Exportar.pdf(nomeArquivo());
+    });
+    window.addEventListener('afterprint', () => {
+      document.body.classList.remove('nu-imprimir-tudo');
+      G.redesenhar();
+    });
+    // Planilha: todos os números do período, uma tabela embaixo da outra.
+    $('btnPlanilha').addEventListener('click', () => {
+      if (!ultimo) return;
+      const { n, v, prod, est, dash } = ultimo;
+      const p = n.periodo, o = n.os, b = n.boletos;
+      Exportar.planilha(nomeArquivo(), [
+        { titulo: 'Análises · Auto Vidros Sport · período ' + $('datas').textContent },
+        { titulo: 'Resumo do período', colunas: ['', 'Valor'], linhas: [
+          ['Faturamento (R$)', p.faturamento], ['Atendimentos', p.documentos], ['Ticket médio (R$)', v.ticket_medio],
+          ['Lucro nas peças (R$)', v.lucro_pecas], ['Despesas (R$)', p.despesas], ['Resultado (R$)', p.resultado],
+          ['Faturamento do período anterior (R$)', n.anterior.faturamento], ['Boletos atrasados (R$)', b.atrasados.valor],
+          ['OS em aberto', o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros], ['OS concluídas', o.concluidas],
+          ['Tempo médio até concluir (dias)', o.tempo_medio_dias],
+        ] },
+        { titulo: 'Mês a mês', colunas: ['Mês', 'Faturamento (R$)', 'Despesas (R$)', 'Resultado (R$)', 'OS abertas', 'OS concluídas'],
+          linhas: n.mensal.map((m) => [m.rotulo, m.faturamento, m.despesas, m.resultado, m.os_abertas, m.os_concluidas]) },
+        { titulo: 'Por tipo de atendimento', colunas: ['Tipo', 'Atendimentos', 'Valor (R$)'], linhas: v.por_tipo.map((x) => [x.tipo, x.quantidade, x.valor]) },
+        { titulo: 'Formas de pagamento', colunas: ['Forma', 'Pagamentos', 'Valor (R$)'], linhas: v.formas.map((x) => [x.forma || 'Não informada', x.quantidade, x.valor]) },
+        { titulo: 'Peças que mais venderam', colunas: ['Código', 'Peça', 'Quantidade', 'Vendido (R$)', 'Lucro (R$)'], linhas: v.itens.map((x) => [x.codigo, x.nome, x.quantidade, x.receita, x.lucro]) },
+        { titulo: 'Melhores clientes', colunas: ['Cliente', 'Atendimentos', 'Valor (R$)'], linhas: v.clientes.map((x) => [x.nome, x.documentos, x.valor]) },
+        { titulo: 'Dia da semana', colunas: ['Dia', 'Média (R$)', 'Atendimentos'], linhas: v.dias_semana.map((x) => [x.dia, x.media, x.documentos]) },
+        { titulo: 'Boletos a pagar nas próximas semanas', colunas: ['Semana de', 'Boletos', 'Valor (R$)'], linhas: b.semanas.map((x) => [x.rotulo, x.quantidade, x.valor]) },
+        { titulo: 'Para quem mais pagamos', colunas: ['Fornecedor', 'Boletos', 'Valor (R$)'], linhas: b.fornecedores.map((x) => [x.nome, x.boletos, x.valor]) },
+        { titulo: 'Estoque (hoje)', colunas: ['', 'Valor'], linhas: [
+          ['Patrimônio pelo custo (R$)', est.valor_custo], ['Se vender tudo (R$)', est.valor_venda], ['Lucro guardado (R$)', est.lucro_potencial],
+          ['Peças em estoque', est.unidades], ['Dinheiro parado (R$)', est.parados.valor], ['Abaixo do mínimo', dash.itens_baixo_estoque], ['Aguardando entrada', dash.aguardando_entrada],
+        ] },
+        { titulo: 'Onde está o dinheiro', colunas: ['Código', 'Peça', 'Local', 'Quantidade', 'Valor (R$)'], linhas: est.maiores.map((x) => [x.codigo, x.nome, x.localizacao || '', x.estoque, x.valor]) },
+        { titulo: 'Dinheiro parado (' + est.dias_parado + ' dias)', colunas: ['Código', 'Peça', 'Local', 'Quantidade', 'Valor (R$)'], linhas: est.parados.itens.map((x) => [x.codigo, x.nome, x.localizacao || '', x.estoque, x.valor]) },
+        { titulo: 'Serviços mais feitos', colunas: ['Serviço', 'Vezes', 'Valor (R$)'], linhas: prod.por_servico.map((x) => [x.nome, x.quantidade, x.valor_total]) },
+        { titulo: 'Equipe', colunas: ['Funcionário', 'Cargo', 'Peças (R$)', 'Serviços (R$)', 'Total (R$)'], linhas: prod.por_funcionario.map((x) => [x.nome, x.cargo, x.pecas_valor, x.servicos_valor, x.total_valor]) },
+      ]);
+    });
 
     $('periodo').addEventListener('click', (e) => {
       const b = e.target.closest('[data-p]');
@@ -473,6 +534,8 @@
     });
     window.addEventListener('hashchange', () => abrirAba(location.hash.slice(1)));
     abrirAba(location.hash.slice(1) || 'vendas');
+    // numeros.html?imprimir: já abre no formato do PDF (as 5 abas), para testes.
+    if (new URLSearchParams(location.search).has('imprimir')) document.body.classList.add('nu-imprimir-tudo');
     carregar();
   </script>
 </body>

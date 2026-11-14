@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de boletos - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/graficos.js"></script>
+  <script src="/js/exportar.js"></script>
+  <style>
+    .rb-filtros { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+    .rb-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    .rb-filtros input, .rb-filtros select { font-size: 14px; }
+    .rb-atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .rb-atalhos button { font-size: 13px; padding: 5px 10px; }
+    .rb-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    .rb-doc { background: var(--card-bg); border: 1px solid var(--borda); border-radius: 12px; padding: 22px 24px; box-shadow: var(--sombra); margin-top: 14px; }
+    .rb-cab { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 2px solid var(--vermelho); padding-bottom: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .rb-cab h2 { margin: 0; font-size: 22px; }
+    .rb-cab .rb-sub { color: var(--texto-suave); font-size: 13px; margin-top: 2px; }
+    .rb-cab .rb-gerado { font-size: 12px; color: var(--texto-suave); text-align: right; }
+    .rb-sec { margin-top: 18px; break-inside: avoid; }
+    .rb-sec h3 { margin: 0 0 8px; font-size: 15px; }
+    .rb-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .rb-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .rb-tabela th { text-align: left; font-size: 12px; color: var(--texto-suave); border-bottom: 1px solid var(--borda); padding: 6px 6px; white-space: nowrap; }
+    .rb-tabela td { padding: 6px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+    .rb-tabela td.num, .rb-tabela th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .rb-tabela tr { break-inside: avoid; }
+    .rb-tabela tfoot td { font-weight: 800; border-bottom: 0; border-top: 2px solid var(--borda); }
+    .rb-tabela a { color: inherit; }
+    .rb-st { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+    .rb-st.pago { background: #e9f7ee; color: #14532d; }
+    .rb-st.pendente { background: #fdf3e0; color: #8a5a12; }
+    .rb-st.atrasado { background: #fdecea; color: #8a1d12; }
+    [data-tema="escuro"] .rb-st.pago { background: #16301f; color: #7fd6a1; }
+    [data-tema="escuro"] .rb-st.pendente { background: #3a2f1a; color: #e0c07a; }
+    [data-tema="escuro"] .rb-st.atrasado { background: #3a2020; color: #e08a7a; }
+    @media (max-width: 760px) { .rb-duas { grid-template-columns: minmax(0, 1fr); } .rb-doc { padding: 14px; } .rb-col-nf, .rb-col-forma { display: none; } }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      .rb-doc { border: 0; box-shadow: none; padding: 0; margin: 0; background: #fff; color: #000; }
+      .rb-tabela th, .rb-tabela td { border-color: #ccc; }
+      .rb-col-nf, .rb-col-forma { display: table-cell !important; }
+      .nu-kpi { box-shadow: none; }
+      .rb-tabela a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>RELATÓRIO DE BOLETOS</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Relatório de boletos: escolhe o período e baixa em PDF (impressão do
+       navegador) ou planilha. Servidor: GET /api/boletos/relatorio. -->
+  <main class="os-main" style="max-width:1100px">
+    <div class="os-secao sem-imp">
+      <div class="rb-filtros">
+        <a href="/despesas.html" class="btn-voltar">← Boletos</a>
+        <label>De <input type="date" id="fIni"></label>
+        <label>Até <input type="date" id="fFim"></label>
+        <label>Pela data de
+          <select id="fBase"><option value="vencimento">vencimento</option><option value="pagamento">pagamento</option></select>
+        </label>
+        <label>Situação
+          <select id="fSit"><option value="">Todos</option><option value="pendente">Em aberto</option><option value="atrasado">Atrasados</option><option value="pago">Pagos</option></select>
+        </label>
+        <label>Fornecedor
+          <select id="fForn"><option value="">Todos</option></select>
+        </label>
+        <div class="rb-acoes">
+          <button type="button" class="sucesso" id="btnPdf">Baixar PDF</button>
+          <button type="button" class="secundario" id="btnPlanilha">Planilha (Excel)</button>
+        </div>
+      </div>
+      <div class="rb-atalhos" id="atalhos">
+        <button type="button" class="secundario" data-a="mes">Este mês</button>
+        <button type="button" class="secundario" data-a="proximo">Próximo mês</button>
+        <button type="button" class="secundario" data-a="passado">Mês passado</button>
+        <button type="button" class="secundario" data-a="30">Próximos 30 dias</button>
+        <button type="button" class="secundario" data-a="ano">Este ano</button>
+      </div>
+    </div>
+    <div id="mensagens" class="sem-imp"></div>
+
+    <article class="rb-doc" id="doc">
+      <div class="rb-cab">
+        <div>
+          <h2>Relatório de boletos</h2>
+          <div class="rb-sub" id="docSub"></div>
+        </div>
+        <div class="rb-gerado"><strong>Auto Vidros Sport</strong><br><span id="docGerado"></span></div>
+      </div>
+      <div class="nu-kpis" id="kpis"></div>
+      <div class="rb-duas">
+        <div class="rb-sec"><h3 id="tituloMes">Por mês</h3><div id="gMes"></div></div>
+        <div class="rb-sec"><h3>Por fornecedor</h3><div id="gForn"></div></div>
+      </div>
+      <div class="rb-sec">
+        <h3 id="tituloLista">Boletos</h3>
+        <div style="overflow-x:auto">
+          <table class="rb-tabela">
+            <thead><tr><th>Nº</th><th>Fornecedor</th><th class="rb-col-nf">Nota fiscal</th><th>Vencimento</th><th>Situação</th><th class="rb-col-forma">Pago em</th><th class="num">Valor</th></tr></thead>
+            <tbody id="corpo"></tbody>
+            <tfoot id="rodape"></tfoot>
+          </table>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const G = Graficos;
+    const moeda = G.moeda;
+    const $ = (id) => document.getElementById(id);
+    const iso = (d) => d.toLocaleDateString('en-CA');
+    const br = (s) => s ? String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) : '';
+    const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.replaceChildren();
+      if (!texto) return;
+      const d = document.createElement('div');
+      d.className = tipo;
+      d.textContent = texto;
+      m.appendChild(d);
+    }
+    function dataPag(v) { return v ? br(new Date(v).toLocaleDateString('en-CA')) : ''; }
+    const ROT = { pago: 'Pago', pendente: 'Em aberto', atrasado: 'Atrasado' };
+
+    function atalho(a) {
+      const h = new Date(), y = h.getFullYear(), m = h.getMonth();
+      if (a === 'proximo') return [new Date(y, m + 1, 1), new Date(y, m + 2, 0)];
+      if (a === 'passado') return [new Date(y, m - 1, 1), new Date(y, m, 0)];
+      if (a === '30') return [h, new Date(y, m, h.getDate() + 30)];
+      if (a === 'ano') return [new Date(y, 0, 1), new Date(y, 11, 31)];
+      return [new Date(y, m, 1), new Date(y, m + 1, 0)];
+    }
+    $('atalhos').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-a]');
+      if (!b) return;
+      const [i, f] = atalho(b.dataset.a);
+      $('fIni').value = iso(i);
+      $('fFim').value = iso(f);
+      carregar();
+    });
+    ['fIni', 'fFim', 'fBase', 'fSit', 'fForn'].forEach((id) => $(id).addEventListener('change', carregar));
+
+    let dados = null;
+    async function carregar() {
+      const q = new URLSearchParams({ inicio: $('fIni').value, fim: $('fFim').value, base: $('fBase').value, situacao: $('fSit').value });
+      if ($('fForn').value) q.set('cliente', $('fForn').value);
+      try {
+        const r = await fetch('/api/boletos/relatorio?' + q);
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro ao carregar o relatório.');
+        dados = d;
+        mostrarMensagem(d.limite ? 'Mostrando os primeiros 5.000 boletos. Escolha um período menor.' : '', 'aviso');
+        desenhar(d);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // Fornecedores que aparecem no período (para o filtro), sem perder a escolha.
+    function preencherFornecedores(d) {
+      const sel = $('fForn');
+      if (sel.value) return;
+      const vistos = new Map();
+      for (const b of d.boletos) if (b.clienteId) vistos.set(String(b.clienteId), b.fornecedor);
+      sel.innerHTML = '<option value="">Todos</option>' + [...vistos.entries()].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+        .map(([id, nome]) => '<option value="' + id + '">' + esc(nome) + '</option>').join('');
+    }
+
+    function descricao(d) {
+      const forn = $('fForn').value ? ' · ' + $('fForn').selectedOptions[0].textContent : '';
+      return 'Pela data de ' + d.base + ', de ' + br(d.inicio) + ' a ' + br(d.fim) +
+        (d.situacao ? ' · somente ' + ROT[d.situacao].toLowerCase() + 's' : '') + forn;
+    }
+
+    function desenhar(d) {
+      preencherFornecedores(d);
+      const s = d.resumo;
+      $('docSub').textContent = descricao(d);
+      $('docGerado').textContent = 'Gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      const kpi = (rot, val, sub, alerta) => '<div class="nu-kpi' + (alerta ? ' nu-alerta' : '') + '"><div class="nu-kpi-rot">' + rot +
+        '</div><div class="nu-kpi-val">' + val + '</div><div class="nu-kpi-sub">' + sub + '</div></div>';
+      $('kpis').innerHTML =
+        kpi('Total', moeda(s.valor), s.quantidade + ' boleto(s)') +
+        kpi('Pagos', moeda(s.pagos.valor), s.pagos.quantidade + ' boleto(s)') +
+        kpi('Em aberto', moeda(s.emAberto.valor), s.emAberto.quantidade + ' boleto(s) no prazo') +
+        kpi('Atrasados', moeda(s.atrasados.valor), s.atrasados.quantidade + ' boleto(s) vencidos', s.atrasados.quantidade > 0);
+      $('tituloMes').textContent = 'Por mês (' + d.base + ')';
+      G.barras($('gMes'), {
+        rotulos: d.porMes.map((m) => MESES[Number(m.mes.slice(5, 7)) - 1] + '/' + m.mes.slice(2, 4)),
+        series: [{ nome: 'Pago', valores: d.porMes.map((m) => m.pago), cor: 3 }, { nome: 'Em aberto', valores: d.porMes.map((m) => m.aberto), cor: 4 }],
+        formato: 'moeda', altura: 200, vazio: 'Nenhum boleto no período.',
+      });
+      const forn = d.porFornecedor.slice(0, 8);
+      if (d.porFornecedor.length > 8) {
+        const resto = d.porFornecedor.slice(8);
+        forn.push({ nome: 'Outros (' + resto.length + ')', valor: resto.reduce((t, f) => t + f.valor, 0), quantidade: resto.reduce((t, f) => t + f.quantidade, 0), outros: true });
+      }
+      G.ranking($('gForn'), {
+        itens: forn.map((f) => ({ nome: f.nome, valor: f.valor, sub: f.quantidade + ' boleto(s)', apagado: f.outros })),
+        formato: 'moeda', cor: 2, porcentagem: true, vazio: 'Nenhum boleto no período.',
+      });
+      $('tituloLista').textContent = 'Boletos (' + s.quantidade + ')';
+      $('corpo').innerHTML = d.boletos.length ? d.boletos.map((b) =>
+        '<tr><td><a href="/despesas.html?boleto=' + b.id + '">' + esc(b.codigo) + '</a>' + (b.parcelas ? ' <small>' + b.parcela + '/' + b.parcelas + '</small>' : '') + '</td>' +
+        '<td>' + esc(b.fornecedor) + '</td><td class="rb-col-nf">' + esc(b.notaFiscal || '') + '</td>' +
+        '<td>' + br(b.vencimento) + '</td><td><span class="rb-st ' + b.status + '">' + ROT[b.status] + '</span></td>' +
+        '<td class="rb-col-forma">' + (b.dataPagamento ? dataPag(b.dataPagamento) + (b.formaPagamento ? ' · ' + esc(b.formaPagamento) : '') : '') + '</td>' +
+        '<td class="num">' + moeda(b.valor) + '</td></tr>').join('')
+        : '<tr><td colspan="7" style="text-align:center;color:var(--texto-suave);padding:20px">Nenhum boleto neste período.</td></tr>';
+      $('rodape').innerHTML = d.boletos.length ? '<tr><td colspan="6">Total</td><td class="num">' + moeda(s.valor) + '</td></tr>' : '';
+    }
+
+    function nomeArquivo() {
+      return 'Boletos ' + $('fIni').value + ' a ' + $('fFim').value;
+    }
+    $('btnPdf').addEventListener('click', () => {
+      G.redesenhar();
+      Exportar.pdf(nomeArquivo());
+    });
+    $('btnPlanilha').addEventListener('click', () => {
+      if (!dados) return;
+      const s = dados.resumo;
+      Exportar.planilha(nomeArquivo(), [
+        { titulo: 'Relatório de boletos · ' + descricao(dados) },
+        { titulo: 'Resumo', colunas: ['', 'Quantidade', 'Valor (R$)'], linhas: [
+          ['Total', s.quantidade, s.valor], ['Pagos', s.pagos.quantidade, s.pagos.valor],
+          ['Em aberto', s.emAberto.quantidade, s.emAberto.valor], ['Atrasados', s.atrasados.quantidade, s.atrasados.valor],
+        ] },
+        { titulo: 'Boletos', colunas: ['Nº', 'Parcela', 'Fornecedor', 'Nota fiscal', 'Vencimento', 'Situação', 'Pago em', 'Forma de pagamento', 'Valor (R$)'],
+          linhas: dados.boletos.map((b) => [b.codigo, b.parcelas ? b.parcela + '/' + b.parcelas : '', b.fornecedor, b.notaFiscal || '', br(b.vencimento),
+            ROT[b.status], dataPag(b.dataPagamento), b.formaPagamento || '', b.valor]) },
+        { titulo: 'Por fornecedor', colunas: ['Fornecedor', 'Boletos', 'Valor (R$)'], linhas: dados.porFornecedor.map((f) => [f.nome, f.quantidade, f.valor]) },
+      ]);
+    });
+
+    // Começa em "este mês", pela data de vencimento.
+    const [i0, f0] = atalho('mes');
+    $('fIni').value = iso(i0);
+    $('fFim').value = iso(f0);
+    carregar();
+  </script>
+</body>
+</html>

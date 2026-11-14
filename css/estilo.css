@@ -3285,3 +3285,25 @@ a.a-caminho:hover { text-decoration: underline; }
   header .marca h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header .topo-direita { gap: 6px; }
 }
+
+/* Exportar (Análises e Relatório de boletos) */
+.nu-exportar { display: inline-flex; gap: 6px; }
+.nu-exportar button { padding: 6px 12px; font-size: 13px; }
+.nu-cab-imp, .nu-tit-imp { display: none; }
+/* Preparando o PDF: as 5 abas aparecem (também na tela, por um instante) para os gráficos serem desenhados. */
+.nu-imprimir-tudo .nu-painel[hidden] { display: block !important; }
+@media print {
+  .gr svg { max-width: 100%; height: auto; }
+  .gr-dica { display: none !important; }
+  .nu-topo, .nu-abas { display: none !important; }
+  .nu-cab-imp { display: flex !important; justify-content: space-between; font-size: 13px; border-bottom: 2px solid #c62828; padding-bottom: 6px; margin-bottom: 10px; }
+  .gr-rank-nome { white-space: normal; overflow: visible; }
+  .nu-imprimir-tudo .nu-painel + .nu-painel { break-before: page; }
+  .nu-tit-imp { display: block !important; font-size: 18px; margin: 0 0 10px; }
+  .nu-kpi, .nu-cartao { box-shadow: none !important; }
+  .nu-kpi, .gr-rank-linha, .nu-cartao h3 { break-inside: avoid; }
+  .gr-rank-linha { grid-template-columns: minmax(0, 50%) minmax(0, 1fr) auto; }
+  .nu-grade { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .nu-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .nu-kpi-val { font-size: 18px !important; }
+}

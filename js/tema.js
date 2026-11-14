@@ -12,6 +12,17 @@
 
   document.documentElement.dataset.tema = preferido();
 
+  // Impressão / PDF sempre no tema claro (papel branco); depois volta.
+  let temaAntesDeImprimir = null;
+  window.addEventListener('beforeprint', () => {
+    temaAntesDeImprimir = document.documentElement.dataset.tema;
+    document.documentElement.dataset.tema = 'claro';
+  });
+  window.addEventListener('afterprint', () => {
+    if (temaAntesDeImprimir) document.documentElement.dataset.tema = temaAntesDeImprimir;
+    temaAntesDeImprimir = null;
+  });
+
   // Ícone + texto. No celular a barra fica apertada e o CSS esconde o texto,
   // deixando só o ícone (lua = ir para o escuro, sol = ir para o claro).
   const ICONE_LUA =
