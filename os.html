@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordem de Serviço - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/ponte-londrisoft.js" defer></script>
+  <script src="/js/estoque-aviso.js"></script>
+  <script src="/js/os-cliente-carro.js"></script>
+  <script src="/js/modo-orcamento.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ORDEM DE SERVIÇO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="os-main">
+    <div style="margin-bottom:10px">
+      <a href="/ordens-servico.html" class="btn-voltar">← Ordens de serviço</a>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <!-- O documento é uma ficha: folha com o timbre da loja, separada da
+         tela do sistema (botão voltar e mensagens ficam fora dela). -->
+    <article class="ficha">
+      <div class="ficha-topo">
+        <div class="ficha-marca" aria-label="Auto Vidros Sport">
+          <span class="ficha-av">Auto<br>vidros</span><span class="ficha-sport">SPORT</span>
+        </div>
+        <div class="ficha-doc">
+          <span class="ficha-tipo">Ordem de serviço</span>
+          <h1 class="ficha-numero"><span id="tituloNumero"></span></h1>
+          <span id="statusBadge"></span>
+        </div>
+      </div>
+
+    <div id="carregando" class="os-secao"><div class="aviso-vazio">Carregando...</div></div>
+
+    <div id="conteudo" class="oculto">
+      <div class="os-secao">
+        <h2>Cliente e veículo</h2>
+        <div class="os-grid" id="dadosCarro"></div>
+        <div class="os-acoes" style="margin-top:10px">
+          <button id="btnAssociarVeiculo" class="secundario" type="button">Adicionar carro</button>
+          <button id="btnAssociarCliente" class="secundario" type="button">Adicionar cliente</button>
+        </div>
+        <!-- Vínculo carro -> cliente (js/os-cliente-carro.js) -->
+        <div id="vinculoCarro"></div>
+        <div class="os-grid" style="margin-top:12px">
+          <div>
+            <label>Atendente</label>
+            <select id="atendente"><option value="">— sem atendente —</option></select>
+          </div>
+        </div>
+        <div class="os-acoes">
+          <button id="btnImprimir" class="secundario" type="button">Imprimir folha (PDF)</button>
+        </div>
+      </div>
+
+      <div class="os-secao">
+        <h2>Andamento</h2>
+        <div class="os-acoes">
+          <button id="btnClienteAvisado" class="secundario" type="button">Cliente avisado</button>
+          <span id="dataClienteAvisado" class="marcacao-data"></span>
+          <button id="btnOrcamentoAprovado" class="secundario" type="button">Orçamento aprovado</button>
+          <span id="dataOrcamentoAprovado" class="marcacao-data"></span>
+          <!-- Pátio: o cliente vem buscar o carro? (o mesmo da aba Pátio) -->
+          <span id="grupoRetirada" class="grupo-retirada">
+            <button id="btnVemBuscar" class="secundario" type="button">Vem buscar</button>
+            <button id="btnNaoVem" class="secundario" type="button">Não vem hoje</button>
+            <span id="dataRetirada" class="marcacao-data"></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="os-secao">
+        <h2>Relato do cliente</h2>
+        <textarea id="apontamento" class="campo-grande"></textarea>
+      </div>
+
+      <div class="os-secao">
+        <h2>Adicionar peças e serviços</h2>
+        <div class="busca-3linhas">
+          <input type="text" id="bi1" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi2" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi3" class="busca" placeholder="" autocomplete="off">
+        </div>
+        <div class="busca-acoes" style="margin-top:8px">
+          <select id="responsavel"><option value="">— responsável (obrigatório) —</option></select>
+          <button id="btnBuscarItens" type="button">Buscar</button>
+          <button id="btnLimparItens" class="secundario" type="button">Limpar</button>
+        </div>
+        <div id="resultados" class="busca-resultados oculto"></div>
+      </div>
+
+      <div class="os-secao">
+        <h2>Peças</h2>
+        <table class="tabela-linhas">
+          <thead>
+            <tr>
+              <th style="width:110px">Código</th>
+              <th>Item</th>
+              <th class="col-qtd">Qtd</th>
+              <th class="col-preco">Preço unit. (R$)</th>
+              <th class="col-func">Responsável</th>
+              <th class="col-assist">Assistente</th>
+              <th style="width:120px">Subtotal</th>
+              <th class="col-remover"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoPecas"></tbody>
+        </table>
+      </div>
+
+      <div class="os-secao">
+        <h2>Serviços</h2>
+        <table class="tabela-linhas">
+          <thead>
+            <tr>
+              <th style="width:110px">Código</th>
+              <th>Serviço</th>
+              <th class="col-preco">Valor (R$)</th>
+              <th class="col-func">Responsável</th>
+              <th class="col-assist">Assistente</th>
+              <th class="col-remover"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoServicos"></tbody>
+        </table>
+      </div>
+
+      <div class="os-secao">
+        <h2>Serviços executados</h2>
+        <textarea id="executados" class="campo-grande"></textarea>
+        <h2 style="margin-top:16px">Observações</h2>
+        <textarea id="observacoes" style="min-height:80px"></textarea>
+      </div>
+
+      <div class="os-secao">
+        <div class="os-total">Total: <span id="total">R$ 0,00</span></div>
+        <div class="os-acoes">
+          <button id="btnSalvar" class="sucesso" type="button">Salvar</button>
+          <button id="btnConcluir" class="sucesso" type="button">Concluir OS</button>
+          <button id="btnCancelarOs" class="perigo" type="button">Cancelar OS</button>
+          <button id="btnModificarOs" class="secundario oculto" type="button" title="Modificar uma OS cancelada/concluída sem reabrir (concluída também atualiza o pagamento)">Modificar</button>
+          <button id="btnReabrirOs" class="secundario oculto" type="button" title="Reabrir uma OS cancelada: volta para recepção e re-reserva o estoque">Reabrir OS</button>
+          <button id="btnExcluirOs" class="perigo oculto" type="button" data-trava-gerente title="Excluir definitivamente (só para OS cancelada)">Excluir definitivamente</button>
+        </div>
+        <div id="infoPagamento"></div>
+      </div>
+    </div>
+    </article>
+  </main>
+
+  <dialog id="dialogConcluir" class="dialog-tipos">
+    <h3>Concluir OS</h3>
+    <p style="margin-top:6px">Total: <strong id="totalConcluir">—</strong></p>
+    <div class="dialog-form">
+      <div>
+        <label>Forma de pagamento *</label>
+        <select id="formaPagamento">
+          <option value="">Selecione...</option>
+          <option>Dinheiro</option>
+          <option>Pix</option>
+          <option>Débito</option>
+          <option>Crédito</option>
+          <option>Transferência</option>
+          <option>Boleto</option>
+        </select>
+      </div>
+      <div id="campoAnexo" class="oculto">
+        <label>Anexo do boleto (PDF, JPG ou PNG)</label>
+        <input type="file" id="anexoBoleto" accept=".pdf,image/jpeg,image/png">
+      </div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnConfirmarConcluir" class="sucesso" type="button">Confirmar conclusão</button>
+      <button id="btnFecharConcluir" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogVeiculo" class="dialog-tipos">
+    <h3>Carro da OS</h3>
+    <p class="dica-veiculo">Digite a placa e aperte "Buscar placa". Se o carro ainda não estiver cadastrado, os campos para cadastrar aparecem aqui mesmo.</p>
+    <div class="dialog-form" style="margin-top:10px">
+      <div>
+        <label>Placa *</label>
+        <input type="text" id="veiPlaca" maxlength="10" autocomplete="off" style="text-transform:uppercase">
+      </div>
+    </div>
+    <div id="veiCadastro" class="oculto">
+      <p class="aviso-vazio" style="margin-top:8px">Placa não cadastrada. Preencha para cadastrar o veículo agora.</p>
+      <div class="dialog-form">
+        <div><label>Modelo *</label><input type="text" id="veiModelo" autocomplete="off"></div>
+        <div><label>Marca</label><input type="text" id="veiMarca" autocomplete="off"></div>
+        <div><label>Ano</label><input type="number" id="veiAno" min="1900" max="2100"></div>
+      </div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnVeiBuscar" type="button">Buscar placa</button>
+      <button id="btnVeiConfirmar" class="sucesso oculto" type="button">Cadastrar e associar</button>
+      <button id="btnVeiFechar" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    const conteudo = document.getElementById('conteudo');
+    const carregando = document.getElementById('carregando');
+
+    let osId = new URLSearchParams(location.search).get('id');
+    let osAtual = null;
+    let modoEdicao = false;
+    let funcCache = [];
+
+    const ROTULO_STATUS = {
+      recepcao: 'Aberta', orcamento: 'Orçamento', execucao: 'Execução',
+      concluida: 'Concluída', cancelada: 'Cancelada',
+    };
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return 'R$ 0,00';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function statusBadge(status) {
+      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>';
+    }
+
+    function atualizarMarcacao(btnId, dataId, valor, rotulo) {
+      const btn = document.getElementById(btnId);
+      const span = document.getElementById(dataId);
+      const marcado = !!valor;
+      btn.classList.toggle('sucesso', marcado);
+      btn.classList.toggle('secundario', !marcado);
+      btn.textContent = (marcado ? '✓ ' : '') + rotulo;
+      btn.title = marcado ? 'Clique para desmarcar' : 'Clique para marcar';
+      span.textContent = marcado ? formatarData(valor) : '';
+    }
+
+    // Resposta do cliente sobre buscar o carro (aba Pátio). Só faz sentido
+    // com o carro na oficina: OS aberta e com placa.
+    function atualizarRetirada(os) {
+      const aberta = ['recepcao', 'orcamento', 'execucao'].includes(os.status);
+      document.getElementById('grupoRetirada').classList.toggle('oculto', !(os.id && os.placa && aberta));
+      // Resposta de outro dia não vale para hoje (igual à aba Pátio).
+      const deHoje = os.retirada && new Date(os.retirada_em).toDateString() === new Date().toDateString();
+      const pintar = (id, valor, rotulo, classe) => {
+        const b = document.getElementById(id);
+        const marcado = os.retirada === valor && deHoje;
+        b.className = marcado ? classe : 'secundario';
+        b.textContent = (marcado ? '✓ ' : '') + rotulo;
+        b.title = marcado ? 'Clique para apagar a resposta' : '';
+      };
+      pintar('btnVemBuscar', 'vem_buscar', 'Vem buscar', 'sucesso');
+      pintar('btnNaoVem', 'nao_vem', 'Não vem hoje', 'perigo');
+      document.getElementById('dataRetirada').textContent = !os.retirada ? ''
+        : deHoje ? formatarData(os.retirada_em)
+          // Igual à página Pátio: "não vem hoje" de outro dia = combinado para hoje.
+          : os.retirada === 'nao_vem'
+            ? 'Ficou de ' + formatarData(os.retirada_em) + ': cliente disse que viria hoje'
+            : 'Em ' + formatarData(os.retirada_em) + ' disse que vinha e não veio — perguntar de novo';
+    }
+
+    async function alternarRetirada(valor) {
+      if (!osId) return;
+      try {
+        const resp = await fetch('/api/ordens-servico/' + osId + '/retirada', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          // Clicar na resposta de HOJE apaga; numa de outro dia, confirma para hoje.
+          body: JSON.stringify({
+            retirada: osAtual.retirada === valor &&
+              new Date(osAtual.retirada_em).toDateString() === new Date().toDateString() ? null : valor,
+          }),
+        });
+        osAtual = await lerJson(resp);
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    function opcoesFuncionarios(selecionado, vazio) {
+      return '<option value="">' + (vazio || '— não informado —') + '</option>' + funcCache.map(f =>
+        '<option value="' + f.id + '"' + (String(selecionado || '') === String(f.id) ? ' selected' : '') + '>' +
+        escapeHtml(f.nome) + '</option>').join('');
+    }
+
+    async function carregarFuncionarios() {
+      try {
+        const resp = await fetch('/api/funcionarios');
+        if (resp.ok) funcCache = (await resp.json()).filter(f => f.ativo);
+      } catch (e) { /* silencioso */ }
+    }
+
+    function osRascunho() {
+      return {
+        id: null, codigo: null, status: 'recepcao',
+        placa: null, marca: null, modelo: null, ano: null,
+        cliente_id: null, cliente_nome: null, cliente_telefone: null,
+        atendente_id: null, apontamento_cliente: '', servicos_executados: '', observacoes: '',
+        data_abertura: null, data_conclusao: null,
+        cliente_avisado_em: null, orcamento_aprovado_em: null,
+        pecas: [], servicos: [], valor_total: 0, pagamento: null,
+      };
+    }
+
+    async function garantirOs() {
+      if (osId) return;
+      const apontamento = document.getElementById('apontamento').value.trim();
+      const resp = await fetch('/api/ordens-servico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apontamento_cliente: apontamento || undefined }),
+      });
+      osAtual = await lerJson(resp);
+      osId = String(osAtual.id);
+      history.replaceState(null, '', '/os.html?id=' + osId);
+      atualizarCabecalho();
+      renderBotoes();
+    }
+
+    function atualizarCabecalho() {
+      const os = osAtual;
+      document.getElementById('tituloNumero').textContent = os.id ? 'nº ' + os.codigo : '(nova)';
+      document.getElementById('statusBadge').innerHTML = os.id
+        ? statusBadge(os.status)
+        : '<span class="status-os recepcao">Nova (não salva)</span>';
+      ModoOrcamento.atualizar(os);
+    }
+
+    async function carregarOs() {
+      modoEdicao = false;
+      if (!osId) {
+        osAtual = osRascunho();
+        carregando.classList.add('oculto');
+        conteudo.classList.remove('oculto');
+        render();
+        return;
+      }
+      try {
+        const resp = await fetch('/api/ordens-servico/' + encodeURIComponent(osId));
+        if (!resp.ok) {
+          const dados = await resp.json().catch(() => ({}));
+          throw new Error(dados.erro || 'OS não encontrada.');
+        }
+        osAtual = await resp.json();
+      } catch (e) {
+        carregando.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+        return;
+      }
+      if (osAtual.venda_balcao_id) {
+        location.href = '/venda.html?id=' + encodeURIComponent(osAtual.venda_balcao_id);
+        return;
+      }
+      if (osAtual.tipo === 'externo') {
+        location.href = '/externa.html?id=' + encodeURIComponent(osAtual.id);
+        return;
+      }
+      carregando.classList.add('oculto');
+      conteudo.classList.remove('oculto');
+      render();
+    }
+
+    function render() {
+      const os = osAtual;
+      atualizarCabecalho();
+
+      const veiculo = [os.marca, os.modelo].filter(Boolean).join(' ');
+      document.getElementById('dadosCarro').innerHTML = `
+        <div><label>Cliente</label><div class="valor">${os.cliente_nome ? (os.cliente_id ? '<a href="/clientes.html?id=' + os.cliente_id + '">' + escapeHtml(os.cliente_nome) + '</a>' : escapeHtml(os.cliente_nome)) : '—'}</div></div>
+        <div><label>Telefone</label><div class="valor">${escapeHtml(os.cliente_telefone) || '—'}</div></div>
+        <div><label>Placa</label><div class="valor">${os.placa ? escapeHtml(os.placa) : '— sem placa —'}</div></div>
+        <div><label>Veículo</label><div class="valor">${veiculo ? escapeHtml(veiculo) + (os.ano ? ' ' + escapeHtml(os.ano) : '') : '—'}</div></div>
+        <div><label>Abertura</label><div class="valor">${formatarData(os.data_abertura)}</div></div>
+        <div><label>Conclusão</label><div class="valor">${formatarData(os.data_conclusao)}</div></div>`;
+
+      document.getElementById('btnAssociarVeiculo').textContent = os.placa ? 'Trocar carro' : 'Adicionar carro';
+      document.getElementById('btnAssociarCliente').textContent = os.cliente_nome ? 'Trocar cliente' : 'Adicionar cliente';
+      // Quadro "o carro passou a ser deste cliente" + Desfazer vínculo.
+      ClienteCarro.mostrarVinculo(os, document.getElementById('vinculoCarro'), (osNova, msg) => {
+        if (osNova) { osAtual = osNova; render(); mostrarMensagem(msg, 'ok'); } else { mostrarMensagem(msg, 'erro'); }
+      });
+
+      const selAtendente = document.getElementById('atendente');
+      selAtendente.innerHTML = '<option value="">— sem atendente —</option>' + funcCache.map(f =>
+        '<option value="' + f.id + '"' + (String(os.atendente_id || '') === String(f.id) ? ' selected' : '') + '>' + escapeHtml(f.nome) + '</option>').join('');
+
+      document.getElementById('apontamento').value = os.apontamento_cliente || '';
+      document.getElementById('executados').value = os.servicos_executados || '';
+      document.getElementById('observacoes').value = os.observacoes || '';
+
+      atualizarMarcacao('btnClienteAvisado', 'dataClienteAvisado', os.cliente_avisado_em, 'Cliente avisado');
+      atualizarMarcacao('btnOrcamentoAprovado', 'dataOrcamentoAprovado', os.orcamento_aprovado_em, 'Orçamento aprovado');
+      atualizarRetirada(os);
+
+      renderPecas();
+      renderServicos();
+      document.getElementById('total').textContent = formatarMoeda(os.valor_total);
+      renderPagamento();
+      renderBotoes();
+    }
+
+    function renderLinhas() {
+      renderPecas();
+      renderServicos();
+      document.getElementById('total').textContent = formatarMoeda(osAtual.valor_total);
+    }
+
+    function renderPecas() {
+      const tbody = document.getElementById('corpoPecas');
+      const editavel = ['recepcao', 'orcamento', 'execucao'].includes(osAtual.status) || (['cancelada', 'concluida'].includes(osAtual.status) && modoEdicao && !osAtual.venda_balcao_id);
+      if (osAtual.pecas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8"><div class="aviso-vazio">Nenhuma peça lançada.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = osAtual.pecas.map(p => `
+        <tr data-id="${p.id}">
+          <td data-label="Código">${escapeHtml(p.codigo || '')}</td>
+          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</td>
+          <td class="col-qtd" data-label="Qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-preco" data-label="Preço unit. (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.funcionario_id, '— não informado —')}</select></td>
+          <td class="col-assist" data-label="Assistente"><select class="in-assist" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.assistente_id, '— sem assistente —')}</select></td>
+          <td class="subtotal" data-label="Subtotal">${formatarMoeda(p.subtotal)}</td>
+          <td class="col-remover">${editavel ? `<button class="btn-mini perigo" data-acao="remover-peca" data-id="${p.id}" type="button">Remover</button>` : ''}</td>
+        </tr>`).join('');
+    }
+
+    function renderServicos() {
+      const tbody = document.getElementById('corpoServicos');
+      const editavel = ['recepcao', 'orcamento', 'execucao'].includes(osAtual.status) || (['cancelada', 'concluida'].includes(osAtual.status) && modoEdicao && !osAtual.venda_balcao_id);
+      if (osAtual.servicos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="aviso-vazio">Nenhum serviço lançado.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = osAtual.servicos.map(s => `
+        <tr data-id="${s.id}">
+          <td data-label="Código">${escapeHtml(s.codigo || '')}</td>
+          <td class="rolavel" data-label="Serviço" title="${escapeHtml(s.nome)}">${escapeHtml(s.nome)}</td>
+          <td class="col-preco" data-label="Valor (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(s.valor).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(s.funcionario_id, '— não informado —')}</select></td>
+          <td class="col-assist" data-label="Assistente"><select class="in-assist" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(s.assistente_id, '— sem assistente —')}</select></td>
+          <td class="col-remover">${editavel ? `<button class="btn-mini perigo" data-acao="remover-servico" data-id="${s.id}" type="button">Remover</button>` : ''}</td>
+        </tr>`).join('');
+    }
+
+    function renderPagamento() {
+      const el = document.getElementById('infoPagamento');
+      if (osAtual.pagamento) {
+        let extra = '';
+        if (osAtual.pagamento.arquivo) {
+          extra = ' · <a href="/' + escapeHtml(osAtual.pagamento.arquivo) + '" target="_blank">ver anexo</a>';
+        }
+        el.innerHTML = '<div class="aviso-bloco">Pago em ' + formatarData(osAtual.pagamento.data) +
+          ' — <strong>' + escapeHtml(osAtual.pagamento.forma_pagamento) + '</strong> (' +
+          formatarMoeda(osAtual.pagamento.valor) + ')' + extra + '</div>';
+      } else {
+        el.innerHTML = '';
+      }
+    }
+
+    function renderBotoes() {
+      const status = osAtual.status;
+      const aberta = ['recepcao', 'orcamento', 'execucao'].includes(status);
+      const concluida = status === 'concluida';
+      const cancelada = status === 'cancelada';
+      const rascunho = !osAtual.id;
+      const podeEditarItens = aberta || (['cancelada', 'concluida'].includes(status) && modoEdicao && !osAtual.venda_balcao_id);
+      const podeModificar = !rascunho && (cancelada || (concluida && !osAtual.venda_balcao_id)) && !modoEdicao;
+      document.getElementById('btnConcluir').classList.toggle('oculto', rascunho || !aberta || status === 'orcamento');
+      document.getElementById('btnCancelarOs').classList.toggle('oculto', rascunho || cancelada || concluida);
+      document.getElementById('btnImprimir').classList.toggle('oculto', rascunho);
+      document.getElementById('btnSalvar').classList.toggle('oculto', rascunho);
+      document.getElementById('btnExcluirOs').classList.toggle('oculto', !cancelada || rascunho);
+      document.getElementById('btnModificarOs').classList.toggle('oculto', !podeModificar);
+      document.getElementById('btnReabrirOs').classList.toggle('oculto', rascunho || !cancelada);
+      document.getElementById('btnClienteAvisado').disabled = cancelada;
+      document.getElementById('btnOrcamentoAprovado').disabled = cancelada;
+      document.getElementById('btnOrcamentoAprovado').classList.toggle('oculto', status === 'orcamento');
+      document.getElementById('dataOrcamentoAprovado').classList.toggle('oculto', status === 'orcamento');
+      document.getElementById('btnBuscarItens').classList.toggle('oculto', !podeEditarItens);
+      document.getElementById('btnLimparItens').classList.toggle('oculto', !podeEditarItens);
+      ['bi1', 'bi2', 'bi3'].forEach(id => { document.getElementById(id).disabled = !podeEditarItens; });
+      if (concluida) {
+        document.getElementById('btnConcluir').classList.add('oculto');
+      }
+    }
+
+    async function salvarTextos(override) {
+      const corpo = {
+        apontamento_cliente: document.getElementById('apontamento').value,
+        servicos_executados: document.getElementById('executados').value,
+        observacoes: document.getElementById('observacoes').value,
+        atendente_id: document.getElementById('atendente').value || null,
+      };
+      if (override && Object.prototype.hasOwnProperty.call(override, 'cliente_id')) {
+        corpo.cliente_id = override.cliente_id;
+      }
+      const temInfo = !!(corpo.apontamento_cliente.trim() || corpo.servicos_executados.trim() ||
+        corpo.observacoes.trim() || corpo.atendente_id || (override && override.cliente_id));
+      if (!osId && !temInfo) {
+        mostrarMensagem('Preencha alguma informação antes de salvar.', 'erro');
+        return;
+      }
+      try {
+        await garantirOs();
+        const resp = await fetch('/api/ordens-servico/' + osId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+        osAtual = await lerJson(resp);
+        mostrarMensagem('OS salva.', 'ok');
+        if (override) render(); else renderBotoes();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function alternarMarcacao(campoApi, campoOs) {
+      try {
+        await garantirOs();
+        const corpo = {};
+        corpo[campoApi] = !osAtual[campoOs];
+        const resp = await fetch('/api/ordens-servico/' + osId + '/marcacoes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+        osAtual = await lerJson(resp);
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // ---------- Busca única (peças + serviços) ----------
+    async function buscarItens() {
+      const q = [document.getElementById('bi1').value, document.getElementById('bi2').value, document.getElementById('bi3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+      const el = document.getElementById('resultados');
+      if (!q) {
+        mostrarMensagem('Digite algo para buscar peças e serviços.', 'erro');
+        return;
+      }
+      let itens = [];
+      let servicos = [];
+      try {
+        const [ri, rs] = await Promise.all([
+          fetch('/api/itens?limite=30&q=' + encodeURIComponent(q)),
+          fetch('/api/servicos?limite=30&q=' + encodeURIComponent(q)),
+        ]);
+        if (ri.ok) itens = (await ri.json()).itens || [];
+        if (rs.ok) servicos = (await rs.json()).servicos || [];
+      } catch (e) {
+        mostrarMensagem('Falha ao buscar.', 'erro');
+        return;
+      }
+
+      const lista = [
+        ...itens.map(i => ({ tipo: 'peca', id: i.id, codigo: i.codigo, nome: i.nome, preco: i.preco, preco_inst: i.preco_com_instalacao })),
+        ...servicos.map(s => ({ tipo: 'servico', id: s.id, codigo: s.codigo, nome: s.nome, valor: s.valor_padrao })),
+      ].sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+
+      el.classList.remove('oculto');
+      if (lista.length === 0) {
+        el.innerHTML = '<div class="aviso-vazio" style="padding:12px">Nada encontrado.</div>';
+        return;
+      }
+      el.innerHTML = lista.map(r => {
+        if (r.tipo === 'peca') {
+          return `<div class="resultado-item" data-tipo="peca" data-id="${r.id}">
+            <span class="etiqueta peca">peça</span>
+            <span class="cod">${escapeHtml(r.codigo || '')}</span>
+            <span class="nome">${escapeHtml(r.nome)}</span>
+            <span class="preco">inst. ${formatarMoeda(r.preco_inst)} · levar ${formatarMoeda(r.preco)}</span>
+          </div>`;
+        }
+        return `<div class="resultado-item" data-tipo="servico" data-id="${r.id}">
+          <span class="etiqueta servico">serviço</span>
+          <span class="cod">${escapeHtml(r.codigo || '')}</span>
+          <span class="nome">${escapeHtml(r.nome)}</span>
+          <span class="preco">${formatarMoeda(r.valor)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    async function adicionarLinha(tipo, refId) {
+      const funcionarioId = document.getElementById('responsavel').value || null;
+      if (!funcionarioId) {
+        mostrarMensagem('Selecione o responsável antes de adicionar a peça ou o serviço.', 'erro');
+        return;
+      }
+      // Estoque vai ficar negativo? Pergunta ANTES (numa OS cancelada o
+      // estoque não se mexe, então não há o que avisar).
+      if (tipo === 'peca' && (!osAtual || osAtual.status !== 'cancelada' && !ModoOrcamento.ativo(osAtual)) &&
+          !(await EstoqueAviso.confirmar(refId, 1))) {
+        mostrarMensagem('Peça não lançada.', 'ok');
+        return;
+      }
+      try {
+        await garantirOs();
+        const url = tipo === 'peca'
+          ? '/api/ordens-servico/' + osId + '/pecas'
+          : '/api/ordens-servico/' + osId + '/servicos';
+        const corpo = tipo === 'peca'
+          ? { item_id: refId, quantidade: 1, funcionario_id: funcionarioId }
+          : { servico_id: refId, funcionario_id: funcionarioId };
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+        osAtual = await lerJson(resp);
+        renderLinhas();
+        if (osAtual.aviso) {
+          mostrarMensagem(osAtual.aviso, 'erro');
+        } else {
+          mostrarMensagem(tipo === 'peca' ? 'Peça adicionada.' : 'Serviço adicionado.', 'ok');
+        }
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function atualizarPeca(id, campos) {
+      // Aumentou a quantidade? Confere se o estoque vai ficar negativo.
+      const linha = osAtual && osAtual.pecas ? osAtual.pecas.find(p => String(p.id) === String(id)) : null;
+      if (linha && campos && campos.quantidade !== undefined && osAtual.status !== 'cancelada' && !ModoOrcamento.ativo(osAtual)) {
+        const sai = Number(campos.quantidade) - Number(linha.quantidade);
+        if (sai > 0 && !(await EstoqueAviso.confirmar(linha.item_id, sai))) {
+          renderLinhas(); // volta a quantidade antiga na tela
+          return;
+        }
+      }
+      try {
+        const resp = await fetch('/api/ordens-servico/pecas/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(campos),
+        });
+        osAtual = await lerJson(resp);
+        renderLinhas();
+        if (osAtual.aviso) mostrarMensagem(osAtual.aviso, 'erro');
+      } catch (e) {
+        renderLinhas();
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function atualizarServico(id, campos) {
+      try {
+        const resp = await fetch('/api/ordens-servico/servicos/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(campos),
+        });
+        osAtual = await lerJson(resp);
+        renderLinhas();
+      } catch (e) {
+        renderLinhas();
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function removerLinha(tipo, id) {
+      const url = tipo === 'peca'
+        ? '/api/ordens-servico/pecas/' + id
+        : '/api/ordens-servico/servicos/' + id;
+      try {
+        const resp = await fetch(url, { method: 'DELETE' });
+        osAtual = await lerJson(resp);
+        renderLinhas();
+        if (tipo === 'peca') mostrarMensagem('Item removido — devolvido ao estoque.', 'ok');
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // ---------- Associar veículo / cliente ----------
+    function abrirDialogoVeiculo() {
+      document.getElementById('veiPlaca').value = '';
+      document.getElementById('veiModelo').value = '';
+      document.getElementById('veiMarca').value = '';
+      document.getElementById('veiAno').value = '';
+      document.getElementById('veiCadastro').classList.add('oculto');
+      document.getElementById('btnVeiBuscar').classList.remove('oculto');
+      document.getElementById('btnVeiConfirmar').classList.add('oculto');
+      document.getElementById('dialogVeiculo').showModal();
+    }
+
+    async function buscarPlacaParaAssociar() {
+      const placa = document.getElementById('veiPlaca').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!placa) { mostrarMensagem('Informe a placa.', 'erro'); return; }
+      document.getElementById('veiPlaca').value = placa;
+      try {
+        const resp = await fetch('/api/carros/' + encodeURIComponent(placa));
+        if (resp.status === 404) {
+          document.getElementById('veiCadastro').classList.remove('oculto');
+          document.getElementById('btnVeiBuscar').classList.add('oculto');
+          document.getElementById('btnVeiConfirmar').classList.remove('oculto');
+          return;
+        }
+        await lerJson(resp);
+        await associarVeiculo(placa);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function cadastrarEAssociarVeiculo() {
+      const placa = document.getElementById('veiPlaca').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const modelo = document.getElementById('veiModelo').value.trim();
+      if (!modelo) { mostrarMensagem('Informe o modelo do veículo.', 'erro'); return; }
+      try {
+        const respCarro = await fetch('/api/carros', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            placa,
+            modelo,
+            marca: document.getElementById('veiMarca').value.trim(),
+            ano: document.getElementById('veiAno').value,
+            cliente_id: null, // o dono vem do vínculo automático (que dá para desfazer)
+          }),
+        });
+        await lerJson(respCarro);
+        await associarVeiculo(placa);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function associarVeiculo(placa) {
+      try {
+        await garantirOs();
+        const resp = await fetch('/api/ordens-servico/' + osId + '/veiculo', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placa }),
+        });
+        osAtual = await lerJson(resp);
+        document.getElementById('dialogVeiculo').close();
+        mostrarMensagem(osAtual.vinculo_status === 'vinculado'
+          ? 'Carro associado — e passou a ser de ' + (osAtual.cliente_nome || 'este cliente') + '. Se não for, use "Desfazer vínculo".'
+          : 'Carro associado.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // Cliente da OS: busca (qualquer cliente, não só os 200 primeiros) ou
+    // cadastro de cliente novo ali mesmo — js/os-cliente-carro.js.
+    async function abrirDialogoCliente() {
+      const r = await ClienteCarro.escolherCliente({ temCliente: !!osAtual.cliente_id });
+      if (!r) return;
+      await salvarTextos({ cliente_id: r.cliente_id });
+      if (osAtual && osAtual.vinculo_status === 'vinculado') {
+        mostrarMensagem('Cliente salvo — e o carro ' + osAtual.placa + ' passou a ser dele. Se não for, use "Desfazer vínculo".', 'ok');
+      }
+    }
+
+    // ---------- Concluir ----------
+    function abrirDialogoConcluir() {
+      if (osAtual.pecas.length === 0 && osAtual.servicos.length === 0) {
+        mostrarMensagem('Adicione ao menos uma peça ou serviço antes de concluir.', 'erro');
+        return;
+      }
+      const semResponsavel = (osAtual.pecas.some(p => !p.funcionario_id) || osAtual.servicos.some(s => !s.funcionario_id));
+      if (semResponsavel) {
+        mostrarMensagem('Defina o responsável de todas as peças e serviços antes de concluir.', 'erro');
+        return;
+      }
+      document.getElementById('totalConcluir').textContent = formatarMoeda(osAtual.valor_total);
+      document.getElementById('formaPagamento').value = '';
+      document.getElementById('campoAnexo').classList.add('oculto');
+      document.getElementById('anexoBoleto').value = '';
+      document.getElementById('dialogConcluir').showModal();
+    }
+
+    async function confirmarConclusao() {
+      const forma = document.getElementById('formaPagamento').value;
+      if (!forma) {
+        mostrarMensagem('Escolha a forma de pagamento.', 'erro');
+        return;
+      }
+      const dados = new FormData();
+      dados.append('forma_pagamento', forma);
+      const anexo = document.getElementById('anexoBoleto').files[0];
+      if (anexo) dados.append('arquivo', anexo);
+
+      try {
+        const resp = await fetch('/api/ordens-servico/' + osId + '/concluir', {
+          method: 'POST',
+          body: dados,
+        });
+        osAtual = await lerJson(resp);
+        document.getElementById('dialogConcluir').close();
+        mostrarMensagem('OS concluída.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function cancelarOs() {
+      if (!osId) return;
+      const restoca = osAtual.pecas.length
+        ? ' As peças desta OS voltarão automaticamente para o estoque.'
+        : '';
+      if (!confirm('Cancelar a OS nº ' + osAtual.codigo + '? Essa ação muda o status para cancelada.' + restoca)) return;
+      try {
+        const resp = await fetch('/api/ordens-servico/' + osId + '/cancelar', { method: 'POST' });
+        osAtual = await lerJson(resp);
+        mostrarMensagem('OS cancelada — itens devolvidos ao estoque.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function excluirOs() {
+      if (!osId) return;
+      if (!confirm('EXCLUIR DEFINITIVAMENTE a OS nº ' + osAtual.codigo + '?\nNão dá para desfazer.')) return;
+      try {
+        const resp = await fetch('/api/ordens-servico/' + osId, { method: 'DELETE' });
+        await lerJson(resp);
+        mostrarMensagem('OS excluída definitivamente.', 'ok');
+        setTimeout(() => { location.href = '/ordens-servico.html'; }, 800);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function modificarOs() {
+      if (!osId) return;
+      if (osAtual.status === 'concluida') {
+        if (!confirm('Liberar a edição da OS nº ' + osAtual.codigo + '? Você poderá alterar os itens e o pagamento será atualizado.')) return;
+        modoEdicao = true;
+        renderPecas();
+        renderServicos();
+        renderBotoes();
+        mostrarMensagem('Edição liberada. Altere os itens; o pagamento será atualizado.', 'ok');
+        return;
+      }
+      if (osAtual.status === 'cancelada') {
+        if (!confirm('Liberar a edição da OS nº ' + osAtual.codigo + '? Ela continuará cancelada e o estoque permanecerá devolvido.')) return;
+        modoEdicao = true;
+        renderPecas();
+        renderServicos();
+        renderBotoes();
+        mostrarMensagem('Edição liberada. Ela continuará cancelada; o estoque só volta quando você reabrir.', 'ok');
+        return;
+      }
+    }
+
+    async function reabrirOs() {
+      if (!osId) return;
+      const restoca = osAtual.pecas.length
+        ? ' As peças que continuarem na OS voltarão a reservar estoque.'
+        : '';
+      if (!confirm('Reabrir a OS nº ' + osAtual.codigo + '? Ela voltará para "recepção" e você poderá terminá-la normalmente.' + restoca)) return;
+      try {
+        const resp = await fetch('/api/ordens-servico/' + osId + '/reabrir', { method: 'POST' });
+        osAtual = await lerJson(resp);
+        modoEdicao = false;
+        mostrarMensagem('OS reaberta. Agora você pode editar.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // ---------- Eventos ----------
+    document.getElementById('btnBuscarItens').addEventListener('click', buscarItens);
+    ['bi1', 'bi2', 'bi3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') buscarItens(); });
+    });
+    document.getElementById('btnLimparItens').addEventListener('click', () => {
+      document.getElementById('bi1').value = '';
+      document.getElementById('bi2').value = '';
+      document.getElementById('bi3').value = '';
+      document.getElementById('resultados').classList.add('oculto');
+      document.getElementById('resultados').replaceChildren();
+    });
+
+    document.getElementById('resultados').addEventListener('click', e => {
+      const item = e.target.closest('.resultado-item');
+      if (!item) return;
+      adicionarLinha(item.dataset.tipo, item.dataset.id);
+    });
+
+    document.getElementById('corpoPecas').addEventListener('change', e => {
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      const campos = {};
+      const qtd = tr.querySelector('.in-qtd');
+      const preco = tr.querySelector('.in-preco');
+      const func = tr.querySelector('.in-func');
+      const assist = tr.querySelector('.in-assist');
+      if (qtd) campos.quantidade = qtd.value;
+      if (preco) campos.preco_unitario = preco.value;
+      if (func) campos.funcionario_id = func.value;
+      if (assist) campos.assistente_id = assist.value;
+      atualizarPeca(tr.dataset.id, campos);
+    });
+
+    document.getElementById('corpoServicos').addEventListener('change', e => {
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      const campos = {};
+      const preco = tr.querySelector('.in-preco');
+      const func = tr.querySelector('.in-func');
+      const assist = tr.querySelector('.in-assist');
+      if (preco) campos.valor = preco.value;
+      if (func) campos.funcionario_id = func.value;
+      if (assist) campos.assistente_id = assist.value;
+      atualizarServico(tr.dataset.id, campos);
+    });
+
+    document.addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acao]');
+      if (!botao) return;
+      const id = botao.dataset.id;
+      if (botao.dataset.acao === 'remover-peca') removerLinha('peca', id);
+      if (botao.dataset.acao === 'remover-servico') removerLinha('servico', id);
+    });
+
+    document.getElementById('btnImprimir').addEventListener('click', () => {
+      window.open('/api/ordens-servico/' + osId + '/pdf', '_blank');
+    });
+    document.getElementById('btnSalvar').addEventListener('click', () => salvarTextos());
+    document.getElementById('btnClienteAvisado').addEventListener('click', () => alternarMarcacao('cliente_avisado', 'cliente_avisado_em'));
+    document.getElementById('btnVemBuscar').addEventListener('click', () => alternarRetirada('vem_buscar'));
+    document.getElementById('btnNaoVem').addEventListener('click', () => alternarRetirada('nao_vem'));
+    document.getElementById('btnOrcamentoAprovado').addEventListener('click', () => alternarMarcacao('orcamento_aprovado', 'orcamento_aprovado_em'));
+    document.getElementById('btnAssociarVeiculo').addEventListener('click', abrirDialogoVeiculo);
+    document.getElementById('btnVeiBuscar').addEventListener('click', buscarPlacaParaAssociar);
+    document.getElementById('btnVeiConfirmar').addEventListener('click', cadastrarEAssociarVeiculo);
+    document.getElementById('btnVeiFechar').addEventListener('click', () => document.getElementById('dialogVeiculo').close());
+    document.getElementById('veiPlaca').addEventListener('keydown', e => { if (e.key === 'Enter') buscarPlacaParaAssociar(); });
+    document.getElementById('btnAssociarCliente').addEventListener('click', abrirDialogoCliente);
+    document.getElementById('btnConcluir').addEventListener('click', abrirDialogoConcluir);
+    document.getElementById('btnCancelarOs').addEventListener('click', cancelarOs);
+    document.getElementById('btnModificarOs').addEventListener('click', modificarOs);
+    document.getElementById('btnReabrirOs').addEventListener('click', reabrirOs);
+    document.getElementById('btnExcluirOs').addEventListener('click', excluirOs);
+    document.getElementById('btnFecharConcluir').addEventListener('click', () => document.getElementById('dialogConcluir').close());
+    document.getElementById('btnConfirmarConcluir').addEventListener('click', confirmarConclusao);
+    document.getElementById('formaPagamento').addEventListener('change', e => {
+      document.getElementById('campoAnexo').classList.toggle('oculto', e.target.value !== 'Boleto');
+    });
+
+    // Modo orçamento (js/modo-orcamento.js): faixa, botão e mensagem.
+    ModoOrcamento.iniciar({
+      osAtual: () => osAtual,
+      garantirOs,
+      aoMudar(os, mensagem, tipo) {
+        if (os) { osAtual = os; render(); }
+        mostrarMensagem(mensagem, tipo);
+      },
+    });
+
+    (async function iniciar() {
+      await carregarFuncionarios();
+      document.getElementById('responsavel').innerHTML = '<option value="">— responsável (obrigatório) —</option>' +
+        funcCache.map(f => '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>').join('');
+      await carregarOs();
+    })();
+  </script>
+</body>
+</html>

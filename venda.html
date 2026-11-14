@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venda no balcão - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/ponte-londrisoft.js" defer></script>
+  <script src="/js/estoque-aviso.js"></script>
+  <script src="/js/os-cliente-carro.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ORDEM DE SERVIÇO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="os-main">
+    <div style="margin-bottom:10px">
+      <a href="/balcao.html" class="btn-voltar">← Vendas no balcão</a>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <!-- O documento é uma ficha: folha com o timbre da loja, separada da
+         tela do sistema (botão voltar e mensagens ficam fora dela). -->
+    <article class="ficha">
+      <div class="ficha-topo">
+        <div class="ficha-marca" aria-label="Auto Vidros Sport">
+          <span class="ficha-av">Auto<br>vidros</span><span class="ficha-sport">SPORT</span>
+        </div>
+        <div class="ficha-doc">
+          <span class="ficha-tipo">Venda no balcão</span>
+          <h1 class="ficha-numero"><span id="tituloNumero"></span></h1>
+          <span id="statusBadge"></span>
+        </div>
+      </div>
+
+    <div id="carregando" class="os-secao"><div class="aviso-vazio">Carregando...</div></div>
+
+    <div id="conteudo" class="oculto">
+      <div class="os-secao">
+        <h2>Cliente e atendente</h2>
+        <div class="os-grid">
+          <div>
+            <label>Cliente cadastrado (opcional)</label>
+            <div id="clienteCampo"></div>
+          </div>
+          <div>
+            <label>Ou nome avulso (sem cadastro)</label>
+            <input type="text" id="clienteNomeAvulso" placeholder="Nome do cliente, se não tiver cadastro" autocomplete="off">
+          </div>
+          <div>
+            <label>Atendente (obrigatório)</label>
+            <select id="atendente"><option value="">— sem atendente —</option></select>
+          </div>
+        </div>
+        <div class="os-acoes">
+          <button id="btnSalvar" class="sucesso" type="button">Salvar dados</button>
+        </div>
+      </div>
+
+      <div class="os-secao">
+        <h2>Adicionar peças</h2>
+        <div class="busca-3linhas">
+          <input type="text" id="bi1" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi2" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi3" class="busca" placeholder="" autocomplete="off">
+        </div>
+        <div class="busca-acoes" style="margin-top:8px">
+          <button id="btnBuscarItens" type="button">Buscar</button>
+          <button id="btnLimparItens" class="secundario" type="button">Limpar</button>
+        </div>
+        <div id="resultados" class="busca-resultados oculto"></div>
+      </div>
+
+      <div class="os-secao">
+        <h2>Peças</h2>
+        <table class="tabela-linhas">
+          <thead>
+            <tr>
+              <th style="width:110px">Código</th>
+              <th>Item</th>
+              <th class="col-qtd">Qtd</th>
+              <th class="col-preco">Preço unit. (R$)</th>
+              <th style="width:120px">Subtotal</th>
+              <th class="col-remover"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoPecas"></tbody>
+        </table>
+      </div>
+
+      <div class="os-secao">
+        <div class="os-total">Total: <span id="total">R$ 0,00</span></div>
+        <div class="os-acoes">
+          <button id="btnImprimir" class="secundario" type="button">Imprimir recibo (PDF)</button>
+          <button id="btnImprimirFolha" class="secundario" type="button">Imprimir folha de OS (PDF)</button>
+          <button id="btnCancelarVenda" class="perigo" type="button">Cancelar venda</button>
+          <button id="btnModificarVenda" class="secundario oculto" type="button" title="Modificar uma venda cancelada sem reabrir (continua cancelada; o estoque permanece devolvido)">Modificar</button>
+          <button id="btnReabrirVenda" class="secundario oculto" type="button" title="Reabrir uma venda cancelada: volta para aguardando pagamento e re-reserva o estoque">Reabrir venda</button>
+          <button id="btnExcluirVenda" class="perigo oculto" type="button" data-trava-gerente title="Excluir definitivamente (só para venda cancelada)">Excluir definitivamente</button>
+        </div>
+      </div>
+
+      <div class="os-secao" id="secaoCaixa">
+        <h2>Caixa</h2>
+        <div id="infoPagamento"></div>
+        <div id="formCaixa">
+          <div class="os-grid">
+            <div>
+              <label>Forma de pagamento *</label>
+              <select id="formaPagamento">
+                <option value="">Selecione...</option>
+                <option>Dinheiro</option>
+                <option>Pix</option>
+                <option>Débito</option>
+                <option>Crédito</option>
+                <option>Transferência</option>
+                <option>Boleto</option>
+              </select>
+            </div>
+            <div>
+              <label>Funcionário do caixa (opcional)</label>
+              <select id="funcionarioCaixa"><option value="">— não informado —</option></select>
+            </div>
+          </div>
+          <div class="os-acoes" style="margin-top:10px">
+            <button id="btnPagar" class="sucesso" type="button">Registrar pagamento</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </article>
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    const conteudo = document.getElementById('conteudo');
+    const carregando = document.getElementById('carregando');
+
+    let vendaId = new URLSearchParams(location.search).get('id');
+    let vendaAtual = null;
+    let modoVendaEdicao = false;
+    let funcCache = [];
+
+    const ROTULO_STATUS = {
+      aguardando_pagamento: 'Aguardando pagamento',
+      concluida: 'Paga',
+      cancelada: 'Cancelada',
+    };
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return 'R$ 0,00';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function statusBadge(status) {
+      return '<span class="status-venda ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>';
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    async function carregarFuncionarios() {
+      try {
+        const resp = await fetch('/api/funcionarios');
+        if (resp.ok) funcCache = (await resp.json()).filter(f => f.ativo);
+      } catch (e) { /* silencioso */ }
+    }
+
+    function opcoesFuncionarios(selecionado, vazio) {
+      return '<option value="">' + (vazio || '— não informado —') + '</option>' + funcCache.map(f =>
+        '<option value="' + f.id + '"' + (String(selecionado || '') === String(f.id) ? ' selected' : '') + '>' +
+        escapeHtml(f.nome) + '</option>').join('');
+    }
+
+    // Cliente cadastrado: campo com busca (acha qualquer cliente, não só os
+    // 200 primeiros de uma lista). "Nome avulso" continua no campo ao lado.
+    const campoCliente = ClienteCarro.campoCliente(document.getElementById('clienteCampo'), {
+      titulo: 'Cliente da venda',
+      onde: 'nesta venda',
+      vazio: '— sem cliente cadastrado —',
+      aoAvulso(nome) { document.getElementById('clienteNomeAvulso').value = nome; },
+      aoMudar(id) {
+        if (id) document.getElementById('clienteNomeAvulso').value = '';
+        if (document.getElementById('atendente').value) salvarDados();
+        else mostrarMensagem('Cliente escolhido. Selecione o atendente e clique em "Salvar dados".', 'ok');
+      },
+    });
+
+    function vendaRascunho() {
+      return {
+        id: null, codigo: null, status: 'aguardando_pagamento',
+        cliente_id: null, cliente_nome: '', atendente_id: null,
+        funcionario_caixa_id: null, forma_pagamento: null,
+        valor_total: 0, pecas: [], data_pagamento: null, caixa_nome: null,
+      };
+    }
+
+    async function garantirVenda() {
+      if (vendaId) return;
+      const atendenteId = document.getElementById('atendente').value;
+      if (!atendenteId) {
+        throw new Error('Selecione o atendente antes de iniciar a venda.');
+      }
+      const resp = await fetch('/api/vendas-balcao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ atendente_id: atendenteId }),
+      });
+      vendaAtual = await lerJson(resp);
+      vendaId = String(vendaAtual.id);
+      history.replaceState(null, '', '/venda.html?id=' + vendaId);
+      atualizarCabecalho();
+      atualizarBotoesVenda();
+    }
+
+    function atualizarCabecalho() {
+      const v = vendaAtual;
+      document.getElementById('tituloNumero').textContent = v.id ? 'nº ' + v.codigo : '(nova)';
+      document.getElementById('statusBadge').innerHTML = v.id
+        ? statusBadge(v.status)
+        : '<span class="status-venda aguardando_pagamento">Nova (não salva)</span>';
+    }
+
+    async function carregarVenda() {
+      modoVendaEdicao = false;
+      if (!vendaId) {
+        vendaAtual = vendaRascunho();
+        carregando.classList.add('oculto');
+        conteudo.classList.remove('oculto');
+        render();
+        return;
+      }
+      try {
+        const resp = await fetch('/api/vendas-balcao/' + encodeURIComponent(vendaId));
+        if (!resp.ok) {
+          const dados = await resp.json().catch(() => ({}));
+          throw new Error(dados.erro || 'Venda não encontrada.');
+        }
+        vendaAtual = await resp.json();
+      } catch (e) {
+        carregando.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+        return;
+      }
+      carregando.classList.add('oculto');
+      conteudo.classList.remove('oculto');
+      render();
+    }
+
+    function render() {
+      const v = vendaAtual;
+      atualizarCabecalho();
+
+      campoCliente.definir(v.cliente_id, v.cliente_nome);
+      document.getElementById('clienteNomeAvulso').value = v.cliente_id ? '' : (v.cliente_nome || '');
+      document.getElementById('atendente').innerHTML = opcoesFuncionarios(v.atendente_id, '— sem atendente —');
+      document.getElementById('funcionarioCaixa').innerHTML = opcoesFuncionarios(v.funcionario_caixa_id, '— não informado —');
+      document.getElementById('formaPagamento').value = v.forma_pagamento || '';
+
+      atualizarBotoesVenda();
+
+      renderPecas();
+      document.getElementById('total').textContent = formatarMoeda(v.valor_total);
+      renderCaixa(v.status === 'aguardando_pagamento');
+    }
+
+    function atualizarBotoesVenda() {
+      const v = vendaAtual;
+      const aguardando = v.status === 'aguardando_pagamento';
+      const cancelada = v.status === 'cancelada';
+      const rascunho = !v.id;
+      const editavelCelulas = aguardando || (cancelada && modoVendaEdicao);
+      const editavelCampos = aguardando || (cancelada && modoVendaEdicao);
+      campoCliente.habilitar(editavelCampos);
+      document.getElementById('clienteNomeAvulso').disabled = !editavelCampos;
+      document.getElementById('atendente').disabled = !editavelCampos;
+      document.getElementById('btnSalvar').classList.toggle('oculto', !editavelCampos);
+      document.getElementById('btnBuscarItens').classList.toggle('oculto', !editavelCelulas);
+      document.getElementById('btnLimparItens').classList.toggle('oculto', !editavelCelulas);
+      document.querySelectorAll('#conteudo .busca').forEach(el => { el.disabled = !editavelCelulas; });
+      document.getElementById('btnCancelarVenda').classList.toggle('oculto', !editavelCelulas || rascunho);
+      document.getElementById('btnPagar').classList.toggle('oculto', !aguardando || rascunho);
+      document.getElementById('btnModificarVenda').classList.toggle('oculto', !cancelada || rascunho || modoVendaEdicao);
+      document.getElementById('btnReabrirVenda').classList.toggle('oculto', !cancelada || rascunho);
+      document.getElementById('btnImprimir').classList.toggle('oculto', rascunho);
+      document.getElementById('btnImprimirFolha').classList.toggle('oculto', rascunho);
+      document.getElementById('btnExcluirVenda').classList.toggle('oculto', !cancelada || rascunho);
+    }
+
+    function renderPecas() {
+      const v = vendaAtual;
+      const editavel = v.status === 'aguardando_pagamento' || (v.status === 'cancelada' && modoVendaEdicao);
+      const tbody = document.getElementById('corpoPecas');
+      if (v.pecas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="aviso-vazio">Nenhuma peça lançada.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = v.pecas.map(p => `
+        <tr data-id="${p.id}">
+          <td>${escapeHtml(p.codigo || '')}</td>
+          <td class="rolavel" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</td>
+          <td class="col-qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-preco"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="subtotal">${formatarMoeda(p.subtotal)}</td>
+          <td class="col-remover">${editavel ? `<button class="btn-mini perigo" data-acao="remover-peca" data-id="${p.id}" type="button">Remover</button>` : ''}</td>
+        </tr>`).join('');
+    }
+
+    function renderCaixa(editavel) {
+      const v = vendaAtual;
+      const info = document.getElementById('infoPagamento');
+      const form = document.getElementById('formCaixa');
+
+      if (v.status === 'concluida') {
+        info.innerHTML = '<div class="aviso-bloco">Pago em ' + formatarData(v.data_pagamento) +
+          ' — <strong>' + escapeHtml(v.forma_pagamento) + '</strong> (' + formatarMoeda(v.valor_total) + ')' +
+          (v.caixa_nome ? ' · caixa: ' + escapeHtml(v.caixa_nome) : '') + '</div>';
+        form.classList.add('oculto');
+      } else if (v.status === 'cancelada') {
+        info.innerHTML = '<div class="aviso-bloco">Venda cancelada.</div>';
+        form.classList.add('oculto');
+      } else {
+        info.innerHTML = '';
+        form.classList.remove('oculto');
+      }
+    }
+
+    function renderLinhas() {
+      renderPecas();
+      document.getElementById('total').textContent = formatarMoeda(vendaAtual.valor_total);
+    }
+
+    // O cliente cadastrado (selecionado por ID, nunca por nome digitado) tem
+    // prioridade. Só usamos o nome avulso quando não há cadastro selecionado
+    // — assim a venda nunca fica "parecendo" vinculada a um cliente sem
+    // estar de verdade (o jeito antigo comparava texto digitado com o nome
+    // do cliente e podia não bater por acento, espaço ou cadastro feito
+    // depois da lista carregar, gravando um nome solto sem ninguém perceber).
+    function clienteEscolhido() {
+      const id = campoCliente.valor();
+      if (id) return { id, nome: null };
+      const nome = document.getElementById('clienteNomeAvulso').value.trim();
+      return { id: null, nome: nome || null };
+    }
+
+    async function salvarDados() {
+      const cliente = clienteEscolhido();
+      const atendenteId = document.getElementById('atendente').value || null;
+      if (!atendenteId) {
+        mostrarMensagem('Selecione o atendente para salvar a venda.', 'erro');
+        return;
+      }
+      try {
+        await garantirVenda();
+        const resp = await fetch('/api/vendas-balcao/' + vendaId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome,
+            atendente_id: atendenteId,
+          }),
+        });
+        vendaAtual = await lerJson(resp);
+        mostrarMensagem('Dados salvos.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function buscarItens() {
+      const q = [document.getElementById('bi1').value, document.getElementById('bi2').value, document.getElementById('bi3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+      const el = document.getElementById('resultados');
+      if (!q) {
+        mostrarMensagem('Digite algo para buscar peças.', 'erro');
+        return;
+      }
+      let itens = [];
+      try {
+        const ri = await fetch('/api/itens?limite=30&q=' + encodeURIComponent(q));
+        if (ri.ok) itens = (await ri.json()).itens || [];
+      } catch (e) {
+        mostrarMensagem('Falha ao buscar.', 'erro');
+        return;
+      }
+
+      el.classList.remove('oculto');
+      if (itens.length === 0) {
+        el.innerHTML = '<div class="aviso-vazio" style="padding:12px">Nada encontrado.</div>';
+        return;
+      }
+      el.innerHTML = itens.map(i => `
+        <div class="resultado-item" data-id="${i.id}">
+          <span class="etiqueta peca">peça</span>
+          <span class="cod">${escapeHtml(i.codigo || '')}</span>
+          <span class="nome">${escapeHtml(i.nome)}</span>
+          <span class="preco">levar ${formatarMoeda(i.preco)} · estoque ${i.estoque}</span>
+        </div>`).join('');
+    }
+
+    async function adicionarPeca(itemId) {
+      // Estoque vai ficar negativo? Pergunta ANTES (venda cancelada não mexe no estoque).
+      if ((!vendaAtual || vendaAtual.status !== 'cancelada') && !(await EstoqueAviso.confirmar(itemId, 1))) {
+        mostrarMensagem('Peça não lançada.', 'ok');
+        return;
+      }
+      try {
+        await garantirVenda();
+        const resp = await fetch('/api/vendas-balcao/' + vendaId + '/pecas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: itemId, quantidade: 1 }),
+        });
+        vendaAtual = await lerJson(resp);
+        renderLinhas();
+        if (vendaAtual.aviso) mostrarMensagem(vendaAtual.aviso, 'erro');
+        else mostrarMensagem('Peça adicionada.', 'ok');
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function atualizarPeca(id, campos) {
+      // Aumentou a quantidade? Confere se o estoque vai ficar negativo.
+      const linha = vendaAtual && vendaAtual.pecas ? vendaAtual.pecas.find(p => String(p.id) === String(id)) : null;
+      if (linha && campos && campos.quantidade !== undefined && vendaAtual.status !== 'cancelada') {
+        const sai = Number(campos.quantidade) - Number(linha.quantidade);
+        if (sai > 0 && !(await EstoqueAviso.confirmar(linha.item_id, sai))) {
+          renderLinhas(); // volta a quantidade antiga na tela
+          return;
+        }
+      }
+      try {
+        const resp = await fetch('/api/vendas-balcao/pecas/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(campos),
+        });
+        vendaAtual = await lerJson(resp);
+        renderLinhas();
+        if (vendaAtual.aviso) mostrarMensagem(vendaAtual.aviso, 'erro');
+      } catch (e) {
+        render();
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function removerPeca(id) {
+      try {
+        const jaEstavaCancelada = vendaAtual.status === 'cancelada';
+        const resp = await fetch('/api/vendas-balcao/pecas/' + id, { method: 'DELETE' });
+        vendaAtual = await lerJson(resp);
+        renderLinhas();
+        mostrarMensagem(
+          jaEstavaCancelada ? 'Item removido.' : 'Item removido — devolvido ao estoque.',
+          'ok'
+        );
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function pagar() {
+      const forma = document.getElementById('formaPagamento').value;
+      if (!forma) { mostrarMensagem('Escolha a forma de pagamento.', 'erro'); return; }
+      if (!vendaAtual || !vendaAtual.pecas || vendaAtual.pecas.length === 0) {
+        mostrarMensagem('Adicione ao menos uma peça antes de registrar o pagamento.', 'erro');
+        return;
+      }
+      try {
+        const resp = await fetch('/api/vendas-balcao/' + vendaId + '/pagar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            forma_pagamento: forma,
+            funcionario_caixa_id: document.getElementById('funcionarioCaixa').value || null,
+          }),
+        });
+        vendaAtual = await lerJson(resp);
+        mostrarMensagem('Pagamento registrado.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function cancelarVenda() {
+      if (!vendaId) return;
+      if (!confirm('Cancelar a venda nº ' + vendaAtual.codigo + '? As peças voltam para o estoque.')) return;
+      try {
+        const resp = await fetch('/api/vendas-balcao/' + vendaId + '/cancelar', { method: 'POST' });
+        vendaAtual = await lerJson(resp);
+        mostrarMensagem('Venda cancelada — itens devolvidos ao estoque.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function excluirVenda() {
+      if (!vendaId) return;
+      if (!confirm('EXCLUIR DEFINITIVAMENTE a venda nº ' + vendaAtual.codigo + '?\nNão dá para desfazer.')) return;
+      try {
+        const resp = await fetch('/api/vendas-balcao/' + vendaId, { method: 'DELETE' });
+        await lerJson(resp);
+        mostrarMensagem('Venda excluída definitivamente.', 'ok');
+        setTimeout(() => { location.href = '/balcao.html'; }, 800);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    function modificarVenda() {
+      if (!vendaId || vendaAtual.status !== 'cancelada') return;
+      if (!confirm('Liberar a edição da venda nº ' + vendaAtual.codigo + '? Ela continuará cancelada e o estoque permanecerá devolvido.')) return;
+      modoVendaEdicao = true;
+      renderPecas();
+      atualizarBotoesVenda();
+      mostrarMensagem('Edição liberada. Ela continuará cancelada; o estoque só volta quando você reabrir.', 'ok');
+    }
+
+    async function reabrirVenda() {
+      if (!vendaId) return;
+      const restoca = vendaAtual.pecas.length
+        ? ' As peças que continuarem na venda voltarão a reservar estoque.'
+        : '';
+      if (!confirm('Reabrir a venda nº ' + vendaAtual.codigo + '? Ela voltará para "aguardando pagamento" e você poderá editá-la normalmente.' + restoca)) return;
+      try {
+        const resp = await fetch('/api/vendas-balcao/' + vendaId + '/reabrir', { method: 'POST' });
+        vendaAtual = await lerJson(resp);
+        modoVendaEdicao = false;
+        mostrarMensagem('Venda reaberta. Agora você pode editar.', 'ok');
+        render();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    document.getElementById('btnSalvar').addEventListener('click', salvarDados);
+    document.getElementById('btnBuscarItens').addEventListener('click', buscarItens);
+    ['bi1', 'bi2', 'bi3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') buscarItens(); });
+    });
+    document.getElementById('btnLimparItens').addEventListener('click', () => {
+      document.getElementById('bi1').value = '';
+      document.getElementById('bi2').value = '';
+      document.getElementById('bi3').value = '';
+      document.getElementById('resultados').classList.add('oculto');
+      document.getElementById('resultados').replaceChildren();
+    });
+    document.getElementById('resultados').addEventListener('click', e => {
+      const item = e.target.closest('.resultado-item');
+      if (item) adicionarPeca(item.dataset.id);
+    });
+    document.getElementById('corpoPecas').addEventListener('change', e => {
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      const campos = {};
+      const qtd = tr.querySelector('.in-qtd');
+      const preco = tr.querySelector('.in-preco');
+      if (qtd) campos.quantidade = qtd.value;
+      if (preco) campos.preco_unitario = preco.value;
+      atualizarPeca(tr.dataset.id, campos);
+    });
+    document.addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acao="remover-peca"]');
+      if (botao) removerPeca(botao.dataset.id);
+    });
+    document.getElementById('btnImprimir').addEventListener('click', () => {
+      window.open('/api/vendas-balcao/' + vendaId + '/recibo.pdf', '_blank');
+    });
+    document.getElementById('btnImprimirFolha').addEventListener('click', () => {
+      window.open('/api/vendas-balcao/' + vendaId + '/folha.pdf', '_blank');
+    });
+    document.getElementById('btnPagar').addEventListener('click', pagar);
+    document.getElementById('btnCancelarVenda').addEventListener('click', cancelarVenda);
+    document.getElementById('btnModificarVenda').addEventListener('click', modificarVenda);
+    document.getElementById('btnReabrirVenda').addEventListener('click', reabrirVenda);
+    document.getElementById('btnExcluirVenda').addEventListener('click', excluirVenda);
+
+    (async function iniciar() {
+      await carregarFuncionarios();
+      await carregarVenda();
+    })();
+  </script>
+</body>
+</html>

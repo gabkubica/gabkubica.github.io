@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtividade - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>RELATÓRIOS</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas" id="abasProdutividade">
+      <button type="button" class="aba ativa" data-painel="funcionario">Por funcionário</button>
+      <button type="button" class="aba" data-painel="servico">Por serviço</button>
+    </div>
+
+    <div class="card">
+      <h2>Produtividade</h2>
+      <p style="margin:0 0 12px;color:var(--texto-suave);font-size:14px">
+        Só conta peças e serviços de OS já concluídas, e vendas de balcão já pagas, dentro do período escolhido.
+      </p>
+      <div class="busca-linha">
+        <label for="dataInicio" style="align-self:center;font-weight:600">De:</label>
+        <input type="date" id="dataInicio" class="busca">
+        <label for="dataFim" style="align-self:center;font-weight:600">Até:</label>
+        <input type="date" id="dataFim" class="busca">
+        <button id="btnHoje" class="secundario" type="button">Hoje</button>
+        <button id="btnSemana" class="secundario" type="button">Esta semana</button>
+        <button id="btnMes" class="secundario" type="button">Este mês</button>
+      </div>
+      <div id="mensagens"></div>
+    </div>
+
+    <div class="card" id="painelFuncionario">
+      <h2>Por funcionário</h2>
+      <div class="busca-linha" style="margin-bottom:14px">
+        <input type="text" id="buscaFuncionario" class="busca" placeholder="Buscar funcionário por nome...">
+      </div>
+      <div class="tabela-envolve">
+        <table>
+          <thead>
+            <tr>
+              <th>Funcionário</th>
+              <th style="width:140px">Cargo</th>
+              <th style="width:100px">Peças (qtd)</th>
+              <th style="width:130px">Peças (R$)</th>
+              <th style="width:110px">Serviços (qtd)</th>
+              <th style="width:130px">Serviços (R$)</th>
+              <th style="width:130px">Total (R$)</th>
+              <th style="width:120px"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoFuncionario"></tbody>
+        </table>
+      </div>
+
+      <div id="graficoWrap" class="oculto" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0" id="graficoTitulo">Desempenho diário</h2>
+          <button id="btnFecharGrafico" class="secundario" type="button">Fechar gráfico</button>
+        </div>
+        <div class="tabela-envolve" style="margin-top:10px">
+          <canvas id="grafico" style="width:100%;height:260px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card oculto" id="painelServico">
+      <h2>Por serviço</h2>
+      <div class="tabela-envolve">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:100px">Código</th>
+              <th>Serviço</th>
+              <th style="width:120px">Quantidade</th>
+              <th style="width:150px">Valor total (R$)</th>
+            </tr>
+          </thead>
+          <tbody id="corpoServico"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    const campoInicio = document.getElementById('dataInicio');
+    const campoFim = document.getElementById('dataFim');
+    const campoBuscaFuncionario = document.getElementById('buscaFuncionario');
+    const grafico = document.getElementById('grafico');
+
+    let dadosFuncionario = [];
+    let dadosGrafico = null;
+    const graficoBarras = [];
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      const n = Number(v) || 0;
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function hojeISO() {
+      return new Date().toLocaleDateString('en-CA');
+    }
+
+    function paraISO(d) {
+      return d.toLocaleDateString('en-CA');
+    }
+
+    function dataBR(iso) {
+      const [ano, mes, dia] = iso.split('-');
+      return dia + '/' + mes;
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+    }
+
+    // Remove acentos pra "joao" achar "João" — mesmo critério usado no resto
+    // do sistema pra busca de texto.
+    function normalizar(s) {
+      return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    }
+
+    function renderFuncionario() {
+      const termo = normalizar(campoBuscaFuncionario.value.trim());
+      const linhas = termo
+        ? dadosFuncionario.filter(f => normalizar(f.nome).includes(termo) || normalizar(f.cargo).includes(termo))
+        : dadosFuncionario;
+      const corpo = document.getElementById('corpoFuncionario');
+      if (linhas.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="8"><div class="sem-resultados">' +
+          (termo ? 'Nenhum funcionário encontrado com esse nome no período.' : 'Nenhuma peça ou serviço lançado neste período.') +
+          '</div></td></tr>';
+        return;
+      }
+      corpo.innerHTML = linhas.map(f => `
+        <tr>
+          <td><strong>${escapeHtml(f.nome)}</strong></td>
+          <td>${escapeHtml(f.cargo || '-')}</td>
+          <td>${f.pecas_quantidade}</td>
+          <td>${formatarMoeda(f.pecas_valor)}</td>
+          <td>${f.servicos_quantidade}</td>
+          <td>${formatarMoeda(f.servicos_valor)}</td>
+          <td><strong>${formatarMoeda(f.total_valor)}</strong></td>
+          <td><button type="button" class="btn-mini" data-grafico-func="${f.id}" data-nome="${escapeHtml(f.nome)}">Ver gráfico</button></td>
+        </tr>`).join('');
+    }
+
+    function renderServico(linhas) {
+      const corpo = document.getElementById('corpoServico');
+      if (linhas.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="4"><div class="sem-resultados">Nenhum serviço concluído neste período.</div></td></tr>';
+        return;
+      }
+      corpo.innerHTML = linhas.map(s => `
+        <tr>
+          <td>${escapeHtml(s.codigo || '-')}</td>
+          <td>${escapeHtml(s.nome)}</td>
+          <td>${s.quantidade}</td>
+          <td>${formatarMoeda(s.valor_total)}</td>
+        </tr>`).join('');
+    }
+
+    async function carregar() {
+      const inicio = campoInicio.value;
+      const fim = campoFim.value;
+      if (!inicio || !fim) return;
+      try {
+        const resp = await fetch('/api/produtividade?inicio=' + encodeURIComponent(inicio) + '&fim=' + encodeURIComponent(fim));
+        const dados = await resp.json();
+        if (!resp.ok) {
+          mostrarMensagem(dados.erro || 'Erro ao carregar o relatório.', 'erro');
+          return;
+        }
+        mensagens.replaceChildren();
+        dadosFuncionario = dados.por_funcionario;
+        renderFuncionario();
+        renderServico(dados.por_servico);
+        document.getElementById('graficoWrap').classList.add('oculto');
+      } catch (e) {
+        mostrarMensagem('Erro ao carregar o relatório.', 'erro');
+      }
+    }
+
+    // ---------- Gráfico de desempenho diário (mesma técnica do gráfico de Faturamento) ----------
+
+    function corTema(nome, padrao) {
+      return getComputedStyle(document.documentElement).getPropertyValue(nome).trim() || padrao;
+    }
+
+    function formatarValorEixo(v) {
+      const n = Number(v) || 0;
+      if (n >= 1000) return 'R$ ' + (n / 1000).toFixed(1).replace('.', ',') + 'k';
+      return 'R$ ' + n.toFixed(0);
+    }
+
+    function desenharGrafico(serie) {
+      const container = grafico.parentElement;
+      const largura = container.clientWidth;
+      const altura = 260;
+      if (!largura) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      grafico.width = largura * dpr;
+      grafico.height = altura * dpr;
+      grafico.style.width = largura + 'px';
+      grafico.style.height = altura + 'px';
+      const ctx = grafico.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, largura, altura);
+
+      const corBarra = corTema('--vermelho', '#c62828');
+      const corSuave = corTema('--texto-suave', '#6b7280');
+      const corBorda = corTema('--borda', '#e2e4e8');
+
+      const margem = { t: 14, r: 8, b: 24, l: 48 };
+      const areaW = largura - margem.l - margem.r;
+      const areaH = altura - margem.t - margem.b;
+      const maxY = Math.max(0, ...serie.map(s => s.valor)) || 1;
+      const n = serie.length;
+
+      const passosY = 4;
+      for (let i = 0; i <= passosY; i++) {
+        const y = margem.t + areaH - (areaH * i) / passosY;
+        ctx.strokeStyle = corBorda;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margem.l, y);
+        ctx.lineTo(largura - margem.r, y);
+        ctx.stroke();
+        ctx.fillStyle = corSuave;
+        ctx.font = '11px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(formatarValorEixo((maxY * i) / passosY), margem.l - 6, y);
+      }
+
+      graficoBarras.length = 0;
+      if (n > 0) {
+        const slot = areaW / n;
+        const barraW = Math.max(1, Math.min(34, slot * 0.62));
+        serie.forEach((s, idx) => {
+          const h = Math.max(0, (s.valor / maxY) * areaH);
+          const x = margem.l + idx * slot + (slot - barraW) / 2;
+          const y = margem.t + areaH - h;
+          ctx.fillStyle = corBarra;
+          ctx.fillRect(x, y, barraW, h);
+          graficoBarras.push({ x, y, w: barraW, h, item: s });
+        });
+
+        ctx.fillStyle = corSuave;
+        ctx.font = '10px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const passo = Math.max(1, Math.ceil(n / 12));
+        for (let idx = 0; idx < n; idx += passo) {
+          ctx.fillText(serie[idx].rotulo, margem.l + idx * slot + slot / 2, margem.t + areaH + 6);
+        }
+        if (n > 1 && (n - 1) % passo !== 0) {
+          ctx.fillText(serie[n - 1].rotulo, margem.l + (n - 1) * slot + slot / 2, margem.t + areaH + 6);
+        }
+      }
+    }
+
+    function criaTooltip() {
+      const tt = document.createElement('div');
+      tt.id = 'tooltipGrafico';
+      tt.style.cssText = 'position:absolute;display:none;pointer-events:none;background:var(--card-bg);color:var(--texto);border:1px solid var(--borda);border-radius:6px;padding:8px 10px;font-size:13px;box-shadow:var(--sombra);z-index:10;line-height:1.4';
+      grafico.parentElement.style.position = 'relative';
+      grafico.parentElement.appendChild(tt);
+      return tt;
+    }
+
+    function mostrarTooltip(idx, ev) {
+      const b = graficoBarras[idx];
+      if (!b) return;
+      const cont = grafico.parentElement.getBoundingClientRect();
+      const tt = document.getElementById('tooltipGrafico') || criaTooltip();
+      tt.innerHTML = `<strong>${escapeHtml(b.item.rotulo)}</strong><br>${formatarMoeda(b.item.valor)}<br>${b.item.quantidade} peça(s)/serviço(s)`;
+      tt.style.display = 'block';
+      let left = ev.clientX - cont.left + 14;
+      if (left + tt.offsetWidth > cont.width - 6) left = ev.clientX - cont.left - tt.offsetWidth - 14;
+      tt.style.left = left + 'px';
+      tt.style.top = (ev.clientY - cont.top - tt.offsetHeight - 10) + 'px';
+    }
+
+    function ocultarTooltip() {
+      const tt = document.getElementById('tooltipGrafico');
+      if (tt) tt.style.display = 'none';
+    }
+
+    grafico.addEventListener('mousemove', (ev) => {
+      if (!graficoBarras.length) return;
+      const r = grafico.getBoundingClientRect();
+      const mx = ev.clientX - r.left;
+      const my = ev.clientY - r.top;
+      const idx = graficoBarras.findIndex(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
+      if (idx >= 0) mostrarTooltip(idx, ev);
+      else ocultarTooltip();
+    });
+    grafico.addEventListener('mouseleave', ocultarTooltip);
+
+    async function abrirGraficoFuncionario(id, nome) {
+      try {
+        const params = new URLSearchParams({ inicio: campoInicio.value, fim: campoFim.value });
+        const resp = await fetch('/api/produtividade/funcionario/' + id + '/dia?' + params.toString());
+        const dados = await resp.json();
+        if (!resp.ok) {
+          mostrarMensagem(dados.erro || 'Erro ao carregar o gráfico.', 'erro');
+          return;
+        }
+        document.getElementById('graficoTitulo').textContent = 'Desempenho diário — ' + nome;
+        dadosGrafico = dados.serie.map(s => ({
+          rotulo: dataBR(s.data),
+          valor: s.total_valor,
+          quantidade: s.pecas_quantidade + s.servicos_quantidade,
+        }));
+        document.getElementById('graficoWrap').classList.remove('oculto');
+        desenharGrafico(dadosGrafico);
+        document.getElementById('graficoWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        mostrarMensagem('Erro ao carregar o gráfico.', 'erro');
+      }
+    }
+
+    document.getElementById('corpoFuncionario').addEventListener('click', e => {
+      const botao = e.target.closest('button[data-grafico-func]');
+      if (!botao) return;
+      abrirGraficoFuncionario(botao.dataset.graficoFunc, botao.dataset.nome);
+    });
+
+    document.getElementById('btnFecharGrafico').addEventListener('click', () => {
+      document.getElementById('graficoWrap').classList.add('oculto');
+      dadosGrafico = null;
+    });
+
+    window.addEventListener('resize', () => {
+      if (dadosGrafico) desenharGrafico(dadosGrafico);
+    });
+
+    const observadorTema = new MutationObserver(() => {
+      if (dadosGrafico) desenharGrafico(dadosGrafico);
+    });
+    observadorTema.observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] });
+
+    // ---------- Filtros de data e abas ----------
+
+    campoInicio.addEventListener('change', carregar);
+    campoFim.addEventListener('change', carregar);
+    campoBuscaFuncionario.addEventListener('input', renderFuncionario);
+
+    document.getElementById('btnHoje').addEventListener('click', () => {
+      const hoje = hojeISO();
+      campoInicio.value = hoje;
+      campoFim.value = hoje;
+      carregar();
+    });
+    document.getElementById('btnSemana').addEventListener('click', () => {
+      const hoje = new Date();
+      const dia = hoje.getDay();
+      const inicioSemana = new Date(hoje);
+      inicioSemana.setDate(hoje.getDate() - (dia === 0 ? 6 : dia - 1));
+      campoInicio.value = paraISO(inicioSemana);
+      campoFim.value = paraISO(hoje);
+      carregar();
+    });
+    document.getElementById('btnMes').addEventListener('click', () => {
+      const hoje = new Date();
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      campoInicio.value = paraISO(inicioMes);
+      campoFim.value = paraISO(hoje);
+      carregar();
+    });
+
+    document.getElementById('abasProdutividade').addEventListener('click', e => {
+      const botao = e.target.closest('button[data-painel]');
+      if (!botao) return;
+      document.querySelectorAll('#abasProdutividade .aba').forEach(b => b.classList.remove('ativa'));
+      botao.classList.add('ativa');
+      ['funcionario', 'servico'].forEach(nome => {
+        document.getElementById('painel' + nome.charAt(0).toUpperCase() + nome.slice(1))
+          .classList.toggle('oculto', nome !== botao.dataset.painel);
+      });
+    });
+
+    // Padrão inicial: mês atual.
+    document.getElementById('btnMes').click();
+  </script>
+</body>
+</html>

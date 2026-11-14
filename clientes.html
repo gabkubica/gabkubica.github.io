@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CADASTRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas">
+      <a class="aba ativa" href="/clientes.html">Clientes</a>
+      <a class="aba" href="/carros.html">Carros</a>
+      <a class="aba" href="/funcionarios.html">Funcionários</a>
+      <a class="aba" href="/usuarios.html">Usuários</a>
+    </div>
+
+    <!-- Histórico do cliente: OS, vendas de balcão e serviços externos,
+         com carro ou sem (igual ao histórico da placa, na aba Carros). -->
+    <div class="card oculto" id="cardHistorico">
+      <div class="historico-topo">
+        <h2 id="tituloHistorico">Histórico</h2>
+        <button type="button" id="btnFecharHistorico" class="secundario">Fechar</button>
+      </div>
+      <div id="resumoHistorico" class="historico-resumo"></div>
+      <div class="historico-tabela">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">Número</th>
+              <th style="width:120px">Tipo</th>
+              <th style="width:150px">Abertura</th>
+              <th style="width:110px">Placa</th>
+              <th style="width:150px">Status</th>
+              <th style="width:120px">Valor</th>
+              <th style="width:90px"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoHistorico"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Clientes</h2>
+      <div class="busca-linha">
+        <input type="text" id="busca" class="busca" placeholder="Buscar por nome, CPF/CNPJ ou telefone...">
+        <button id="btnBuscar">Buscar</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnNovo" class="sucesso">Novo cliente</button>
+      </div>
+      <div id="mensagens"></div>
+      <table id="tabelaClientes">
+        <thead>
+          <tr>
+            <th>Nome / Razão social</th>
+            <th>CPF / CNPJ</th>
+            <th>Telefone</th>
+            <th>E-mail</th>
+            <th style="width:250px">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div id="avisoLimite" class="aviso-vazio oculto"></div>
+    </div>
+
+    <div class="card oculto" id="cardFormulario">
+      <h2 id="tituloFormulario">Novo cliente</h2>
+      <div class="form-grid">
+        <div style="grid-column: 1 / -1">
+          <label for="nome">Nome / Razão social *</label>
+          <input type="text" id="nome" autocomplete="off">
+        </div>
+        <div>
+          <label for="cpfCnpj">CPF / CNPJ</label>
+          <input type="text" id="cpfCnpj" placeholder="Somente números" autocomplete="off">
+        </div>
+        <div>
+          <label for="telefone">Telefone</label>
+          <input type="text" id="telefone" autocomplete="off">
+        </div>
+        <div>
+          <label for="email">E-mail</label>
+          <input type="text" id="email" autocomplete="off">
+        </div>
+      </div>
+      <div id="secaoCarros" style="margin:14px 0">
+        <label><strong>Cadastrar carros deste cliente (opcional)</strong></label>
+        <div class="form-grid" style="margin-top:8px">
+          <div>
+            <label for="carPlaca">Placa</label>
+            <input type="text" id="carPlaca" placeholder="Ex.: ABC1D23" autocomplete="off" style="text-transform:uppercase">
+          </div>
+          <div>
+            <label for="carModelo">Modelo</label>
+            <input type="text" id="carModelo" placeholder="Ex.: Celta" autocomplete="off">
+          </div>
+          <div>
+            <label for="carMarca">Marca</label>
+            <input type="text" id="carMarca" autocomplete="off">
+          </div>
+          <div>
+            <label for="carAno">Ano</label>
+            <input type="number" id="carAno" min="1900" max="2100">
+          </div>
+        </div>
+        <button type="button" id="btnAddCarro" class="secundario">+ Adicionar carro à lista</button>
+        <div id="listaCarrosPendentes"></div>
+      </div>
+      <button id="btnHistoricoForm" class="azul oculto" style="margin-right:8px" type="button">Ver histórico</button>
+      <button id="btnExcluirCliente" class="perigo oculto" style="margin-right:8px" data-trava-gerente>Excluir cliente</button>
+      <button id="btnSalvar" class="sucesso" style="margin-right:8px">Salvar</button>
+      <button id="btnCancelar" class="secundario">Cancelar</button>
+    </div>
+  </main>
+
+  <script>
+    const tbody = document.getElementById('corpoTabela');
+    const mensagens = document.getElementById('mensagens');
+    const cardFormulario = document.getElementById('cardFormulario');
+    const tituloFormulario = document.getElementById('tituloFormulario');
+
+    let editandoId = null;
+    let carrosPendentes = [];
+
+    function renderCarrosPendentes() {
+      const lista = document.getElementById('listaCarrosPendentes');
+      if (carrosPendentes.length === 0) {
+        lista.innerHTML = '';
+        return;
+      }
+      lista.innerHTML = '<div style="margin-top:10px">' + carrosPendentes.map((c, i) => `
+        <div class="cliente-selecionado" style="margin-bottom:6px">
+          <span><strong>${escapeHtml(c.placa)}</strong> — ${escapeHtml(c.modelo)}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}${c.ano ? ' · ' + escapeHtml(c.ano) : ''}</span>
+          <button onclick="removerCarroPendente(${i})">Remover</button>
+        </div>`).join('') + '</div>';
+    }
+
+    function removerCarroPendente(indice) {
+      carrosPendentes.splice(indice, 1);
+      renderCarrosPendentes();
+    }
+
+    function adicionarCarroPendente() {
+      const placa = document.getElementById('carPlaca').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const modelo = document.getElementById('carModelo').value.trim();
+      if (!placa || !modelo) {
+        mostrarMensagem('Para adicionar um carro informe placa e modelo.', 'erro');
+        return;
+      }
+      carrosPendentes.push({
+        placa,
+        modelo,
+        marca: document.getElementById('carMarca').value.trim(),
+        ano: document.getElementById('carAno').value || null,
+      });
+      document.getElementById('carPlaca').value = '';
+      document.getElementById('carModelo').value = '';
+      document.getElementById('carMarca').value = '';
+      document.getElementById('carAno').value = '';
+      renderCarrosPendentes();
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    function formatarCpfCnpj(valor) {
+      if (!valor) return '';
+      const d = valor.replace(/\D/g, '');
+      if (d.length === 11) {
+        return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      }
+      if (d.length === 14) {
+        return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      }
+      return valor;
+    }
+
+    async function carregarClientes(q) {
+      let url = '/api/clientes';
+      if (q) {
+        url += '?q=' + encodeURIComponent(q);
+      }
+      let resp;
+      try {
+        resp = await fetch(url);
+      } catch (e) {
+        mostrarMensagem('Falha ao carregar clientes.', 'erro');
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(dados.erro || 'Erro ao carregar clientes.', 'erro');
+        return;
+      }
+      renderizar(dados, !!q);
+    }
+
+    function renderizar(clientes, comBusca) {
+      // O servidor manda no máximo 200 clientes (50 numa busca): avisa, em
+      // vez de deixar parecer que os outros não existem.
+      const limite = comBusca ? 50 : 200;
+      const aviso = document.getElementById('avisoLimite');
+      aviso.classList.toggle('oculto', clientes.length < limite);
+      aviso.textContent = comBusca
+        ? 'Mostrando os primeiros 50 encontrados. Digite mais do nome (ou o telefone/CPF) para achar quem falta.'
+        : 'Mostrando os primeiros 200 clientes em ordem alfabética. Use a busca para achar os outros.';
+      if (clientes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="sem-resultados">Nenhum cliente encontrado.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = clientes.map(c => `
+        <tr>
+          <td>${escapeHtml(c.nome_razao_social)}</td>
+          <td>${escapeHtml(formatarCpfCnpj(c.cpf_cnpj))}</td>
+          <td>${escapeHtml(c.telefone || '')}</td>
+          <td>${escapeHtml(c.email || '')}</td>
+          <td class="acoes">
+            <button onclick="editar(${c.id})">Editar</button>
+            <button class="azul" onclick="verHistorico(${c.id})">Histórico</button>
+            <button class="azul" onclick="verCarros(${c.id})">Carros</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    // ---------- Histórico do cliente ----------
+    const ROTULO_STATUS = {
+      recepcao: 'Aberta',
+      orcamento: 'Orçamento',
+      execucao: 'Execução',
+      concluida: 'Concluída',
+      cancelada: 'Cancelada',
+      aguardando_pagamento: 'Balcão (a pagar)',
+    };
+
+    function formatarMoeda(v) {
+      return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Tipo e endereço de cada documento (a venda paga vira uma OS com o
+    // mesmo número: abre pela venda, com o id DELA).
+    function tipoDocumento(d) {
+      if (d.venda_balcao_id) return { nome: 'Venda balcão', url: '/venda.html?id=' + encodeURIComponent(d.venda_balcao_id) };
+      if (d.origem === 'externo' || d.tipo === 'externo') return { nome: 'Externo', url: '/externa.html?id=' + encodeURIComponent(d.id) };
+      return { nome: 'OS', url: '/os.html?id=' + encodeURIComponent(d.id) };
+    }
+
+    let historicoAberto = null;
+
+    async function verHistorico(id) {
+      const card = document.getElementById('cardHistorico');
+      const corpo = document.getElementById('corpoHistorico');
+      historicoAberto = id;
+      document.getElementById('tituloHistorico').textContent = 'Histórico';
+      document.getElementById('resumoHistorico').textContent = 'Carregando...';
+      corpo.innerHTML = '';
+      card.classList.remove('oculto');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      let dados;
+      try {
+        const resp = await fetch('/api/ordens-servico/por-cliente/' + encodeURIComponent(id));
+        dados = await resp.json();
+        if (!resp.ok) throw new Error(dados.erro || 'Erro ao carregar o histórico.');
+      } catch (e) {
+        document.getElementById('resumoHistorico').textContent = e.message;
+        return;
+      }
+      if (historicoAberto !== id) return; // clicou em outro cliente enquanto carregava
+
+      document.getElementById('tituloHistorico').textContent = 'Histórico de ' + dados.cliente.nome_razao_social;
+      const docs = dados.documentos;
+      const soNome = docs.filter(d => d.so_nome).length;
+      document.getElementById('resumoHistorico').innerHTML =
+        '<span><strong>' + dados.total + '</strong> documento(s)</span>' +
+        '<span>Concluídos: <strong>' + formatarMoeda(dados.valor_concluido) + '</strong></span>' +
+        (dados.em_aberto ? '<span>Em aberto: <strong>' + dados.em_aberto + '</strong></span>' : '') +
+        (soNome ? '<span class="historico-dica"><span class="tag-so-nome">só nome</span> = feito só com o nome digitado, sem o cadastro. Confira se é mesmo este cliente.</span>' : '') +
+        (dados.total > docs.length ? '<span class="historico-dica">Mostrando os ' + docs.length + ' mais recentes.</span>' : '');
+
+      if (docs.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhuma OS, venda ou serviço externo deste cliente.</div></td></tr>';
+        return;
+      }
+      corpo.innerHTML = docs.map(d => {
+        const t = tipoDocumento(d);
+        return `
+        <tr>
+          <td><strong>${escapeHtml(d.codigo)}</strong></td>
+          <td>${t.nome}${d.so_nome ? ' <span class="tag-so-nome" title="Feito só com o nome digitado (' + escapeHtml(d.cliente_nome) + '), sem escolher o cadastro">só nome</span>' : ''}</td>
+          <td>${formatarData(d.data_abertura)}</td>
+          <td>${escapeHtml(d.placa || '—')}</td>
+          <td><span class="status-os ${escapeHtml(d.status)}">${escapeHtml(ROTULO_STATUS[d.status] || d.status)}</span></td>
+          <td>${formatarMoeda(d.valor_total)}</td>
+          <td><button type="button" class="btn-mini" data-abrir="${escapeHtml(t.url)}">Abrir</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function fecharHistorico() {
+      historicoAberto = null;
+      document.getElementById('cardHistorico').classList.add('oculto');
+    }
+
+    function verCarros(id) {
+      window.location.href = '/carros.html?cliente_id=' + id;
+    }
+
+    async function excluirCliente(id) {
+      if (!confirm('Excluir este cliente? Os carros vinculados a ele continuarão na lista, apenas sem dono. Não é possível excluir um cliente que já tem ordens de serviço no histórico.')) return;
+      const resp = await fetch('/api/clientes/' + id, { method: 'DELETE' });
+      const resultado = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir.', 'erro');
+        return;
+      }
+      mostrarMensagem('Cliente excluído.', 'ok');
+      fecharFormulario();
+      carregarClientes(document.getElementById('busca').value.trim() || null);
+    }
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function abrirFormulario(cliente) {
+      editandoId = cliente ? cliente.id : null;
+      tituloFormulario.textContent = cliente ? 'Editar cliente' : 'Novo cliente';
+      document.getElementById('btnExcluirCliente').classList.toggle('oculto', !cliente);
+      document.getElementById('btnHistoricoForm').classList.toggle('oculto', !cliente);
+      document.getElementById('nome').value = cliente ? cliente.nome_razao_social : '';
+      document.getElementById('cpfCnpj').value = cliente ? (cliente.cpf_cnpj || '') : '';
+      document.getElementById('telefone').value = cliente ? (cliente.telefone || '') : '';
+      document.getElementById('email').value = cliente ? (cliente.email || '') : '';
+      carrosPendentes = [];
+      renderCarrosPendentes();
+      document.getElementById('secaoCarros').classList.toggle('oculto', !!cliente);
+      cardFormulario.classList.remove('oculto');
+      document.getElementById('nome').focus();
+    }
+
+    function fecharFormulario() {
+      cardFormulario.classList.add('oculto');
+      editandoId = null;
+      document.getElementById('btnExcluirCliente').classList.add('oculto');
+      carrosPendentes = [];
+      renderCarrosPendentes();
+      document.getElementById('carPlaca').value = '';
+      document.getElementById('carModelo').value = '';
+      document.getElementById('carMarca').value = '';
+      document.getElementById('carAno').value = '';
+    }
+
+    async function editar(id) {
+      const resp = await fetch('/api/clientes/' + id);
+      if (resp.ok) {
+        abrirFormulario(await resp.json());
+      }
+    }
+
+    async function salvar() {
+      const dados = {
+        nome_razao_social: document.getElementById('nome').value,
+        cpf_cnpj: document.getElementById('cpfCnpj').value,
+        telefone: document.getElementById('telefone').value,
+        email: document.getElementById('email').value,
+      };
+
+      if (!dados.nome_razao_social.trim()) {
+        mostrarMensagem('Informe o nome/razão social.', 'erro');
+        return;
+      }
+
+      const url = editandoId ? '/api/clientes/' + editandoId : '/api/clientes';
+      const metodo = editandoId ? 'PUT' : 'POST';
+
+      if (!editandoId) {
+        const placaCar = document.getElementById('carPlaca').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const modeloCar = document.getElementById('carModelo').value.trim();
+        if (placaCar || modeloCar) {
+          if (!placaCar || !modeloCar) {
+            mostrarMensagem('Para cadastrar um carro junto ao cliente, informe placa e modelo (ou deixe os campos de carro vazios).', 'erro');
+            return;
+          }
+          if (carrosPendentes.some(c => c.placa.toUpperCase() === placaCar.toUpperCase())) {
+            mostrarMensagem('O carro ' + placaCar + ' já está na lista de carros deste cliente.', 'erro');
+            return;
+          }
+          carrosPendentes.push({
+            placa: placaCar,
+            modelo: modeloCar,
+            marca: document.getElementById('carMarca').value.trim(),
+            ano: document.getElementById('carAno').value || null,
+          });
+          renderCarrosPendentes();
+        }
+        dados.carros = carrosPendentes;
+      }
+
+      const body = { ...dados };
+      delete body.carros;
+
+      const resp = await fetch(url, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editandoId ? body : dados),
+      });
+
+      const resultado = await resp.json();
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar.', 'erro');
+        return;
+      }
+
+      const qtdCarros = (resultado.carros || []).length;
+      mostrarMensagem(
+        editandoId
+          ? 'Cliente atualizado.'
+          : (qtdCarros > 0 ? 'Cliente e ' + qtdCarros + ' carro(s) cadastrado(s).' : 'Cliente cadastrado.'),
+        'ok'
+      );
+      fecharFormulario();
+      carregarClientes(document.getElementById('busca').value.trim() || null);
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', () => {
+      carregarClientes(document.getElementById('busca').value.trim() || null);
+    });
+    document.getElementById('busca').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        carregarClientes(document.getElementById('busca').value.trim() || null);
+      }
+    });
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      carregarClientes();
+    });
+    document.getElementById('btnNovo').addEventListener('click', () => abrirFormulario(null));
+    document.getElementById('btnAddCarro').addEventListener('click', adicionarCarroPendente);
+    document.getElementById('btnExcluirCliente').addEventListener('click', () => excluirCliente(editandoId));
+    document.getElementById('btnSalvar').addEventListener('click', salvar);
+    document.getElementById('btnCancelar').addEventListener('click', fecharFormulario);
+    document.getElementById('btnHistoricoForm').addEventListener('click', () => { if (editandoId) verHistorico(editandoId); });
+    document.getElementById('btnFecharHistorico').addEventListener('click', fecharHistorico);
+    document.getElementById('corpoHistorico').addEventListener('click', e => {
+      const b = e.target.closest('button[data-abrir]');
+      if (b) location.href = b.dataset.abrir;
+    });
+
+    carregarClientes();
+
+    // Link direto (ex.: clientes.html?id=123) usado por outras telas do
+    // sistema (Carros, OS, Venda balcão, Serviço externo) para abrir um
+    // cliente específico direto, sem precisar buscar pelo nome de novo.
+    const paramsUrl = new URLSearchParams(location.search);
+    const idNaUrl = paramsUrl.get('id');
+    if (idNaUrl) editar(idNaUrl);
+    // clientes.html?historico=123 abre direto o histórico do cliente.
+    const historicoNaUrl = paramsUrl.get('historico');
+    if (historicoNaUrl) verHistorico(historicoNaUrl);
+  </script>
+</body>
+</html>

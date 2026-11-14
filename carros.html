@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carros - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CADASTRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas">
+      <a class="aba" href="/clientes.html">Clientes</a>
+      <a class="aba ativa" href="/carros.html">Carros</a>
+      <a class="aba" href="/funcionarios.html">Funcionários</a>
+      <a class="aba" href="/usuarios.html">Usuários</a>
+    </div>
+
+    <div class="card">
+      <h2>Carros</h2>
+      <div id="filtroCliente" class="aviso oculto"></div>
+      <div class="busca-linha">
+        <input type="text" id="busca" class="busca" placeholder="Buscar por placa, modelo ou marca...">
+        <button id="btnBuscar">Buscar</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnNovo" class="sucesso">Novo carro</button>
+      </div>
+      <div id="mensagens"></div>
+      <table id="tabelaCarros">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Modelo</th>
+            <th>Marca</th>
+            <th>Ano</th>
+            <th>Cliente (dono atual)</th>
+            <th style="width:150px">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div id="avisoLimite" class="aviso-vazio oculto"></div>
+    </div>
+
+    <div class="card oculto" id="cardFormulario">
+      <h2 id="tituloFormulario">Novo carro</h2>
+      <div class="form-grid">
+        <div>
+          <label for="placa">Placa *</label>
+          <input type="text" id="placa" placeholder="Ex.: ABC1D23" autocomplete="off" style="text-transform:uppercase">
+        </div>
+        <div>
+          <label for="modelo">Modelo *</label>
+          <input type="text" id="modelo" placeholder="Ex.: Celta" autocomplete="off">
+        </div>
+        <div>
+          <label for="marca">Marca</label>
+          <input type="text" id="marca" placeholder="Ex.: Chevrolet" autocomplete="off">
+        </div>
+        <div>
+          <label for="ano">Ano</label>
+          <input type="number" id="ano" min="1900" max="2100" autocomplete="off">
+        </div>
+        <div style="grid-column: 1 / -1">
+          <label>Cliente dono do carro (opcional)</label>
+          <div id="clienteVazio">
+            <div class="busca-cliente-wrap">
+              <input type="text" id="buscaCliente" placeholder="Buscar cliente por nome, CPF/CNPJ ou telefone..." autocomplete="off">
+              <div class="sugestoes oculto" id="sugestoesCliente"></div>
+            </div>
+            <button type="button" id="btnAbrirNovoClienteRapido" class="secundario" style="margin-top:8px">(+) Cadastrar novo cliente</button>
+            <div id="novoClienteRapido" class="oculto" style="margin-top:10px;border:1px solid var(--borda);border-radius:6px;padding:12px">
+              <label style="font-weight:600;font-size:14px">Novo cliente</label>
+              <div class="form-grid" style="margin-top:6px">
+                <div style="grid-column:1 / -1">
+                  <label for="qNome">Nome / Razão social *</label>
+                  <input type="text" id="qNome" autocomplete="off">
+                </div>
+                <div>
+                  <label for="qCpfCnpj">CPF / CNPJ</label>
+                  <input type="text" id="qCpfCnpj" placeholder="Somente números" autocomplete="off">
+                </div>
+                <div>
+                  <label for="qTelefone">Telefone</label>
+                  <input type="text" id="qTelefone" autocomplete="off">
+                </div>
+                <div>
+                  <label for="qEmail">E-mail</label>
+                  <input type="text" id="qEmail" autocomplete="off">
+                </div>
+              </div>
+              <button type="button" id="btnSalvarClienteRapido" class="sucesso" style="margin-right:8px">Salvar cliente e vincular</button>
+              <button type="button" id="btnCancelarClienteRapido" class="secundario">Cancelar</button>
+            </div>
+          </div>
+          <div id="clienteSelecionadoBox" class="cliente-selecionado oculto">
+            <span><strong id="clienteSelecionadoNome"></strong><br><span id="clienteSelecionadoCpf" style="color:var(--texto-suave);font-size:13px"></span></span>
+            <span>
+              <button type="button" id="btnTrocarCliente" style="margin-right:6px">Trocar cliente</button>
+              <button type="button" id="btnDesassociarCliente" class="perigo">Desassociar</button>
+            </span>
+          </div>
+        </div>
+      </div>
+      <button id="btnExcluirCarro" class="perigo oculto" style="margin-right:8px" data-trava-gerente>Excluir carro</button>
+      <button id="btnSalvar" class="sucesso" style="margin-right:8px">Salvar</button>
+      <button id="btnCancelar" class="secundario">Cancelar</button>
+    </div>
+  </main>
+
+  <script>
+    const tbody = document.getElementById('corpoTabela');
+    const mensagens = document.getElementById('mensagens');
+    const cardFormulario = document.getElementById('cardFormulario');
+    const tituloFormulario = document.getElementById('tituloFormulario');
+    const filtroCliente = document.getElementById('filtroCliente');
+
+    let editandoPlaca = null;
+    let carroEmEdicao = null;
+    let clienteId = null;
+    let filtroClienteId = null;
+    let ultimosClientes = [];
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarCpfCnpj(valor) {
+      if (!valor) return '';
+      const d = valor.replace(/\D/g, '');
+      if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      return valor;
+    }
+
+    async function carregarCarros(q) {
+      let url = '/api/carros';
+      const params = new URLSearchParams();
+      if (filtroClienteId) params.append('cliente_id', filtroClienteId);
+      if (q) params.append('q', q);
+      const qs = params.toString();
+      if (qs) url += '?' + qs;
+
+      let resp;
+      try {
+        resp = await fetch(url);
+      } catch (e) {
+        mostrarMensagem('Falha ao carregar carros.', 'erro');
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(dados.erro || 'Erro ao carregar carros.', 'erro');
+        return;
+      }
+      renderizar(dados);
+      // O servidor manda no máximo 200 carros (50 numa busca; todos, quando é
+      // a lista de um cliente): avisa, em vez de parecer que não há outros.
+      const limite = q ? 50 : (filtroClienteId ? 0 : 200);
+      const aviso = document.getElementById('avisoLimite');
+      aviso.classList.toggle('oculto', !limite || dados.length < limite);
+      aviso.textContent = q
+        ? 'Mostrando os primeiros 50 encontrados. Digite mais da placa ou do modelo para achar quem falta.'
+        : 'Mostrando os primeiros 200 carros (pela placa). Use a busca para achar os outros.';
+    }
+
+    function renderizar(carros) {
+      if (carros.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="sem-resultados">Nenhum carro encontrado.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = carros.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.placa)}</strong></td>
+          <td>${escapeHtml(c.modelo)}</td>
+          <td>${escapeHtml(c.marca)}</td>
+          <td>${escapeHtml(c.ano || '')}</td>
+          <td>${c.cliente_nome ? '<a href="/clientes.html?id=' + c.cliente_id + '">' + escapeHtml(c.cliente_nome) + '</a><br><small style="color:var(--texto-suave)">' + escapeHtml(formatarCpfCnpj(c.cliente_cpf_cnpj)) + '</small>' : '<span style="color:var(--texto-suave)">sem dono vinculado</span>'}</td>
+          <td class="acoes">
+            <button onclick="editar(${escapeHtml(JSON.stringify(c.placa))})">Editar</button>
+            <button class="azul" onclick="abrirHistorico(${escapeHtml(JSON.stringify(c.placa))})">Histórico</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function abrirHistorico(placa) {
+      window.location.href = '/ordens-servico.html?placa=' + encodeURIComponent(placa);
+    }
+
+    async function excluirCarro() {
+      if (!carroEmEdicao) return;
+      if (!confirm('Excluir o carro ' + carroEmEdicao.placa + '?')) return;
+      const resp = await fetch('/api/carros/' + encodeURIComponent(carroEmEdicao.placa), { method: 'DELETE' });
+      const resultado = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir.', 'erro');
+        return;
+      }
+      mostrarMensagem('Carro excluído.', 'ok');
+      fecharFormulario();
+      carregarCarros(document.getElementById('busca').value.trim() || null);
+    }
+
+    async function desassociarCliente() {
+      if (!carroEmEdicao) return;
+      if (!confirm('Remover o vínculo deste carro com o cliente?')) return;
+      const dados = {
+        modelo: document.getElementById('modelo').value,
+        marca: document.getElementById('marca').value,
+        ano: document.getElementById('ano').value || null,
+        cliente_id: null,
+      };
+      const resp = await fetch('/api/carros/' + encodeURIComponent(carroEmEdicao.placa), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+      const resultado = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao desassociar.', 'erro');
+        return;
+      }
+      mostrarMensagem('Carro desassociado do cliente.', 'ok');
+      fecharFormulario();
+      carregarCarros(document.getElementById('busca').value.trim() || null);
+    }
+
+    function abrirFormulario() {
+      editandoPlaca = null;
+      carroEmEdicao = null;
+      document.getElementById('btnExcluirCarro').classList.add('oculto');
+      tituloFormulario.textContent = 'Novo carro';
+      document.getElementById('placa').value = '';
+      document.getElementById('placa').readOnly = false;
+      document.getElementById('modelo').value = '';
+      document.getElementById('marca').value = '';
+      document.getElementById('ano').value = '';
+      definirCliente(null);
+      cardFormulario.classList.remove('oculto');
+      cardFormulario.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('placa').focus();
+    }
+
+    async function editar(placa) {
+      const resp = await fetch('/api/carros/' + encodeURIComponent(placa));
+      if (!resp.ok) return;
+      const c = await resp.json();
+
+      carroEmEdicao = c;
+      document.getElementById('btnExcluirCarro').classList.remove('oculto');
+      editandoPlaca = c.placa;
+      tituloFormulario.textContent = 'Editar carro ' + c.placa;
+      document.getElementById('placa').value = c.placa;
+      document.getElementById('placa').readOnly = true;
+      document.getElementById('modelo').value = c.modelo;
+      document.getElementById('marca').value = c.marca;
+      document.getElementById('ano').value = c.ano || '';
+      if (c.cliente_id && c.cliente_nome) {
+        document.getElementById('clienteSelecionadoNome').textContent = c.cliente_nome;
+        document.getElementById('clienteSelecionadoCpf').textContent = formatarCpfCnpj(c.cliente_cpf_cnpj);
+        clienteId = c.cliente_id;
+        mostrarClienteSelecionado();
+      } else {
+        definirCliente(null);
+      }
+      cardFormulario.classList.remove('oculto');
+      cardFormulario.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function fecharFormulario() {
+      cardFormulario.classList.add('oculto');
+      editandoPlaca = null;
+      carroEmEdicao = null;
+      document.getElementById('btnExcluirCarro').classList.add('oculto');
+      definirCliente(null);
+    }
+
+    function definirCliente(cliente) {
+      clienteId = cliente ? cliente.id : null;
+      if (cliente) {
+        document.getElementById('clienteSelecionadoNome').textContent = cliente.nome_razao_social;
+        document.getElementById('clienteSelecionadoCpf').textContent = formatarCpfCnpj(cliente.cpf_cnpj);
+        mostrarClienteSelecionado();
+      } else {
+        document.getElementById('clienteSelecionadoBox').classList.add('oculto');
+        document.getElementById('clienteVazio').classList.remove('oculto');
+        document.getElementById('buscaCliente').value = '';
+      }
+    }
+
+    function mostrarClienteSelecionado() {
+      document.getElementById('clienteVazio').classList.add('oculto');
+      document.getElementById('clienteSelecionadoBox').classList.remove('oculto');
+    }
+
+    document.getElementById('btnTrocarCliente').addEventListener('click', () => definirCliente(null));
+
+    function abrirNovoClienteRapido() {
+      document.getElementById('sugestoesCliente').classList.add('oculto');
+      document.getElementById('novoClienteRapido').classList.remove('oculto');
+      document.getElementById('qNome').focus();
+    }
+    window.abrirNovoClienteRapido = abrirNovoClienteRapido;
+
+    function fecharNovoClienteRapido() {
+      document.getElementById('novoClienteRapido').classList.add('oculto');
+      ['qNome', 'qCpfCnpj', 'qTelefone', 'qEmail'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
+
+    async function salvarClienteRapido() {
+      const dados = {
+        nome_razao_social: document.getElementById('qNome').value,
+        cpf_cnpj: document.getElementById('qCpfCnpj').value,
+        telefone: document.getElementById('qTelefone').value,
+        email: document.getElementById('qEmail').value,
+      };
+
+      if (!dados.nome_razao_social.trim()) {
+        mostrarMensagem('Informe o nome do novo cliente.', 'erro');
+        return;
+      }
+
+      const resp = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+
+      const resultado = await resp.json();
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao cadastrar cliente.', 'erro');
+        return;
+      }
+
+      mostrarMensagem('Cliente criado e selecionado. Salve o carro para vincular.', 'ok');
+      fecharNovoClienteRapido();
+      definirCliente(resultado);
+    }
+
+    document.getElementById('btnAbrirNovoClienteRapido').addEventListener('click', abrirNovoClienteRapido);
+    document.getElementById('btnSalvarClienteRapido').addEventListener('click', salvarClienteRapido);
+    document.getElementById('btnCancelarClienteRapido').addEventListener('click', fecharNovoClienteRapido);
+    document.getElementById('btnExcluirCarro').addEventListener('click', excluirCarro);
+    document.getElementById('btnDesassociarCliente').addEventListener('click', desassociarCliente);
+
+    async function buscarClientes(termo) {
+      const resp = await fetch('/api/clientes?q=' + encodeURIComponent(termo));
+      return resp.json();
+    }
+
+    let timerBuscaCliente = null;
+    document.getElementById('buscaCliente').addEventListener('input', () => {
+      clearTimeout(timerBuscaCliente);
+      const termo = document.getElementById('buscaCliente').value.trim();
+      if (termo.length < 2) {
+        document.getElementById('sugestoesCliente').classList.add('oculto');
+        return;
+      }
+      timerBuscaCliente = setTimeout(async () => {
+        const clientes = await buscarClientes(termo);
+        const caixa = document.getElementById('sugestoesCliente');
+        ultimosClientes = clientes;
+        if (clientes.length === 0) {
+          caixa.innerHTML = '<div style="cursor:default;color:var(--texto-suave)">Nenhum cliente encontrado.</div>';
+        } else {
+          caixa.innerHTML = clientes.map(c =>
+            `<div onclick="escolherCliente(${c.id})">
+              <strong>${escapeHtml(c.nome_razao_social)}</strong>
+              <span style="color:var(--texto-suave);font-size:13px">${escapeHtml(formatarCpfCnpj(c.cpf_cnpj)) || ''}</span>
+            </div>`).join('');
+        }
+        caixa.innerHTML += '<div onclick="window.abrirNovoClienteRapido()" style="cursor:pointer;color:var(--vermelho);font-weight:600">(+) Cadastrar novo cliente</div>';
+        caixa.classList.remove('oculto');
+      }, 250);
+    });
+    document.getElementById('buscaCliente').addEventListener('focus', () => {
+      const termo = document.getElementById('buscaCliente').value.trim();
+      const caixa = document.getElementById('sugestoesCliente');
+      if (termo.length >= 2 && caixa.innerHTML !== '') {
+        caixa.classList.remove('oculto');
+      }
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#clienteVazio')) {
+        document.getElementById('sugestoesCliente').classList.add('oculto');
+      }
+    });
+
+    function escolherCliente(id) {
+      const cliente = ultimosClientes.find(c => c.id === id);
+      if (cliente) {
+        definirCliente(cliente);
+      }
+      document.getElementById('sugestoesCliente').classList.add('oculto');
+    }
+    window.escolherCliente = escolherCliente;
+
+    async function salvar() {
+      const placa = document.getElementById('placa').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const dados = {
+        placa,
+        modelo: document.getElementById('modelo').value,
+        marca: document.getElementById('marca').value,
+        ano: document.getElementById('ano').value || null,
+        cliente_id: clienteId,
+      };
+
+      if (!dados.placa) {
+        mostrarMensagem('Informe a placa.', 'erro');
+        document.getElementById('placa').focus();
+        return;
+      }
+      if (!dados.modelo) {
+        mostrarMensagem('Informe o modelo.', 'erro');
+        return;
+      }
+
+      const url = editandoPlaca ? '/api/carros/' + encodeURIComponent(editandoPlaca) : '/api/carros';
+      const metodo = editandoPlaca ? 'PUT' : 'POST';
+
+      const resp = await fetch(url, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+
+      const resultado = await resp.json();
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar.', 'erro');
+        if (resultado.erro && resultado.erro.indexOf('placa') !== -1) {
+          document.getElementById('placa').focus();
+        }
+        return;
+      }
+
+      mostrarMensagem(editandoPlaca ? 'Carro atualizado.' : 'Carro cadastrado.', 'ok');
+      fecharFormulario();
+      carregarCarros(document.getElementById('busca').value.trim() || null);
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', () => {
+      carregarCarros(document.getElementById('busca').value.trim() || null);
+    });
+    document.getElementById('busca').addEventListener('keydown', e => {
+      if (e.key === 'Enter') carregarCarros(document.getElementById('busca').value.trim() || null);
+    });
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      filtroClienteId = null;
+      filtroCliente.classList.add('oculto');
+      carregarCarros();
+    });
+    document.getElementById('btnNovo').addEventListener('click', abrirFormulario);
+    document.getElementById('btnSalvar').addEventListener('click', salvar);
+    document.getElementById('btnCancelar').addEventListener('click', fecharFormulario);
+
+    async function iniciar() {
+      const params = new URLSearchParams(window.location.search);
+      const clienteFiltro = params.get('cliente_id');
+      if (clienteFiltro) {
+        const resp = await fetch('/api/clientes/' + clienteFiltro);
+        if (resp.ok) {
+          const cliente = await resp.json();
+          filtroClienteId = Number(clienteFiltro);
+          filtroCliente.textContent = 'Listando carros do cliente: ' + cliente.nome_razao_social + ' (clique em Limpar para ver todos)';
+          filtroCliente.classList.remove('oculto');
+        }
+      }
+      carregarCarros();
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>

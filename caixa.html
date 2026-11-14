@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caixa do dia - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>FINANCEIRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas">
+      <a class="aba ativa" href="/caixa.html">Caixa do dia</a>
+      <a class="aba" href="/faturamento.html">Faturamento</a>
+      <a class="aba" href="/despesas.html">Despesas</a>
+    </div>
+
+    <div class="card">
+      <h2>Faturamento do dia</h2>
+      <div class="busca-linha">
+        <label for="data" style="align-self:center;font-weight:600">Dia:</label>
+        <input type="date" id="data" class="busca">
+        <button id="btnHoje" class="secundario">Hoje</button>
+      </div>
+      <div id="mensagens"></div>
+      <div id="resumo"></div>
+
+      <div class="tabela-envolve" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:90px">Hora</th>
+              <th style="width:110px">Código</th>
+              <th style="width:130px">Tipo</th>
+              <th>Cliente</th>
+              <th style="width:150px">Veículo</th>
+              <th style="width:140px">Forma</th>
+              <th style="width:130px">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela"></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="6" style="text-align:right">Total do dia</th>
+              <th id="totalDia">R$ 0,00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <h2 style="margin:0">Despesas do dia</h2>
+        <button id="btnNovaDespesaCaixa" class="sucesso" type="button">Nova despesa</button>
+      </div>
+      <div id="resumoDespesas"></div>
+      <div class="tabela-envolve" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">Tipo</th>
+              <th>Descrição / Cliente</th>
+              <th style="width:140px">Forma</th>
+              <th style="width:130px">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="corpoDespesas"></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3" style="text-align:right">Total de despesas</th>
+              <th id="totalDespesas">R$ 0,00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="dialogDespesaCaixa" class="dialog-tipos">
+    <h3>Nova despesa manual</h3>
+    <div class="dialog-form">
+      <div style="flex:1.4"><label>Descrição *</label><input type="text" id="dcDescricao" maxlength="500" autocomplete="off"></div>
+      <div><label>Valor (R$) *</label><input type="number" id="dcValor" min="0" step="0.01"></div>
+    </div>
+    <div class="dialog-form">
+      <div><label>Data *</label><input type="date" id="dcData"></div>
+      <div><label>Forma de pagamento</label><select id="dcForma"><option value=""></option></select></div>
+      <div style="flex:1.4"><label>Observações</label><input type="text" id="dcObs" maxlength="1000" autocomplete="off"></div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnSalvarDespesaCaixa" class="sucesso" type="button">Salvar</button>
+      <button id="btnFecharDespesaCaixa" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    const resumo = document.getElementById('resumo');
+    const corpoTabela = document.getElementById('corpoTabela');
+    const totalDia = document.getElementById('totalDia');
+    const campoData = document.getElementById('data');
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      const n = Number(v) || 0;
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarHora(iso) {
+      if (!iso) return '-';
+      return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function rotuloCategoria(c) {
+      return { os: 'OS', balcao: 'Venda balcão', externo: 'Externo' }[c] || c;
+    }
+
+    function hojeISO() {
+      return new Date().toLocaleDateString('en-CA');
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+    }
+
+    function renderResumo(dados) {
+      const t = dados.por_tipo;
+      const formas = dados.por_forma.length
+        ? '<p style="margin:12px 0 0"><strong>Por forma de pagamento:</strong> ' +
+          dados.por_forma.map(f => `${escapeHtml(f.forma_pagamento)}: ${formatarMoeda(f.valor)} (${f.quantidade})`).join(' · ') +
+          '</p>'
+        : '';
+      resumo.innerHTML = `
+        <div class="resumos" style="margin-top:12px">
+          <div class="card-resumo"><div class="rotulo">Faturamento do dia</div><div class="valor">${formatarMoeda(dados.total)}</div></div>
+          <div class="card-resumo"><div class="rotulo">Documentos</div><div class="valor">${dados.quantidade}</div></div>
+          <div class="card-resumo"><div class="rotulo">OS</div><div class="valor">${formatarMoeda(t.os.valor)}</div></div>
+          <div class="card-resumo"><div class="rotulo">Vendas balcão</div><div class="valor">${formatarMoeda(t.balcao.valor)}</div></div>
+          <div class="card-resumo"><div class="rotulo">Externos</div><div class="valor">${formatarMoeda(t.externo.valor)}</div></div>
+        </div>
+        ${formas}`;
+    }
+
+    function renderTabela(itens) {
+      if (itens.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhum documento concluído neste dia.</div></td></tr>';
+        return;
+      }
+      corpoTabela.innerHTML = itens.map(i => {
+        const veiculo = [i.placa, i.veiculo_modelo].filter(Boolean).join(' - ');
+        return `<tr>
+          <td>${formatarHora(i.data_conclusao)}</td>
+          <td><strong>${escapeHtml(i.codigo)}</strong></td>
+          <td>${rotuloCategoria(i.categoria)}</td>
+          <td>${escapeHtml(i.cliente || '-')}</td>
+          <td>${escapeHtml(veiculo || '-')}</td>
+          <td>${escapeHtml(i.forma_pagamento || '-')}</td>
+          <td>${formatarMoeda(i.valor)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderDespesas(despesas, faturamentoTotal) {
+      const el = document.getElementById('resumoDespesas');
+      const boletos = despesas.boletos || [];
+      const manuais = despesas.manuais || [];
+      const resultado = Math.round((faturamentoTotal - despesas.total) * 100) / 100;
+      const corResultado = resultado < 0 ? 'var-negativa' : 'var-positiva';
+      const cardResultado = '<div class="card-resumo"><div class="rotulo">Resultado do dia</div><div class="valor ' + corResultado + '">' + formatarMoeda(resultado) + '</div></div>';
+      if (boletos.length === 0 && manuais.length === 0) {
+        el.innerHTML = '<div class="resumos" style="margin-top:12px">' + cardResultado + '</div>' +
+          '<p class="aviso-vazio" style="margin:12px 0 0">Nenhuma despesa lançada neste dia.</p>';
+      } else {
+        el.innerHTML = '<div class="resumos" style="margin-top:12px">' +
+          cardResultado +
+          '<div class="card-resumo"><div class="rotulo">Despesas do dia</div><div class="valor">' + formatarMoeda(despesas.total) + '</div></div>' +
+          '<div class="card-resumo"><div class="rotulo">Boletos pagos</div><div class="valor">' + boletos.length + '</div></div>' +
+          '<div class="card-resumo"><div class="rotulo">Despesas manuais</div><div class="valor">' + manuais.length + '</div></div>' +
+          '</div>' +
+          '<p style="margin:8px 0 0;color:var(--texto-suave);font-size:13px">Resultado do dia = faturamento do dia − despesas do dia (boletos pagos + despesas manuais).</p>';
+      }
+      const corpo = document.getElementById('corpoDespesas');
+      const linhas = [];
+      for (const b of boletos) {
+        linhas.push('<tr><td>' + (b.comprovante ? '<a href="/uploads/' + encodeURIComponent(b.comprovante) + '" target="_blank">Boleto pago</a>' : 'Boleto pago') + '</td>' +
+          '<td><strong>Boleto nº ' + escapeHtml(b.codigo) + '</strong> · ' + escapeHtml(b.cliente || '-') + (b.observacoes ? '<br><small style="color:var(--texto-suave)">' + escapeHtml(b.observacoes) + '</small>' : '') + '</td>' +
+          '<td>' + escapeHtml(b.forma_pagamento || '-') + '</td>' +
+          '<td>' + formatarMoeda(b.valor) + '</td></tr>');
+      }
+      for (const m of manuais) {
+        linhas.push('<tr><td>Despesa manual</td>' +
+          '<td>' + escapeHtml(m.descricao) + '</td>' +
+          '<td>' + escapeHtml(m.forma_pagamento || '-') + '</td>' +
+          '<td>' + formatarMoeda(m.valor) + '</td></tr>');
+      }
+      corpo.innerHTML = linhas.length ? linhas.join('') : '<tr><td colspan="4"><div class="sem-resultados">Sem despesas neste dia.</div></td></tr>';
+      document.getElementById('totalDespesas').textContent = formatarMoeda(despesas.total);
+    }
+
+    async function carregar() {
+      const data = campoData.value || hojeISO();
+      try {
+        const resp = await fetch('/api/caixa/dia?data=' + encodeURIComponent(data));
+        const dados = await resp.json();
+        if (!resp.ok) {
+          mostrarMensagem(dados.erro || 'Erro ao carregar o faturamento.', 'erro');
+          return;
+        }
+        mensagens.replaceChildren();
+        renderResumo(dados);
+        renderTabela(dados.itens);
+        totalDia.textContent = formatarMoeda(dados.total);
+        renderDespesas(dados.despesas || { boletos: [], manuais: [], total: 0 }, dados.total);
+      } catch (e) {
+        mostrarMensagem('Erro ao carregar o faturamento.', 'erro');
+      }
+    }
+
+    campoData.addEventListener('change', carregar);
+    document.getElementById('btnHoje').addEventListener('click', () => {
+      campoData.value = hojeISO();
+      carregar();
+    });
+
+    const FORMAS_DESPESA = ['Dinheiro', 'Pix', 'Débito', 'Crédito', 'Transferência', 'Boleto'];
+    const dialogDespesaCaixa = document.getElementById('dialogDespesaCaixa');
+    const selFormaCaixa = document.getElementById('dcForma');
+    if (!selFormaCaixa.options.length) {
+      selFormaCaixa.innerHTML = '<option value="">Selecione...</option>' +
+        FORMAS_DESPESA.map(f => `<option value="${f}">${f}</option>`).join('');
+    }
+
+    function abrirDespesaCaixa() {
+      document.getElementById('dcDescricao').value = '';
+      document.getElementById('dcValor').value = '';
+      document.getElementById('dcData').value = campoData.value || hojeISO();
+      selFormaCaixa.value = '';
+      document.getElementById('dcObs').value = '';
+      dialogDespesaCaixa.showModal();
+    }
+
+    async function salvarDespesaCaixa() {
+      const descricao = document.getElementById('dcDescricao').value.trim();
+      const valor = Number(document.getElementById('dcValor').value);
+      const data = document.getElementById('dcData').value;
+      if (!descricao) { mostrarMensagem('Informe a descrição da despesa.', 'erro'); return; }
+      if (!valor || valor <= 0) { mostrarMensagem('Informe o valor da despesa.', 'erro'); return; }
+      if (!data) { mostrarMensagem('Informe a data da despesa.', 'erro'); return; }
+      const payload = {
+        descricao,
+        valor,
+        data,
+        forma_pagamento: selFormaCaixa.value,
+        observacoes: document.getElementById('dcObs').value.trim(),
+      };
+      const btn = document.getElementById('btnSalvarDespesaCaixa');
+      btn.disabled = true;
+      try {
+        const resp = await fetch('/api/despesas-manuais', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const resultado = await resp.json();
+        if (!resp.ok) {
+          mostrarMensagem(resultado.erro || 'Erro ao salvar a despesa.', 'erro');
+          return;
+        }
+        dialogDespesaCaixa.close();
+        mostrarMensagem('Despesa registrada.', 'ok');
+        carregar();
+      } catch (e) {
+        mostrarMensagem('Erro ao salvar a despesa.', 'erro');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btnNovaDespesaCaixa').addEventListener('click', abrirDespesaCaixa);
+    document.getElementById('btnSalvarDespesaCaixa').addEventListener('click', salvarDespesaCaixa);
+    document.getElementById('btnFecharDespesaCaixa').addEventListener('click', () => dialogDespesaCaixa.close());
+
+    // Link direto (ex.: caixa.html?data=2026-09-20) usado pelo botão "Ver
+    // Caixa do dia" na tela de Faturamento, pra abrir já no dia certo.
+    const dataNaUrl = new URLSearchParams(location.search).get('data');
+    campoData.value = (dataNaUrl && /^\d{4}-\d{2}-\d{2}$/.test(dataNaUrl)) ? dataNaUrl : hojeISO();
+    carregar();
+  </script>
+</body>
+</html>

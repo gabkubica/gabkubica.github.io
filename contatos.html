@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contatos - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <style>
+    /* Agenda no jeito do Google Contatos: coluna da esquerda com os grupos
+       (etiquetas coloridas), lista calma à direita. */
+    :root { --ct-sel: #e3ebf5; --ct-sel-texto: #1e3a5f; }
+    [data-tema="escuro"] { --ct-sel: #22303f; --ct-sel-texto: #b9d3ee; }
+
+    /* Paleta das etiquetas (0-7). Sem vermelho: é a cor da marca e de alerta. */
+    .ct-k0 { --k: #3b82f6; --k-fundo: #e0ecff; --k-texto: #1e40af; }
+    .ct-k1 { --k: #16a34a; --k-fundo: #dcf5e4; --k-texto: #166534; }
+    .ct-k2 { --k: #d97706; --k-fundo: #fdf0d5; --k-texto: #8a4b0c; }
+    .ct-k3 { --k: #8b5cf6; --k-fundo: #ece6fd; --k-texto: #5b21b6; }
+    .ct-k4 { --k: #db2777; --k-fundo: #fce4ef; --k-texto: #9d174d; }
+    .ct-k5 { --k: #0d9488; --k-fundo: #d5f3ef; --k-texto: #115e59; }
+    .ct-k6 { --k: #ea580c; --k-fundo: #ffe8d6; --k-texto: #9a3412; }
+    .ct-k7 { --k: #64748b; --k-fundo: #e8ecf1; --k-texto: #334155; }
+    [data-tema="escuro"] .ct-k0 { --k: #60a5fa; --k-fundo: #1c2b44; --k-texto: #a8c8fb; }
+    [data-tema="escuro"] .ct-k1 { --k: #4ade80; --k-fundo: #173323; --k-texto: #9fe0b5; }
+    [data-tema="escuro"] .ct-k2 { --k: #fbbf24; --k-fundo: #3a2e15; --k-texto: #f1d08a; }
+    [data-tema="escuro"] .ct-k3 { --k: #a78bfa; --k-fundo: #2a2245; --k-texto: #cdbcfb; }
+    [data-tema="escuro"] .ct-k4 { --k: #f472b6; --k-fundo: #3d1d2e; --k-texto: #f5b3d3; }
+    [data-tema="escuro"] .ct-k5 { --k: #2dd4bf; --k-fundo: #133533; --k-texto: #94e2d7; }
+    [data-tema="escuro"] .ct-k6 { --k: #fb923c; --k-fundo: #3d2415; --k-texto: #f8c19a; }
+    [data-tema="escuro"] .ct-k7 { --k: #94a3b8; --k-fundo: #283039; --k-texto: #cbd5e1; }
+
+    .ct-pagina { max-width: 1140px; margin: 0 auto; }
+    .ct-filtros { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ct-filtro {
+      display: inline-flex; align-items: center; gap: 7px; position: relative;
+      border: 1px solid var(--borda); background: var(--card-bg); color: var(--texto);
+      border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; font-weight: 600;
+    }
+    .ct-filtro:hover { border-color: var(--input-borda); }
+    .ct-filtro small { color: var(--texto-suave); font-weight: 400; }
+    .ct-filtro.ativo { background: var(--ct-sel); border-color: var(--ct-sel); color: var(--ct-sel-texto); }
+    .ct-filtro.ativo[class*="ct-k"] { background: var(--k-fundo); border-color: var(--k); color: var(--k-texto); }
+    .ct-filtro.ativo small { color: inherit; opacity: .75; }
+    .ct-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--k); flex: none; cursor: pointer; }
+    .ct-dot:hover { box-shadow: 0 0 0 3px var(--borda); }
+    .ct-paleta {
+      position: absolute; z-index: 20; left: 0; top: calc(100% + 6px); display: grid; grid-template-columns: repeat(4, 22px); gap: 8px;
+      padding: 10px; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.15); cursor: default;
+    }
+    .ct-paleta button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--k); cursor: pointer; padding: 0; }
+    .ct-paleta button.sel { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--k); }
+
+    .ct-topo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .ct-topo h2 { margin: 0; font-size: 22px; }
+    .ct-topo .ct-conta { color: var(--texto-suave); font-weight: 400; font-size: 15px; }
+    .ct-espaco { flex: 1; }
+    .ct-busca { width: 100%; font-size: 16px; padding: 10px 16px; border-radius: 999px; margin-bottom: 14px; }
+
+    .ct-lista { background: var(--card-bg); border: 1px solid var(--borda); border-radius: 12px; box-shadow: var(--sombra); padding-bottom: 6px; }
+    .ct-cab, .ct-linha {
+      display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.1fr) minmax(0, 1.5fr) 112px;
+      gap: 14px; align-items: center; padding: 0 14px;
+    }
+    .ct-cab { font-size: 12px; color: var(--texto-suave); font-weight: 600; padding-top: 11px; padding-bottom: 9px; border-bottom: 1px solid var(--borda); margin-bottom: 4px; }
+    .ct-secao { font-size: 11px; font-weight: 700; color: var(--texto-suave); padding: 12px 18px 4px; letter-spacing: .6px; }
+    .ct-linha { min-height: 56px; cursor: pointer; border-radius: 10px; margin: 0 4px; }
+    .ct-linha:hover { background: var(--tabela-hover); }
+    .ct-quem { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .ct-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center;
+      font-weight: 700; font-size: 14px; user-select: none; background: var(--k-fundo); color: var(--k-texto);
+    }
+    .ct-nome { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+    .ct-nome .ct-link { color: var(--texto-suave); flex: none; display: inline-flex; }
+    .ct-nome .ct-link svg { width: 14px; height: 14px; }
+    .ct-sub { color: var(--texto-suave); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ct-tel { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ct-tel .ct-mais { color: var(--texto-suave); font-size: 12px; margin-left: 4px; }
+    .ct-etiquetas { display: flex; gap: 5px; flex-wrap: wrap; min-width: 0; align-items: center; }
+    .ct-etiquetas .ct-mais { color: var(--texto-suave); font-size: 12px; }
+    .ct-etq {
+      display: inline-flex; align-items: center; gap: 5px; background: var(--k-fundo); color: var(--k-texto);
+      border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .ct-etq::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--k); }
+    .ct-acoes { display: flex; gap: 2px; justify-content: flex-end; }
+    .ct-ic {
+      width: 34px; height: 34px; border-radius: 50%; border: 0; background: none; color: var(--texto-suave);
+      display: grid; place-items: center; cursor: pointer; padding: 0; text-decoration: none;
+    }
+    .ct-ic:hover { background: var(--borda); color: var(--texto); }
+    .ct-ic svg { width: 18px; height: 18px; }
+    .ct-ic.ct-zap:hover { color: #1f9d55; }
+    .ct-ic.ct-estrela { font-size: 19px; line-height: 1; }
+    .ct-ic.ct-estrela.on { color: #d99a00; }
+    @media (hover: hover) {
+      .ct-linha .ct-ic { opacity: 0; }
+      .ct-linha:hover .ct-ic, .ct-linha .ct-ic:focus-visible, .ct-linha .ct-ic.ct-estrela.on { opacity: 1; }
+    }
+    .ct-vazio { padding: 34px 16px; text-align: center; color: var(--texto-suave); }
+    .ct-sub-tel { display: none; }
+
+    @media (max-width: 760px) {
+      .ct-cab { display: none; }
+      .ct-linha { grid-template-columns: minmax(0, 1fr) auto; padding: 6px 8px; }
+      .ct-linha .ct-col-tel, .ct-linha .ct-etiquetas { display: none; }
+      .ct-sub.ct-sub-tel { display: block; }
+    }
+
+    /* Janela: primeiro a ficha para VER; "Editar" troca para o formulário. */
+    .ct-dialog { width: min(620px, calc(100vw - 24px)); max-width: none; max-height: calc(100vh - 32px); }
+    .ct-dialog.ct-larga { width: min(820px, calc(100vw - 24px)); }
+    .ct-ver-topo { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+    .ct-ver-topo .ct-avatar { width: 56px; height: 56px; font-size: 20px; }
+    .ct-ver-topo h3 { margin: 0; font-size: 21px; overflow-wrap: anywhere; }
+    .ct-ver-topo .ct-sub { white-space: normal; }
+    .ct-ver-topo .ct-etiquetas { margin-top: 6px; }
+    .ct-ver-bloco { border: 1px solid var(--borda); border-radius: 10px; padding: 4px 14px; margin-bottom: 12px; }
+    .ct-ver-linha { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--borda); flex-wrap: wrap; }
+    .ct-ver-linha:first-child { border-top: 0; }
+    .ct-ver-rot { font-size: 12px; color: var(--texto-suave); width: 76px; flex: none; }
+    .ct-ver-val { flex: 1; min-width: 0; font-size: 15px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    .ct-ver-obs { white-space: pre-wrap; font-size: 14px; padding: 10px 0; }
+    .ct-hist { border: 1px solid var(--borda); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .ct-anexos.ct-arrastando { border-color: var(--link); box-shadow: 0 0 0 3px var(--ct-sel); }
+    .ct-anexo { display: flex; gap: 12px; align-items: center; padding: 9px 14px; border-top: 1px solid var(--borda); }
+    .ct-anexo-tipo {
+      width: 38px; height: 38px; border-radius: 8px; flex: none; display: grid; place-items: center;
+      font-size: 11px; font-weight: 800; letter-spacing: .3px; background: var(--k-fundo); color: var(--k-texto);
+    }
+    .ct-anexo-txt { flex: 1; min-width: 0; }
+    .ct-anexo-nome { font-weight: 600; font-size: 14px; color: var(--texto); text-decoration: none; overflow-wrap: anywhere; }
+    .ct-anexo-nome:hover { text-decoration: underline; }
+    .ct-anexo .ct-sub { white-space: normal; font-size: 12px; }
+    .ct-anexo .ct-ic { width: 30px; height: 30px; }
+    .ct-anexo .ct-ic svg { width: 16px; height: 16px; }
+    .ct-envio { padding: 9px 14px; border-top: 1px solid var(--borda); font-size: 13px; }
+    .ct-envio-barra { height: 6px; border-radius: 3px; background: var(--borda); margin-top: 6px; overflow: hidden; }
+    .ct-envio-barra div { height: 100%; width: 0; background: var(--link); transition: width .2s; }
+    .ct-nome .ct-clipe { color: var(--texto-suave); flex: none; display: inline-flex; }
+    .ct-nome .ct-clipe svg { width: 14px; height: 14px; }
+    .ct-hist-topo { display: flex; gap: 6px 14px; align-items: baseline; flex-wrap: wrap; padding: 10px 14px; background: var(--tabela-th); }
+    .ct-hist-topo h4 { margin: 0; font-size: 14px; }
+    .ct-hist-topo span { font-size: 13px; color: var(--texto-suave); }
+    .ct-hist-topo strong { color: var(--texto); }
+    .ct-hist-topo .ct-atraso { color: #b45309; font-weight: 700; }
+    .ct-hist table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ct-hist td { padding: 7px 10px; border-top: 1px solid var(--borda); white-space: nowrap; }
+    .ct-hist td.ct-num { text-align: right; font-variant-numeric: tabular-nums; }
+    .ct-hist tr.ct-abre { cursor: pointer; }
+    .ct-hist tr.ct-abre:hover td { background: var(--tabela-hover); }
+    .ct-hist .ct-hist-vazio { padding: 12px 14px; color: var(--texto-suave); font-size: 13px; }
+    .ct-hist .ct-hist-mais { padding: 8px 14px; font-size: 12px; color: var(--texto-suave); border-top: 1px solid var(--borda); }
+    .ct-tabela-rola { overflow-x: auto; }
+    .ct-mini {
+      border: 1px solid var(--borda); background: var(--card-bg); color: var(--texto); border-radius: 999px;
+      padding: 3px 11px; font-size: 13px; cursor: pointer; text-decoration: none; line-height: 1.5; font-weight: 600;
+    }
+    .ct-mini:hover { border-color: var(--texto-suave); }
+    .ct-mini.ct-zap { color: #17834a; border-color: #9fd3b4; }
+    [data-tema="escuro"] .ct-mini.ct-zap { color: #7fd3a2; border-color: #2c5a40; }
+
+    .ct-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .ct-form .ct-largo { grid-column: 1 / -1; }
+    .ct-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
+    .ct-form textarea { min-height: 90px; resize: vertical; font: inherit; }
+    .ct-cli-ed { border: 1px dashed var(--input-borda); border-radius: 10px; padding: 10px 12px; position: relative; }
+    .ct-cli-ed .ct-sub { white-space: normal; font-weight: 400; }
+    .ct-cli-vinc { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 15px; margin-top: 4px; }
+    .ct-cli-sug {
+      position: absolute; left: 12px; right: 12px; z-index: 10; background: var(--card-bg); border: 1px solid var(--borda);
+      border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.15); max-height: 260px; overflow: auto;
+    }
+    .ct-cli-sug button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--texto); padding: 8px 12px; cursor: pointer; font-size: 14px; }
+    .ct-cli-sug button:hover, .ct-cli-sug button.foco { background: var(--tabela-hover); }
+    .ct-cli-sug .ct-sub { display: block; font-size: 12px; }
+    .ct-fone-ed { display: grid; grid-template-columns: 130px minmax(0, 1fr) 34px; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .ct-etq-ed { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+    .ct-etq-ed .ct-etq button { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 0 0 2px; font-size: 13px; }
+    .ct-sugestoes { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; font-weight: 400; }
+    .ct-sugestoes button { border: 1px dashed var(--input-borda); background: none; color: var(--texto-suave); border-radius: 6px; padding: 1px 9px; font-size: 12px; cursor: pointer; }
+    .ct-sugestoes button:hover { color: var(--texto); border-color: var(--texto-suave); }
+    .ct-fav { flex-direction: row !important; align-items: center; gap: 8px !important; font-weight: 400 !important; font-size: 14px !important; }
+    .ct-rodape { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+    .ct-info { font-size: 12px; color: var(--texto-suave); }
+    .ct-erro { color: var(--vermelho); font-weight: 600; min-height: 1em; margin: 8px 0 0; }
+    @media (max-width: 560px) {
+      .ct-form { grid-template-columns: 1fr; }
+      .ct-fone-ed { grid-template-columns: 105px minmax(0, 1fr) 34px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CONTATOS</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Agenda do gerente: vendedores, fábricas de vidro, onde cotar...
+       Área escondida: só abre no Modo Gerenciador e não tem botão na tela
+       inicial (o acesso fica na faixa do gerente).
+       Servidor: src/routes/contatos.js. -->
+  <main class="os-main">
+    <div class="ct-pagina">
+      <div class="ct-topo">
+        <a href="/" class="btn-voltar">← Painel</a>
+        <h2>Contatos <span class="ct-conta" id="conta"></span></h2>
+        <span class="ct-espaco"></span>
+        <button type="button" class="sucesso" data-novo>+ Novo contato</button>
+      </div>
+      <input type="search" id="busca" class="ct-busca" autocomplete="off" spellcheck="false"
+             placeholder="Procurar por nome, empresa, telefone, cidade, observação...">
+      <div class="ct-filtros" id="filtros"></div>
+      <div id="mensagens"></div>
+      <div id="lista"><p class="aviso-vazio">Carregando...</p></div>
+    </div>
+  </main>
+
+  <dialog id="dlg" class="dialog-tipos ct-dialog">
+    <!-- Modo ver -->
+    <div id="ver"></div>
+    <input type="file" id="fArquivo" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.csv">
+
+    <!-- Modo editar -->
+    <form id="form" method="dialog" autocomplete="off" class="oculto">
+      <h3 id="dlgTitulo" style="margin:0 0 12px">Novo contato</h3>
+      <div class="ct-form">
+        <div class="ct-largo ct-cli-ed">
+          <label for="fCliQ">Cadastro de cliente
+            <span class="ct-sub">Ligue à empresa no cadastro de clientes para ver aqui os boletos (ela como fornecedor) e as OS.</span></label>
+          <div id="fCliVinc" class="ct-cli-vinc oculto"></div>
+          <div id="fCliBusca">
+            <input type="text" id="fCliQ" maxlength="80" placeholder="Procurar cliente: nome, CPF/CNPJ ou telefone" style="margin-top:6px;width:100%">
+            <div class="ct-cli-sug oculto" id="fCliSug" role="listbox"></div>
+            <label class="ct-fav" style="margin-top:8px"><input type="checkbox" id="fCliNovo"> Não está cadastrado: cadastrar como cliente novo ao salvar</label>
+          </div>
+        </div>
+
+        <label>Nome
+          <input type="text" id="fNome" maxlength="120" placeholder="Ex.: João">
+        </label>
+        <label>Empresa
+          <input type="text" id="fEmpresa" maxlength="120" placeholder="Ex.: Vidros Paraná">
+        </label>
+        <label>Cargo / o que faz
+          <input type="text" id="fCargo" maxlength="80" placeholder="Ex.: Vendedor externo">
+        </label>
+        <label>Cidade
+          <input type="text" id="fCidade" maxlength="80" placeholder="Ex.: Londrina">
+        </label>
+
+        <div class="ct-largo">
+          <label style="margin-bottom:6px">Telefones</label>
+          <div id="fFones"></div>
+          <button type="button" class="ct-mini" id="btnMaisFone">+ Telefone</button>
+        </div>
+
+        <label>E-mail
+          <input type="email" id="fEmail" maxlength="160" placeholder="nome@empresa.com.br">
+        </label>
+        <label>Site
+          <input type="text" id="fSite" maxlength="200" placeholder="Ex.: vidrosparana.com.br">
+        </label>
+
+        <div class="ct-largo">
+          <label for="fEtqNova">Etiquetas <span class="ct-sub" style="font-weight:400">(grupos: Vendedor, Fábrica de vidro, Cotação...)</span></label>
+          <div class="ct-etq-ed" id="fEtqs"></div>
+          <input type="text" id="fEtqNova" maxlength="40" placeholder="Digite e aperte Enter">
+          <div class="ct-sugestoes" id="fEtqSug"></div>
+        </div>
+
+        <label class="ct-largo">Observações
+          <textarea id="fObs" maxlength="5000" placeholder="O que vende, preços, prazo de entrega, condição de pagamento, falar com quem..."></textarea>
+        </label>
+        <label class="ct-largo ct-fav"><input type="checkbox" id="fFav"> ★ Favorito (aparece no topo da lista)</label>
+      </div>
+      <p class="ct-erro" id="dlgErro" role="alert"></p>
+      <div class="ct-rodape">
+        <button type="button" class="perigo" id="btnExcluir">Excluir</button>
+        <span class="ct-espaco"></span>
+        <button type="button" class="secundario" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="sucesso" id="btnSalvar">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const ETIQUETAS_PADRAO = ['Vendedor', 'Fábrica de vidro', 'Cotação', 'Fornecedor', 'Transportadora', 'Serviço'];
+    const TOQUE = window.matchMedia('(pointer: coarse)').matches;
+    const ICONE_ZAP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.2 8.6c.2-.4.5-.4.7-.4h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.1-.1.3 0 .5.5.9 1.3 1.7 2.2 2.2.2.1.4.1.5 0l.6-.7c.2-.2.4-.2.6-.1l1.6.7c.3.1.4.3.4.5v.5c0 .5-.6 1.3-1.6 1.3-2.6 0-6.2-3.4-6.2-6.1 0-.6.2-1.2.5-1.6z" fill="currentColor"/></svg>';
+    const ICONE_COPIAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+    const ICONE_CLIPE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const ICONE_LAPIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    const ICONE_LIXO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    const ICONE_LINK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const ROTULO_STATUS_OS = {
+      recepcao: 'Aberta', orcamento: 'Orçamento', execucao: 'Execução', concluida: 'Concluída',
+      cancelada: 'Cancelada', aguardando_pagamento: 'Balcão (a pagar)', pendente: 'Pendente', pago: 'Pago',
+    };
+    let contatos = [];
+    let cores = {};       // etiqueta -> 0..7
+    let tiposTelefone = ['WhatsApp', 'Celular', 'Fixo', 'Comercial', 'Outro'];
+    let filtro = 'todos'; // 'todos' | 'fav' | 'etq:<nome>'
+    let atual = null;     // contato aberto na janela (null = novo)
+    let etqEdicao = [];
+    let cliEdicao = null; // { id, nome } do cliente vinculado no formulário
+
+    function escapeHtml(t) {
+      if (t === null || t === undefined) return '';
+      return String(t).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function sem(t) {
+      return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    }
+    function digitos(t) { return String(t || '').replace(/\D/g, ''); }
+    function moeda(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+    function dataBr(v) {
+      if (!v) return '—';
+      const s = String(v);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR');
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      const m = document.getElementById('mensagens');
+      m.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      m.appendChild(div);
+      setTimeout(() => m.replaceChildren(), tipo === 'erro' ? 10000 : 3500);
+    }
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+    async function api(metodo, url, corpo) {
+      return lerJson(await fetch(url, {
+        method: metodo,
+        headers: corpo ? { 'Content-Type': 'application/json' } : {},
+        body: corpo ? JSON.stringify(corpo) : undefined,
+      }));
+    }
+
+    function corDe(etq) { return cores[etq] !== undefined ? cores[etq] : 7; }
+    function chip(etq) { return '<span class="ct-etq ct-k' + corDe(etq) + '">' + escapeHtml(etq) + '</span>'; }
+    function iniciais(c) {
+      const p = String(c.nome || c.empresa || '?').trim().split(/\s+/);
+      return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+    }
+    // Bolinha: com a cor da 1ª etiqueta do contato (cinza se não tiver).
+    function avatar(c) {
+      const k = (c.etiquetas || []).length ? corDe(c.etiquetas[0]) : 7;
+      return '<div class="ct-avatar ct-k' + k + '">' + escapeHtml(iniciais(c)) + '</div>';
+    }
+    function subtitulo(c) {
+      return [c.cargo, c.nome !== c.empresa ? c.empresa : null].filter(Boolean).join(' · ');
+    }
+
+    // WhatsApp: número brasileiro com DDD vira 55 + DDD + número.
+    function linkZap(numero) {
+      let d = digitos(numero).replace(/^0+/, '');
+      if (d.length === 10 || d.length === 11) d = '55' + d;
+      if (d.length < 12) return null;
+      return 'https://wa.me/' + d;
+    }
+    function temZap(t) { return (t.tipo === 'WhatsApp' || t.tipo === 'Celular') && linkZap(t.numero); }
+    function zapPrincipal(c) { const t = (c.telefones || []).find(temZap); return t ? linkZap(t.numero) : null; }
+
+    async function copiar(texto) {
+      try {
+        await navigator.clipboard.writeText(texto);
+        mostrarMensagem('Número copiado: ' + texto, 'ok');
+      } catch {
+        mostrarMensagem('Não deu para copiar. Selecione o número com o mouse.', 'erro');
+      }
+    }
+
+    // ---------- coluna da esquerda (grupos) ----------
+
+    function contagemEtiquetas() {
+      const mapa = new Map();
+      for (const c of contatos) for (const e of c.etiquetas || []) mapa.set(e, (mapa.get(e) || 0) + 1);
+      return [...mapa.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+    }
+
+    // Fileira de botões em cima da lista: Todos, Favoritos e cada etiqueta
+    // (com a bolinha da cor dela; clicar na bolinha troca a cor).
+    function renderNav() {
+      const etqs = contagemEtiquetas();
+      if (filtro.startsWith('etq:') && !etqs.some(([e]) => 'etq:' + e === filtro)) filtro = 'todos';
+      const fav = contatos.filter(c => c.favorito).length;
+      const b = (chave, conteudo, n, k) => '<button type="button" class="ct-filtro' + (k !== undefined ? ' ct-k' + k : '') +
+        (filtro === chave ? ' ativo' : '') + '" data-filtro="' + escapeHtml(chave) + '">' + conteudo + ' <small>' + n + '</small></button>';
+      document.getElementById('filtros').innerHTML = contatos.length
+        ? b('todos', 'Todos', contatos.length) + (fav ? b('fav', '★ Favoritos', fav) : '') +
+          etqs.map(([e, n]) => b('etq:' + e, '<span class="ct-dot" data-cor="' + escapeHtml(e) + '" title="Trocar a cor"></span>' + escapeHtml(e), n, corDe(e))).join('')
+        : '';
+    }
+
+    function fecharPaleta() { document.querySelectorAll('.ct-paleta').forEach(p => p.remove()); }
+    function abrirPaleta(etq, ancora) {
+      fecharPaleta();
+      const p = document.createElement('div');
+      p.className = 'ct-paleta';
+      p.innerHTML = Array.from({ length: 8 }, (_, k) =>
+        '<button type="button" class="ct-k' + k + (corDe(etq) === k ? ' sel' : '') + '" data-k="' + k + '" aria-label="Cor ' + (k + 1) + '"></button>').join('');
+      p.addEventListener('click', async e => {
+        e.stopPropagation();
+        const b = e.target.closest('[data-k]');
+        if (!b) return;
+        try {
+          await api('PUT', '/api/contatos/etiquetas/cor', { nome: etq, cor: Number(b.dataset.k) });
+          cores[etq] = Number(b.dataset.k);
+          fecharPaleta();
+          render();
+        } catch (err) { mostrarMensagem(err.message, 'erro'); }
+      });
+      ancora.appendChild(p);
+    }
+    document.addEventListener('click', e => { if (!e.target.closest('.ct-paleta') && !e.target.closest('[data-cor]')) fecharPaleta(); });
+
+    document.getElementById('filtros').addEventListener('click', e => {
+      if (e.target.closest('.ct-paleta')) return;
+      const dot = e.target.closest('[data-cor]');
+      if (dot) {
+        e.stopPropagation();
+        return abrirPaleta(dot.dataset.cor, dot.closest('.ct-filtro'));
+      }
+      const b = e.target.closest('[data-filtro]');
+      if (!b) return;
+      filtro = b.dataset.filtro;
+      render();
+    });
+
+    // ---------- lista ----------
+
+    function combina(c, termos, termosDig) {
+      const t = sem([c.nome, c.empresa, c.cargo, c.email, c.site, c.cidade, c.observacoes, c.clienteNome,
+        (c.etiquetas || []).join(' '), (c.telefones || []).map(x => x.numero).join(' ')].join(' '));
+      const fones = (c.telefones || []).map(x => digitos(x.numero)).join(' ');
+      return termos.every((q, i) => t.includes(q) || (termosDig[i].length >= 3 && fones.includes(termosDig[i])));
+    }
+
+    function linhaHtml(c) {
+      const fones = c.telefones || [];
+      const tel = fones.length
+        ? escapeHtml(fones[0].numero) + (fones.length > 1 ? '<span class="ct-mais">+' + (fones.length - 1) + '</span>' : '')
+        : '';
+      const zap = zapPrincipal(c);
+      return '<div class="ct-linha" data-id="' + c.id + '">' +
+        '<div class="ct-quem">' + avatar(c) + '<div style="min-width:0">' +
+          '<div class="ct-nome"><span style="overflow:hidden;text-overflow:ellipsis">' + escapeHtml(c.nome) + '</span>' +
+            (c.clienteId ? '<span class="ct-link" title="Ligado ao cliente ' + escapeHtml(c.clienteNome || '') + '">' + ICONE_LINK + '</span>' : '') +
+            (c.qtdAnexos ? '<span class="ct-clipe" title="' + c.qtdAnexos + ' arquivo(s): catálogo, tabela...">' + ICONE_CLIPE + '</span>' : '') + '</div>' +
+          '<div class="ct-sub">' + escapeHtml(subtitulo(c)) + '</div>' +
+          (fones.length ? '<div class="ct-sub ct-sub-tel">' + escapeHtml(fones[0].numero) + '</div>' : '') +
+        '</div></div>' +
+        '<div class="ct-tel ct-col-tel">' + tel + '</div>' +
+        // Na lista, no máximo 2 etiquetas (o resto vira "+1"); todas na ficha.
+        '<div class="ct-etiquetas">' + (c.etiquetas || []).slice(0, 2).map(chip).join('') +
+          ((c.etiquetas || []).length > 2 ? '<span class="ct-mais" title="' + escapeHtml(c.etiquetas.slice(2).join(', ')) + '">+' + (c.etiquetas.length - 2) + '</span>' : '') + '</div>' +
+        '<div class="ct-acoes">' +
+          (zap ? '<a class="ct-ic ct-zap" href="' + zap + '" target="_blank" rel="noopener" title="Conversar no WhatsApp" aria-label="WhatsApp">' + ICONE_ZAP + '</a>' : '') +
+          (fones.length && !TOQUE ? '<button type="button" class="ct-ic" data-copiar="' + escapeHtml(fones[0].numero) + '" title="Copiar o número" aria-label="Copiar">' + ICONE_COPIAR + '</button>' : '') +
+          '<button type="button" class="ct-ic ct-estrela' + (c.favorito ? ' on' : '') + '" data-estrela title="' +
+            (c.favorito ? 'Tirar dos favoritos' : 'Marcar como favorito') + '" aria-label="Favorito">' + (c.favorito ? '★' : '☆') + '</button>' +
+        '</div></div>';
+    }
+
+    function render() {
+      renderNav();
+      const q = document.getElementById('busca').value.trim();
+      const termos = sem(q).split(/\s+/).filter(Boolean);
+      const termosDig = q.split(/\s+/).filter(Boolean).map(digitos);
+      let lista = contatos;
+      if (filtro === 'fav') lista = lista.filter(c => c.favorito);
+      else if (filtro.startsWith('etq:')) lista = lista.filter(c => (c.etiquetas || []).includes(filtro.slice(4)));
+      if (termos.length) lista = lista.filter(c => combina(c, termos, termosDig));
+
+      document.getElementById('conta').textContent = contatos.length ? '(' + contatos.length + ')' : '';
+      const el = document.getElementById('lista');
+      if (!contatos.length) {
+        el.innerHTML = '<div class="ct-lista"><div class="ct-vazio">Nenhum contato ainda.<br>Aperte <strong>+ Novo contato</strong> para começar a agenda.</div></div>';
+        return;
+      }
+      if (!lista.length) {
+        el.innerHTML = '<div class="ct-lista"><div class="ct-vazio">Nada encontrado' + (q ? ' para "' + escapeHtml(q) + '"' : '') + '.</div></div>';
+        return;
+      }
+      let corpo;
+      if (filtro === 'todos' && !termos.length && lista.some(c => c.favorito) && lista.some(c => !c.favorito)) {
+        const fav = lista.filter(c => c.favorito);
+        const resto = lista.filter(c => !c.favorito);
+        corpo = '<div class="ct-secao">FAVORITOS (' + fav.length + ')</div>' + fav.map(linhaHtml).join('') +
+          '<div class="ct-secao">CONTATOS (' + resto.length + ')</div>' + resto.map(linhaHtml).join('');
+      } else {
+        corpo = lista.map(linhaHtml).join('');
+      }
+      el.innerHTML = '<div class="ct-lista"><div class="ct-cab"><span>Nome</span><span class="ct-col-tel">Telefone</span><span>Etiquetas</span><span></span></div>' +
+        corpo + '</div>';
+    }
+
+    async function carregar() {
+      try {
+        const d = await api('GET', '/api/contatos');
+        contatos = d.contatos;
+        cores = d.cores || {};
+        if (d.tiposTelefone) tiposTelefone = d.tiposTelefone;
+      } catch (e) {
+        // Fora do Modo Gerenciador o servidor recusa; a página já mostra o
+        // aviso de "área do gerente" no lugar do conteúdo.
+        return;
+      }
+      ordenar();
+      render();
+    }
+    function ordenar() {
+      contatos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+    }
+
+    async function trocarEstrela(c) {
+      try {
+        const r = await api('POST', '/api/contatos/' + c.id + '/favorito', { favorito: !c.favorito });
+        c.favorito = r.favorito;
+        render();
+        const est = document.querySelector('[data-ver-estrela]');
+        if (dlg.open && atual === c && est) {
+          est.classList.toggle('on', c.favorito);
+          est.textContent = c.favorito ? '★' : '☆';
+        }
+      } catch (err) { mostrarMensagem(err.message, 'erro'); }
+    }
+
+    document.getElementById('busca').addEventListener('input', render);
+    document.getElementById('busca').addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.target.value = ''; render(); }
+      if (e.key === 'Enter') {
+        const linhas = document.querySelectorAll('.ct-linha');
+        if (linhas.length === 1) ver(contatos.find(c => c.id === Number(linhas[0].dataset.id)));
+      }
+    });
+    document.getElementById('lista').addEventListener('click', e => {
+      const linha = e.target.closest('.ct-linha');
+      if (!linha) return;
+      const c = contatos.find(x => x.id === Number(linha.dataset.id));
+      if (!c) return;
+      const bCopiar = e.target.closest('[data-copiar]');
+      if (bCopiar) return copiar(bCopiar.dataset.copiar);
+      if (e.target.closest('a')) return; // WhatsApp
+      if (e.target.closest('[data-estrela]')) return trocarEstrela(c);
+      ver(c);
+    });
+
+    // ---------- janela: ver ----------
+
+    const dlg = document.getElementById('dlg');
+
+    function linkSite(s) {
+      return /^https?:\/\//i.test(s) ? s : 'https://' + s;
+    }
+
+    function ver(c) {
+      atual = c;
+      const fones = c.telefones || [];
+      const linhas = [];
+      for (const t of fones) {
+        const zap = temZap(t) ? linkZap(t.numero) : null;
+        linhas.push('<div class="ct-ver-linha"><span class="ct-ver-rot">' + escapeHtml(t.tipo) + '</span>' +
+          '<span class="ct-ver-val">' + escapeHtml(t.numero) + '</span>' +
+          (zap ? '<a class="ct-mini ct-zap" href="' + zap + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
+          (TOQUE ? '<a class="ct-mini" href="tel:' + digitos(t.numero) + '">Ligar</a>'
+            : '<button type="button" class="ct-mini" data-copiar="' + escapeHtml(t.numero) + '">Copiar</button>') +
+          '</div>');
+      }
+      if (c.email) linhas.push('<div class="ct-ver-linha"><span class="ct-ver-rot">E-mail</span><span class="ct-ver-val"><a href="mailto:' +
+        escapeHtml(c.email) + '">' + escapeHtml(c.email) + '</a></span></div>');
+      if (c.site) linhas.push('<div class="ct-ver-linha"><span class="ct-ver-rot">Site</span><span class="ct-ver-val"><a href="' +
+        escapeHtml(linkSite(c.site)) + '" target="_blank" rel="noopener">' + escapeHtml(c.site) + '</a></span></div>');
+      if (c.cidade) linhas.push('<div class="ct-ver-linha"><span class="ct-ver-rot">Cidade</span><span class="ct-ver-val">' + escapeHtml(c.cidade) + '</span></div>');
+      if (c.clienteId) linhas.push('<div class="ct-ver-linha"><span class="ct-ver-rot">Cliente</span><span class="ct-ver-val">' +
+        escapeHtml(c.clienteNome || '') + '</span><a class="ct-mini" href="/clientes.html?id=' + c.clienteId + '">Abrir cadastro</a></div>');
+
+      const fmt = v => v ? new Date(v).toLocaleDateString('pt-BR') : '';
+      const info = 'Cadastrado em ' + fmt(c.dataCadastro) + (c.criadoPor ? ' por ' + c.criadoPor : '') +
+        (c.atualizadoEm && fmt(c.atualizadoEm) !== fmt(c.dataCadastro) ? ' · alterado em ' + fmt(c.atualizadoEm) : '');
+
+      document.getElementById('ver').innerHTML =
+        '<div class="ct-ver-topo">' + avatar(c) + '<div style="flex:1;min-width:0"><h3>' + escapeHtml(c.nome) + '</h3>' +
+          (subtitulo(c) ? '<div class="ct-sub">' + escapeHtml(subtitulo(c)) + '</div>' : '') +
+          ((c.etiquetas || []).length ? '<div class="ct-etiquetas">' + c.etiquetas.map(chip).join('') + '</div>' : '') +
+        '</div><button type="button" class="ct-ic ct-estrela' + (c.favorito ? ' on' : '') + '" data-ver-estrela title="Favorito" aria-label="Favorito">' +
+          (c.favorito ? '★' : '☆') + '</button></div>' +
+        (linhas.length ? '<div class="ct-ver-bloco">' + linhas.join('') + '</div>' : '<p class="ct-sub">Sem telefone nem e-mail.</p>') +
+        (c.observacoes ? '<div class="ct-ver-bloco"><div class="ct-ver-obs">' + escapeHtml(c.observacoes) + '</div></div>' : '') +
+        '<div class="ct-hist ct-anexos" id="verAnexos"><div class="ct-hist-topo"><h4>Catálogos e arquivos</h4>' +
+          '<span class="ct-espaco"></span><button type="button" class="ct-mini" data-anexar>+ Anexar arquivo</button></div>' +
+          '<div id="verAnexosLista"><div class="ct-hist-vazio">Carregando...</div></div></div>' +
+        (c.clienteId
+          ? '<div id="verHist"><p class="ct-sub">Carregando boletos e serviços...</p></div>'
+          : '<p class="ct-sub" style="white-space:normal">Para ver os boletos e as OS deste contato, ligue ele ao cadastro de cliente (Editar → Cadastro de cliente).</p>') +
+        '<div class="ct-rodape"><span class="ct-info">' + escapeHtml(info) + '</span><span class="ct-espaco"></span>' +
+          '<button type="button" class="secundario" data-ver-fechar>Fechar</button>' +
+          '<button type="button" class="sucesso" data-ver-editar>Editar</button></div>';
+      dlg.classList.toggle('ct-larga', !!c.clienteId);
+      document.getElementById('ver').classList.remove('oculto');
+      document.getElementById('form').classList.add('oculto');
+      if (!dlg.open) dlg.showModal();
+      document.querySelector('[data-ver-editar]').focus();
+      carregarAnexos(c);
+      if (c.clienteId) carregarHistorico(c);
+    }
+
+    function tipoDocumento(d) {
+      if (d.venda_balcao_id) return { nome: 'Venda balcão', url: '/venda.html?id=' + encodeURIComponent(d.venda_balcao_id) };
+      if (d.origem === 'externo' || d.tipo === 'externo') return { nome: 'Externo', url: '/externa.html?id=' + encodeURIComponent(d.id) };
+      return { nome: 'OS', url: '/os.html?id=' + encodeURIComponent(d.id) };
+    }
+
+    // Boletos (o cliente como fornecedor) e OS / vendas / externos dele.
+    async function carregarHistorico(c) {
+      let bol, os;
+      try {
+        [bol, os] = await Promise.all([
+          api('GET', '/api/contatos/' + c.id + '/boletos'),
+          api('GET', '/api/ordens-servico/por-cliente/' + c.clienteId),
+        ]);
+      } catch (e) {
+        const el = document.getElementById('verHist');
+        if (el && atual === c) el.innerHTML = '<p class="ct-erro">' + escapeHtml(e.message) + '</p>';
+        return;
+      }
+      const el = document.getElementById('verHist');
+      if (!el || atual !== c) return; // fechou ou abriu outro enquanto carregava
+
+      const hoje = new Date().toLocaleDateString('en-CA');
+      const linhasBol = bol.boletos.map(b => {
+        const atrasado = b.status === 'pendente' && b.dataVencimento < hoje;
+        return '<tr class="ct-abre" data-ir="/despesas.html?boleto=' + b.id + '"><td><strong>nº ' + escapeHtml(b.codigo) + '</strong>' +
+          (b.parcelas ? ' <span class="parcela-selo">' + b.parcela + '/' + b.parcelas + '</span>' : '') + '</td>' +
+          '<td>' + (b.notaFiscal ? 'NF ' + escapeHtml(b.notaFiscal) : '') + '</td>' +
+          '<td>vence ' + dataBr(b.dataVencimento) + '</td>' +
+          '<td class="ct-num">' + moeda(b.valorTotal) + '</td>' +
+          '<td><span class="status-os ' + (atrasado ? 'cancelada' : escapeHtml(b.status)) + '">' + (atrasado ? 'Atrasado' : b.status === 'pago' ? 'Pago' : 'Em aberto') + '</span></td></tr>';
+      }).join('');
+      const blocoBol = '<div class="ct-hist"><div class="ct-hist-topo"><h4>Boletos (fornecedor)</h4>' +
+        '<span><strong>' + bol.total + '</strong> no total</span>' +
+        (bol.abertos ? '<span>Em aberto: <strong>' + moeda(bol.valorAberto) + '</strong> (' + bol.abertos + ')</span>' : '') +
+        (bol.atrasados ? '<span class="ct-atraso">' + bol.atrasados + ' atrasado' + (bol.atrasados > 1 ? 's' : '') + '</span>' : '') +
+        '<span>Pago este ano: <strong>' + moeda(bol.pagoAno) + '</strong></span></div>' +
+        (bol.boletos.length ? '<div class="ct-tabela-rola"><table>' + linhasBol + '</table></div>' +
+          (bol.total > bol.boletos.length ? '<div class="ct-hist-mais">Mostrando os ' + bol.boletos.length + ' mais recentes.</div>' : '')
+          : '<div class="ct-hist-vazio">Nenhum boleto com este fornecedor.</div>') + '</div>';
+
+      const docs = os.documentos || [];
+      const MOSTRAR = 8;
+      const linhasOs = docs.slice(0, MOSTRAR).map(d => {
+        const t = tipoDocumento(d);
+        return '<tr class="ct-abre" data-ir="' + escapeHtml(t.url) + '"><td><strong>' + escapeHtml(d.codigo) + '</strong></td>' +
+          '<td>' + t.nome + '</td><td>' + dataBr(d.data_abertura) + '</td><td>' + escapeHtml(d.placa || '') + '</td>' +
+          '<td class="ct-num">' + moeda(d.valor_total) + '</td>' +
+          '<td><span class="status-os ' + escapeHtml(d.status) + '">' + escapeHtml(ROTULO_STATUS_OS[d.status] || d.status) + '</span></td></tr>';
+      }).join('');
+      const blocoOs = '<div class="ct-hist"><div class="ct-hist-topo"><h4>Serviços (OS, vendas, externos)</h4>' +
+        '<span><strong>' + os.total + '</strong> no total</span>' +
+        '<span>Concluídos: <strong>' + moeda(os.valor_concluido) + '</strong></span>' +
+        (os.em_aberto ? '<span>Em aberto: <strong>' + os.em_aberto + '</strong></span>' : '') + '</div>' +
+        (docs.length ? '<div class="ct-tabela-rola"><table>' + linhasOs + '</table></div>' +
+          (os.total > MOSTRAR ? '<div class="ct-hist-mais">Mostrando os ' + Math.min(MOSTRAR, docs.length) + ' mais recentes. ' +
+            '<a href="/clientes.html?historico=' + c.clienteId + '">Ver tudo no cadastro do cliente</a></div>' : '')
+          : '<div class="ct-hist-vazio">Nenhuma OS, venda ou serviço externo deste cliente.</div>') + '</div>';
+
+      el.innerHTML = blocoBol + blocoOs;
+    }
+
+    // ---------- catálogos e arquivos do contato ----------
+
+    let anexosAtuais = [];
+    function tamanhoTxt(b) {
+      if (b >= 1024 * 1024) return (b / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' MB';
+      return Math.max(1, Math.round(b / 1024)) + ' KB';
+    }
+    function tipoArquivo(nome) {
+      const ext = String(nome).split('.').pop().toLowerCase();
+      if (ext === 'pdf') return { rot: 'PDF', k: 0 };
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) return { rot: 'IMG', k: 3 };
+      return { rot: ext === 'csv' ? 'CSV' : 'XLS', k: 1 };
+    }
+    function renderAnexos() {
+      const el = document.getElementById('verAnexosLista');
+      if (!el) return;
+      if (!anexosAtuais.length) {
+        el.innerHTML = '<div class="ct-hist-vazio">Nenhum arquivo. Aperte <strong>+ Anexar arquivo</strong> ou arraste o PDF do catálogo para cá.</div>';
+        return;
+      }
+      el.innerHTML = anexosAtuais.map(a => {
+        const tp = tipoArquivo(a.nomeOriginal);
+        const url = '/api/contatos/anexos/' + a.id;
+        return '<div class="ct-anexo"><div class="ct-anexo-tipo ct-k' + tp.k + '">' + tp.rot + '</div>' +
+          '<div class="ct-anexo-txt"><a class="ct-anexo-nome" href="' + url + '" target="_blank" rel="noopener">' + escapeHtml(a.descricao) + '</a>' +
+            '<div class="ct-sub">' + escapeHtml(a.nomeOriginal) + ' · ' + tamanhoTxt(a.tamanho) + ' · ' + dataBr(a.dataEnvio) +
+              (a.enviadoPor ? ' por ' + escapeHtml(a.enviadoPor) : '') + '</div></div>' +
+          '<a class="ct-mini" href="' + url + '" target="_blank" rel="noopener">Abrir</a>' +
+          '<button type="button" class="ct-ic" data-renomear="' + a.id + '" title="Mudar o nome" aria-label="Mudar o nome">' + ICONE_LAPIS + '</button>' +
+          '<button type="button" class="ct-ic" data-apagar-anexo="' + a.id + '" title="Excluir o arquivo" aria-label="Excluir">' + ICONE_LIXO + '</button>' +
+          '</div>';
+      }).join('');
+    }
+    function atualizarContagem(c) {
+      c.qtdAnexos = anexosAtuais.length;
+      render();
+    }
+    async function carregarAnexos(c) {
+      anexosAtuais = [];
+      try {
+        const r = await api('GET', '/api/contatos/' + c.id + '/anexos');
+        if (atual !== c) return;
+        anexosAtuais = r.anexos;
+        renderAnexos();
+      } catch (e) {
+        const el = document.getElementById('verAnexosLista');
+        if (el && atual === c) el.innerHTML = '<p class="ct-erro" style="padding:0 14px">' + escapeHtml(e.message) + '</p>';
+      }
+    }
+    // Envia com barra de progresso (catálogo pode ter dezenas de MB).
+    function enviarArquivos(lista) {
+      const c = atual;
+      const arquivos = [...lista];
+      if (!c || !arquivos.length) return;
+      const grandes = arquivos.filter(f => f.size > 50 * 1024 * 1024);
+      if (grandes.length) {
+        mostrarMensagem('"' + grandes[0].name + '" passa de 50 MB.', 'erro');
+        return;
+      }
+      const el = document.getElementById('verAnexosLista');
+      const aviso = document.createElement('div');
+      aviso.className = 'ct-envio';
+      aviso.innerHTML = 'Enviando ' + (arquivos.length === 1 ? escapeHtml(arquivos[0].name) : arquivos.length + ' arquivos') +
+        '... <span>0%</span><div class="ct-envio-barra"><div></div></div>';
+      el.prepend(aviso);
+      const fd = new FormData();
+      arquivos.forEach(f => fd.append('arquivos', f));
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/contatos/' + c.id + '/anexos');
+      xhr.upload.onprogress = e => {
+        if (!e.lengthComputable) return;
+        const p = Math.round(e.loaded / e.total * 100);
+        aviso.querySelector('span').textContent = p + '%';
+        aviso.querySelector('.ct-envio-barra div').style.width = p + '%';
+      };
+      xhr.onload = () => {
+        let d = {};
+        try { d = JSON.parse(xhr.responseText); } catch { /* resposta sem JSON */ }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          anexosAtuais = d.anexos || [];
+          if (atual === c) renderAnexos();
+          atualizarContagem(c);
+          mostrarMensagem(arquivos.length === 1 ? 'Arquivo anexado.' : arquivos.length + ' arquivos anexados.', 'ok');
+        } else {
+          aviso.remove();
+          mostrarMensagem(d.erro || 'Não deu para enviar o arquivo.', 'erro');
+        }
+      };
+      xhr.onerror = () => { aviso.remove(); mostrarMensagem('A conexão caiu durante o envio. Tente de novo.', 'erro'); };
+      xhr.send(fd);
+    }
+    document.getElementById('fArquivo').addEventListener('change', e => {
+      enviarArquivos(e.target.files);
+      e.target.value = '';
+    });
+    // Arrastar o arquivo para o quadro "Catálogos e arquivos".
+    const verEl = document.getElementById('ver');
+    verEl.addEventListener('dragover', e => {
+      const box = e.target.closest('#verAnexos');
+      if (!box) return;
+      e.preventDefault();
+      box.classList.add('ct-arrastando');
+    });
+    verEl.addEventListener('dragleave', e => {
+      const box = e.target.closest('#verAnexos');
+      if (box && !box.contains(e.relatedTarget)) box.classList.remove('ct-arrastando');
+    });
+    verEl.addEventListener('drop', e => {
+      const box = e.target.closest('#verAnexos');
+      if (!box) return;
+      e.preventDefault();
+      box.classList.remove('ct-arrastando');
+      enviarArquivos(e.dataTransfer.files);
+    });
+    async function renomearAnexo(id) {
+      const a = anexosAtuais.find(x => x.id === id);
+      if (!a) return;
+      const novo = prompt('Nome do arquivo (ex.: Catálogo 2027, Tabela de preços março):', a.descricao);
+      if (novo === null || !novo.trim() || novo.trim() === a.descricao) return;
+      try {
+        const r = await api('PUT', '/api/contatos/anexos/' + id, { descricao: novo });
+        Object.assign(a, r);
+        renderAnexos();
+      } catch (err) { mostrarMensagem(err.message, 'erro'); }
+    }
+    async function apagarAnexo(id) {
+      const a = anexosAtuais.find(x => x.id === id);
+      if (!a || !confirm('Excluir o arquivo "' + a.descricao + '"?\n\nNão dá para desfazer pelo sistema.')) return;
+      try {
+        await api('DELETE', '/api/contatos/anexos/' + id);
+        anexosAtuais = anexosAtuais.filter(x => x.id !== id);
+        renderAnexos();
+        atualizarContagem(atual);
+      } catch (err) { mostrarMensagem(err.message, 'erro'); }
+    }
+
+    document.getElementById('ver').addEventListener('click', e => {
+      if (e.target.closest('[data-anexar]')) return document.getElementById('fArquivo').click();
+      const ren = e.target.closest('[data-renomear]');
+      if (ren) return renomearAnexo(Number(ren.dataset.renomear));
+      const apg = e.target.closest('[data-apagar-anexo]');
+      if (apg) return apagarAnexo(Number(apg.dataset.apagarAnexo));
+      const ir = e.target.closest('[data-ir]');
+      if (ir) { location.href = ir.dataset.ir; return; }
+      const bCopiar = e.target.closest('[data-copiar]');
+      if (bCopiar) return copiar(bCopiar.dataset.copiar);
+      if (e.target.closest('[data-ver-fechar]')) return dlg.close();
+      if (e.target.closest('[data-ver-editar]')) return editar(atual);
+      if (e.target.closest('[data-ver-estrela]')) return trocarEstrela(atual);
+    });
+
+    // ---------- janela: editar ----------
+
+    function linhaFone(t) {
+      const div = document.createElement('div');
+      div.className = 'ct-fone-ed';
+      div.innerHTML = '<select>' + tiposTelefone.map(x => '<option' + (x === t.tipo ? ' selected' : '') + '>' + escapeHtml(x) + '</option>').join('') + '</select>' +
+        '<input type="tel" maxlength="40" placeholder="(43) 99999-0000" value="' + escapeHtml(t.numero || '') + '">' +
+        '<button type="button" class="ct-ic" title="Tirar este telefone" aria-label="Tirar">✕</button>';
+      div.querySelector('button').addEventListener('click', () => div.remove());
+      document.getElementById('fFones').appendChild(div);
+      return div;
+    }
+
+    function renderEtiquetasEdicao() {
+      document.getElementById('fEtqs').innerHTML = etqEdicao.map((e, i) =>
+        '<span class="ct-etq ct-k' + corDe(e) + '">' + escapeHtml(e) + '<button type="button" data-tirar="' + i + '" aria-label="Tirar etiqueta">✕</button></span>').join('');
+      const usadas = new Set(etqEdicao.map(e => e.toLowerCase()));
+      const todas = [...new Set([...contagemEtiquetas().map(([e]) => e), ...ETIQUETAS_PADRAO])];
+      document.getElementById('fEtqSug').innerHTML = todas.filter(e => !usadas.has(e.toLowerCase()))
+        .map(e => '<button type="button" data-sug="' + escapeHtml(e) + '">+ ' + escapeHtml(e) + '</button>').join('');
+    }
+    function addEtiqueta(t) {
+      t = String(t || '').trim().slice(0, 40);
+      if (!t) return;
+      // Reaproveita a grafia de uma etiqueta que já existe ("cotacao" -> "Cotação").
+      const existente = [...contagemEtiquetas().map(([e]) => e), ...ETIQUETAS_PADRAO].find(e => sem(e) === sem(t));
+      t = existente || t;
+      if (!etqEdicao.some(e => sem(e) === sem(t))) etqEdicao.push(t);
+      renderEtiquetasEdicao();
+    }
+    document.getElementById('fEtqs').addEventListener('click', e => {
+      const b = e.target.closest('[data-tirar]');
+      if (!b) return;
+      etqEdicao.splice(Number(b.dataset.tirar), 1);
+      renderEtiquetasEdicao();
+    });
+    document.getElementById('fEtqSug').addEventListener('click', e => {
+      const b = e.target.closest('[data-sug]');
+      if (b) addEtiqueta(b.dataset.sug);
+    });
+    document.getElementById('fEtqNova').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addEtiqueta(e.target.value);
+        e.target.value = '';
+      }
+    });
+
+    // --- vínculo com o cadastro de cliente ---
+    function renderCliente() {
+      const vinc = document.getElementById('fCliVinc');
+      vinc.classList.toggle('oculto', !cliEdicao);
+      document.getElementById('fCliBusca').classList.toggle('oculto', !!cliEdicao);
+      vinc.innerHTML = cliEdicao
+        ? '<span class="ct-link" style="display:inline-flex;width:16px">' + ICONE_LINK + '</span><strong>' + escapeHtml(cliEdicao.nome) + '</strong>' +
+          '<button type="button" class="ct-mini" id="btnDesvincular">Desligar</button>'
+        : '';
+      const b = document.getElementById('btnDesvincular');
+      if (b) b.addEventListener('click', () => { cliEdicao = null; renderCliente(); document.getElementById('fCliQ').focus(); });
+    }
+    let sugClientes = [];
+    let sugFoco = -1;
+    let buscaCliTimer = null;
+    function fecharSugCli() { document.getElementById('fCliSug').classList.add('oculto'); sugFoco = -1; }
+    function escolherCliente(cl) {
+      cliEdicao = { id: cl.id, nome: cl.nome_razao_social };
+      document.getElementById('fCliNovo').checked = false;
+      document.getElementById('fCliQ').value = '';
+      fecharSugCli();
+      // Puxa do cadastro o que ainda está em branco no contato.
+      const nome = document.getElementById('fNome');
+      const empresa = document.getElementById('fEmpresa');
+      if (!nome.value.trim() && !empresa.value.trim()) nome.value = cl.nome_razao_social;
+      const email = document.getElementById('fEmail');
+      if (!email.value.trim() && cl.email) email.value = cl.email;
+      const inputs = [...document.querySelectorAll('#fFones input')];
+      if (cl.telefone && !inputs.some(i => i.value.trim())) {
+        if (inputs[0]) inputs[0].value = cl.telefone; else linhaFone({ tipo: 'Celular', numero: cl.telefone });
+      }
+      renderCliente();
+    }
+    function renderSugCli() {
+      const box = document.getElementById('fCliSug');
+      if (!sugClientes.length) {
+        box.innerHTML = '<div class="ct-sub" style="padding:8px 12px">Nenhum cliente encontrado. Marque "cadastrar como cliente novo" abaixo.</div>';
+      } else {
+        box.innerHTML = sugClientes.map((cl, i) => '<button type="button" data-i="' + i + '"' + (i === sugFoco ? ' class="foco"' : '') + '>' +
+          '<strong>' + escapeHtml(cl.nome_razao_social) + '</strong><span class="ct-sub">' +
+          escapeHtml([cl.cpf_cnpj, cl.telefone, cl.email].filter(Boolean).join(' · ') || '—') + '</span></button>').join('');
+      }
+      box.classList.remove('oculto');
+    }
+    document.getElementById('fCliQ').addEventListener('input', e => {
+      clearTimeout(buscaCliTimer);
+      const q = e.target.value.trim();
+      if (q.length < 2) { fecharSugCli(); return; }
+      buscaCliTimer = setTimeout(async () => {
+        try {
+          const r = await api('GET', '/api/clientes?q=' + encodeURIComponent(q));
+          if (document.getElementById('fCliQ').value.trim() !== q) return;
+          sugClientes = (Array.isArray(r) ? r : []).slice(0, 8);
+          sugFoco = sugClientes.length ? 0 : -1;
+          renderSugCli();
+        } catch { /* sem sugestão */ }
+      }, 250);
+    });
+    document.getElementById('fCliQ').addEventListener('keydown', e => {
+      const aberto = !document.getElementById('fCliSug').classList.contains('oculto');
+      if (!aberto) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!sugClientes.length) return;
+        sugFoco = (sugFoco + (e.key === 'ArrowDown' ? 1 : -1) + sugClientes.length) % sugClientes.length;
+        renderSugCli();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (sugFoco >= 0) escolherCliente(sugClientes[sugFoco]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        fecharSugCli();
+      }
+    });
+    document.getElementById('fCliSug').addEventListener('click', e => {
+      const b = e.target.closest('[data-i]');
+      if (b) escolherCliente(sugClientes[Number(b.dataset.i)]);
+    });
+    document.getElementById('form').addEventListener('click', e => {
+      if (!e.target.closest('.ct-cli-ed')) fecharSugCli();
+    });
+
+    function editar(c) {
+      atual = c || null;
+      document.getElementById('dlgTitulo').textContent = c ? 'Editar contato' : 'Novo contato';
+      document.getElementById('fNome').value = c ? c.nome : '';
+      document.getElementById('fEmpresa').value = c ? (c.empresa || '') : '';
+      document.getElementById('fCargo').value = c ? (c.cargo || '') : '';
+      document.getElementById('fCidade').value = c ? (c.cidade || '') : '';
+      document.getElementById('fEmail').value = c ? (c.email || '') : '';
+      document.getElementById('fSite').value = c ? (c.site || '') : '';
+      document.getElementById('fObs').value = c ? (c.observacoes || '') : '';
+      document.getElementById('fFav').checked = c ? c.favorito : false;
+      document.getElementById('fEtqNova').value = '';
+      document.getElementById('fCliQ').value = '';
+      document.getElementById('fCliNovo').checked = false;
+      fecharSugCli();
+      cliEdicao = c && c.clienteId ? { id: c.clienteId, nome: c.clienteNome } : null;
+      renderCliente();
+      document.getElementById('dlgErro').textContent = '';
+      document.getElementById('fFones').innerHTML = '';
+      const fones = c && c.telefones.length ? c.telefones : [{ tipo: 'WhatsApp', numero: '' }];
+      fones.forEach(linhaFone);
+      // Novo contato com uma etiqueta escolhida na fileira: já vem marcada.
+      etqEdicao = c ? [...c.etiquetas] : (filtro.startsWith('etq:') ? [filtro.slice(4)] : []);
+      renderEtiquetasEdicao();
+      document.getElementById('btnExcluir').classList.toggle('oculto', !c);
+      dlg.classList.remove('ct-larga');
+      document.getElementById('ver').classList.add('oculto');
+      document.getElementById('form').classList.remove('oculto');
+      if (!dlg.open) dlg.showModal();
+      document.getElementById(c ? 'fNome' : 'fCliQ').focus();
+    }
+
+    document.querySelectorAll('[data-novo]').forEach(b => b.addEventListener('click', () => editar(null)));
+    document.getElementById('btnMaisFone').addEventListener('click', () => linhaFone({ tipo: 'Celular', numero: '' }).querySelector('input').focus());
+    // Cancelar a edição de um contato volta para a ficha dele; de um novo, fecha.
+    document.getElementById('btnCancelar').addEventListener('click', () => (atual ? ver(atual) : dlg.close()));
+
+    document.getElementById('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      // Etiqueta digitada e não confirmada com Enter: entra também.
+      const pendente = document.getElementById('fEtqNova');
+      if (pendente.value.trim()) { addEtiqueta(pendente.value); pendente.value = ''; }
+      const corpo = {
+        nome: document.getElementById('fNome').value,
+        empresa: document.getElementById('fEmpresa').value,
+        cargo: document.getElementById('fCargo').value,
+        cidade: document.getElementById('fCidade').value,
+        email: document.getElementById('fEmail').value,
+        site: document.getElementById('fSite').value,
+        observacoes: document.getElementById('fObs').value,
+        favorito: document.getElementById('fFav').checked,
+        etiquetas: etqEdicao,
+        cliente_id: cliEdicao ? cliEdicao.id : null,
+        criar_cliente: !cliEdicao && document.getElementById('fCliNovo').checked,
+        telefones: [...document.querySelectorAll('#fFones .ct-fone-ed')].map(d => ({
+          tipo: d.querySelector('select').value, numero: d.querySelector('input').value,
+        })),
+      };
+      const btn = document.getElementById('btnSalvar');
+      btn.disabled = true;
+      try {
+        const salvo = atual
+          ? await api('PUT', '/api/contatos/' + atual.id, corpo)
+          : await api('POST', '/api/contatos', corpo);
+        if (salvo.cores) { cores = salvo.cores; delete salvo.cores; }
+        const i = contatos.findIndex(c => c.id === salvo.id);
+        if (i >= 0) contatos[i] = salvo; else contatos.push(salvo);
+        ordenar();
+        render();
+        ver(salvo); // depois de salvar, mostra a ficha pronta
+        if (corpo.criar_cliente) mostrarMensagem('Contato salvo e cadastrado também em Clientes: ' + (salvo.clienteNome || ''), 'ok');
+      } catch (err) {
+        document.getElementById('dlgErro').textContent = err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btnExcluir').addEventListener('click', async () => {
+      if (!atual) return;
+      if (!confirm('Excluir o contato "' + atual.nome + '"?\n\nNão dá para desfazer. (O cadastro de cliente, se tiver, continua.)')) return;
+      try {
+        await api('DELETE', '/api/contatos/' + atual.id);
+        contatos = contatos.filter(c => c.id !== atual.id);
+        dlg.close();
+        render();
+        mostrarMensagem('Contato excluído.', 'ok');
+      } catch (err) {
+        document.getElementById('dlgErro').textContent = err.message;
+      }
+    });
+
+    carregar();
+    document.getElementById('busca').focus();
+  </script>
+</body>
+</html>

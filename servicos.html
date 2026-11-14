@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serviços - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>TABELA</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="planilha-main">
+    <div class="planilha-toolbar">
+      <div class="busca-3linhas">
+        <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
+        <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
+        <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+      </div>
+      <div class="busca-acoes">
+        <button id="btnBuscar">Buscar</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnColunas" class="secundario" type="button" title="Mostrar/ocultar colunas e ajustar larguras">Gerenciar visualização</button>
+        <button id="btnNovo" class="sucesso">Novo Serviço</button>
+      </div>
+    </div>
+
+    <div id="painelColunas" class="toolbar-colunas oculto">
+      <span>Gerenciar visualização:</span>
+      <label><input type="checkbox" data-coluna="codigo" checked> Código</label>
+      <label><input type="checkbox" data-coluna="nome" checked> Nome</label>
+      <label><input type="checkbox" data-coluna="tipo" checked> Tipo</label>
+      <label><input type="checkbox" data-coluna="valor" checked> Valor (R$)</label>
+      <label><input type="checkbox" data-coluna="acoes"> Ações</label>
+      <button id="btnLarguras" type="button" class="secundario">Redefinir larguras</button>
+      <button id="btnFecharColunas" type="button" class="secundario">Fechar</button>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <div class="planilha-envolve">
+      <table class="planilha-tabela" id="tabelaServicos">
+        <thead>
+          <tr>
+            <th class="col-codigo ordenavel" data-coluna="codigo" data-ordem="codigo" title="Clique para ordenar">Código <span class="seta-ordem"></span></th>
+            <th class="col-nome ordenavel" data-coluna="nome" data-ordem="nome" title="Clique para ordenar">Nome <span class="seta-ordem"></span></th>
+            <th class="col-tipo ordenavel" data-coluna="tipo" data-ordem="tipo" title="Clique para ordenar">Tipo <span class="seta-ordem"></span></th>
+            <th class="col-valor ordenavel" data-coluna="valor" data-ordem="valor" title="Clique para ordenar">Valor (R$) <span class="seta-ordem"></span></th>
+            <th class="col-acoes" data-coluna="acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div class="planilha-rodape">
+        <span id="contador"></span>
+        <button id="btnCarregarMais" class="secundario">Carregar mais</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="painel-formulario oculto" id="cardFormulario">
+    <h2 id="tituloFormulario">Novo serviço</h2>
+    <div class="form-grid">
+      <div>
+        <label for="codigo">Código</label>
+        <input type="text" id="codigo" disabled placeholder="Gerado automaticamente" data-trava-gerente="icone">
+      </div>
+      <div>
+        <label for="nome">Nome *</label>
+        <input type="text" id="nome" placeholder="Ex.: Troca de para-brisa dianteiro" autocomplete="off">
+      </div>
+      <div>
+        <label for="tipo">Tipo</label>
+        <select id="tipo">
+          <option value="">— sem tipo —</option>
+        </select>
+        <button id="btnGerenciarTipos" class="btn-mini" type="button">Gerenciar tipos</button>
+      </div>
+      <div>
+        <label for="valorPadrao">Valor padrão (R$) *</label>
+        <input type="number" id="valorPadrao" min="0" step="0.01" data-trava-gerente>
+      </div>
+    </div>
+    <div class="form-acoes">
+      <button id="btnExcluirItem" class="perigo oculto" data-trava-gerente>Excluir serviço</button>
+      <button id="btnSalvar" class="sucesso">Salvar</button>
+      <button id="btnCancelar" class="secundario">Cancelar</button>
+    </div>
+  </aside>
+
+  <dialog id="dialogTipos" class="dialog-tipos">
+    <h3>Tipos de serviço</h3>
+    <div id="listaTipos" class="lista-tipos"></div>
+    <div class="tipo-novo">
+      <input type="color" id="novoTipoCor" value="#dbeafe" title="Escolher a cor">
+      <input type="text" id="novoTipoNome" placeholder="Nome do novo tipo" autocomplete="off">
+      <button id="btnAdicionarTipo" class="sucesso" type="button">Adicionar</button>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnFecharTipos" class="secundario" type="button">Fechar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const tbody = document.getElementById('corpoTabela');
+    const mensagens = document.getElementById('mensagens');
+    const contador = document.getElementById('contador');
+    const cardFormulario = document.getElementById('cardFormulario');
+    const tituloFormulario = document.getElementById('tituloFormulario');
+
+    let editandoId = null;
+    let itemEmEdicao = null;
+    let paginaAtual = 0;
+    let totalItens = 0;
+    const TAM_PAGINA = 200;
+    let itensCache = [];
+    let tiposCache = [];
+    let ordemCampo = '';
+    let ordemDirecao = 'desc';
+
+    const LARGURAS_PADRAO = {
+      'codigo': '90px', 'nome': '520px', 'tipo': '110px',
+      'valor': '90px', 'acoes': '130px',
+    };
+
+    function pintarSetasOrdenacao() {
+      document.querySelectorAll('#tabelaServicos thead th.ordenavel').forEach(th => {
+        const span = th.querySelector('.seta-ordem');
+        if (!span) return;
+        if (th.dataset.ordem === ordemCampo) {
+          span.textContent = ordemDirecao === 'desc' ? ' ▼' : ' ▲';
+        } else {
+          span.textContent = ' ⇅';
+        }
+      });
+    }
+
+    function alternarOrdenacao(campo) {
+      if (ordemCampo === campo) {
+        ordemDirecao = ordemDirecao === 'desc' ? 'asc' : 'desc';
+      } else {
+        ordemCampo = campo;
+        ordemDirecao = 'desc';
+      }
+      pintarSetasOrdenacao();
+      buscarServicos(true);
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return '';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function corTexto(hex) {
+      const c = String(hex || '').replace('#', '');
+      if (c.length !== 6) return '#1b1b1b';
+      const r = parseInt(c.substr(0, 2), 16);
+      const g = parseInt(c.substr(2, 2), 16);
+      const b = parseInt(c.substr(4, 2), 16);
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      return lum > 150 ? '#1b1b1b' : '#ffffff';
+    }
+
+    function textoTipo(item) {
+      if (item.tipo) {
+        const cor = item.tipo_cor || '#dbeafe';
+        return '<span class="status-servico" style="background:' + escapeHtml(cor) +
+          ';color:' + corTexto(cor) + '">' + escapeHtml(item.tipo) + '</span>';
+      }
+      return '<span style="color:var(--texto-suave)">—</span>';
+    }
+
+    async function buscarServicos(reset) {
+      const q = [document.getElementById('busca').value,
+        document.getElementById('busca2').value,
+        document.getElementById('busca3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+
+      if (reset) {
+        paginaAtual = 0;
+        itensCache = [];
+        tbody.innerHTML = '';
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      if (ordemCampo) {
+        params.append('ordem', ordemCampo);
+        params.append('dir', ordemDirecao);
+      }
+      params.append('inicio', paginaAtual * TAM_PAGINA);
+      params.append('limite', TAM_PAGINA);
+
+      let resp;
+      try {
+        resp = await fetch('/api/servicos?' + params.toString());
+      } catch (e) {
+        mostrarMensagem('Falha ao carregar serviços.', 'erro');
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(dados.erro || 'Erro ao carregar serviços.', 'erro');
+        return;
+      }
+
+      totalItens = dados.total;
+      itensCache = itensCache.concat(dados.servicos);
+      appendRows(dados.servicos);
+      atualizarContador();
+      const fim = itensCache.length >= totalItens;
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', fim);
+    }
+
+    function atualizarContador() {
+      const mostrados = itensCache.length;
+      contador.textContent = mostrados === 0
+        ? ''
+        : 'Mostrando ' + mostrados + ' de ' + totalItens + ' serviço(s).';
+      const fim = itensCache.length >= totalItens;
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', fim);
+    }
+
+    function mostrarVazioSeNecessario() {
+      if (itensCache.length !== 0) return;
+      tbody.innerHTML = '<tr><td colspan="5"><div class="sem-resultados">Nenhum serviço encontrado.</div></td></tr>';
+    }
+
+    function celula(conteudo, extra) {
+      return '<td class="celula ' + (extra || '') + '">' + conteudo + '</td>';
+    }
+
+    function montarLinha(i) {
+      return `
+        <tr data-id="${i.id}">
+          ${celula('<strong>' + escapeHtml(i.codigo || '') + '</strong>', 'col-codigo')}
+          ${celula(escapeHtml(i.nome), 'col-nome nome-longo')}
+          ${celula(textoTipo(i), 'col-tipo')}
+          ${celula(formatarMoeda(i.valor_padrao), 'col-valor')}
+          <td class="celula col-acoes">
+            <button class="btn-mini" data-acoes="editar">Editar</button>
+            <button class="btn-mini secundario" data-acoes="excluir" data-trava-gerente>Excluir</button>
+          </td>
+        </tr>`;
+    }
+
+    function definirTitulosRolaveis() {
+      tbody.querySelectorAll('td.nome-longo, td.rolavel').forEach(td => {
+        const texto = td.textContent.trim();
+        if (texto && texto !== '—') td.setAttribute('title', texto);
+      });
+    }
+
+    function appendRows(itens) {
+      if (itens.length === 0) {
+        if (paginaAtual === 0) {
+          mostrarVazioSeNecessario();
+        }
+        return;
+      }
+      tbody.insertAdjacentHTML('beforeend', itens.map(montarLinha).join(''));
+      if (window.Gerente) Gerente.aplicarTravas(tbody);
+      definirTitulosRolaveis();
+    }
+
+    function abrirFormulario(item) {
+      editandoId = item ? item.id : null;
+      itemEmEdicao = item || null;
+      tituloFormulario.textContent = item ? 'Editar serviço ' + (item.codigo || '') : 'Novo serviço';
+      document.getElementById('btnExcluirItem').classList.toggle('oculto', !item);
+      document.getElementById('codigo').value = item ? (item.codigo || '') : '';
+      document.getElementById('nome').value = item ? item.nome : '';
+      document.getElementById('tipo').value = item ? (item.tipo_id || '') : '';
+      document.getElementById('valorPadrao').value = item ? item.valor_padrao : '';
+      document.getElementById('dialogTipos').close();
+      // Serviço NOVO: o valor padrão precisa ser preenchido por quem cadastra.
+      // Serviço existente: fora do Modo Gerenciador, o valor padrão trava.
+      cardFormulario.toggleAttribute('data-trava-desligada', !item);
+      if (window.Gerente) Gerente.aplicarTravas(cardFormulario);
+      cardFormulario.classList.remove('oculto');
+      document.getElementById('nome').focus();
+    }
+
+    function fecharFormulario() {
+      cardFormulario.classList.add('oculto');
+      document.getElementById('dialogTipos').close();
+      editandoId = null;
+      itemEmEdicao = null;
+      document.getElementById('btnExcluirItem').classList.add('oculto');
+    }
+
+    function acharItem(id) {
+      return itensCache.find(i => Number(i.id) === Number(id)) || null;
+    }
+
+    async function excluirItem(id) {
+      const alvo = acharItem(id) || itemEmEdicao;
+      if (!alvo) {
+        mostrarMensagem('Serviço não encontrado.', 'erro');
+        return;
+      }
+      if (!confirm('Excluir o serviço ' + alvo.codigo + '?')) return;
+      let resp;
+      try {
+        resp = await fetch('/api/servicos/' + alvo.id, { method: 'DELETE' });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao excluir.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir.', 'erro');
+        return;
+      }
+      mostrarMensagem('Serviço excluído.', 'ok');
+      if (editarFoiDestaLinha(alvo.id)) fecharFormulario();
+      removerLinhaLocal(alvo.id);
+    }
+
+    function removerLinhaLocal(id) {
+      const linha = tbody.querySelector('tr[data-id="' + id + '"]');
+      if (linha) linha.remove();
+      itensCache = itensCache.filter(i => Number(i.id) !== Number(id));
+      totalItens = Math.max(0, totalItens - 1);
+      atualizarContador();
+      mostrarVazioSeNecessario();
+    }
+
+    function editarFoiDestaLinha(id) {
+      return editandoId !== null && Number(editandoId) === Number(id);
+    }
+
+    function reRenderizarLinha(id) {
+      const item = acharItem(id);
+      if (!item) return;
+      const linhaAntiga = tbody.querySelector('tr[data-id="' + id + '"]');
+      if (linhaAntiga) {
+        linhaAntiga.outerHTML = montarLinha(item);
+        if (window.Gerente) Gerente.aplicarTravas(tbody);
+      } else {
+        tbody.insertAdjacentHTML('beforeend', montarLinha(item));
+      }
+      definirTitulosRolaveis();
+    }
+
+    async function salvar() {
+      const dados = {
+        nome: document.getElementById('nome').value,
+        tipo_id: document.getElementById('tipo').value,
+        valor_padrao: document.getElementById('valorPadrao').value,
+      };
+
+      if (!dados.nome.trim()) {
+        mostrarMensagem('Informe o nome do serviço.', 'erro');
+        return;
+      }
+
+      const idEmEdicao = editandoId;
+      const url = idEmEdicao ? '/api/servicos/' + idEmEdicao : '/api/servicos';
+      const metodo = idEmEdicao ? 'PUT' : 'POST';
+
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: metodo,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados),
+        });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao salvar.', 'erro');
+        return;
+      }
+
+      const resultado = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar.', 'erro');
+        return;
+      }
+
+      mostrarMensagem(idEmEdicao ? 'Serviço atualizado.' : 'Serviço cadastrado.', 'ok');
+      fecharFormulario();
+      if (idEmEdicao) {
+        const item = acharItem(idEmEdicao);
+        if (item) {
+          Object.assign(item, resultado);
+          reRenderizarLinha(item.id);
+          return;
+        }
+      }
+      buscarServicos(true);
+    }
+
+    async function carregarTipos() {
+      let resp;
+      try {
+        resp = await fetch('/api/tipos-servico');
+      } catch (e) {
+        return;
+      }
+      if (!resp.ok) return;
+      tiposCache = await resp.json();
+
+      const select = document.getElementById('tipo');
+      const atual = select.value;
+      select.innerHTML = '<option value="">— sem tipo —</option>' + tiposCache.map(t =>
+        '<option value="' + t.id + '">' + escapeHtml(t.nome) + '</option>').join('');
+      if (atual && tiposCache.some(t => String(t.id) === String(atual))) {
+        select.value = atual;
+      }
+      renderizarTipos();
+    }
+
+    function renderizarTipos() {
+      const lista = document.getElementById('listaTipos');
+      if (tiposCache.length === 0) {
+        lista.innerHTML = '<p style="color:var(--texto-suave)">Nenhum tipo cadastrado.</p>';
+        return;
+      }
+      lista.innerHTML = tiposCache.map(t => `
+        <div class="tipo-linha" data-id="${t.id}">
+          <input type="color" class="tipo-cor" value="${escapeHtml(t.cor || '#dbeafe')}" title="Mudar a cor">
+          <input type="text" class="tipo-nome" value="${escapeHtml(t.nome)}" autocomplete="off">
+          <span class="tipo-uso">${t.em_uso} serviço(s)</span>
+          <button class="btn-mini" data-acao="salvar" type="button">Salvar</button>
+          <button class="btn-mini perigo" data-acao="excluir" type="button">Excluir</button>
+        </div>`).join('');
+    }
+
+    async function adicionarTipo() {
+      const nome = document.getElementById('novoTipoNome').value.trim();
+      const cor = document.getElementById('novoTipoCor').value;
+      if (!nome) {
+        mostrarMensagem('Informe o nome do tipo.', 'erro');
+        return;
+      }
+      let resp;
+      try {
+        resp = await fetch('/api/tipos-servico', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cor }),
+        });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao adicionar tipo.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao adicionar tipo.', 'erro');
+        return;
+      }
+      document.getElementById('novoTipoNome').value = '';
+      mostrarMensagem('Tipo adicionado.', 'ok');
+      await carregarTipos();
+    }
+
+    async function salvarTipo(id) {
+      const linha = document.querySelector('.tipo-linha[data-id="' + id + '"]');
+      if (!linha) return;
+      const nome = linha.querySelector('.tipo-nome').value.trim();
+      const cor = linha.querySelector('.tipo-cor').value;
+      if (!nome) {
+        mostrarMensagem('Informe o nome do tipo.', 'erro');
+        return;
+      }
+      let resp;
+      try {
+        resp = await fetch('/api/tipos-servico/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cor }),
+        });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao salvar tipo.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar tipo.', 'erro');
+        return;
+      }
+      mostrarMensagem('Tipo atualizado.', 'ok');
+      await carregarTipos();
+      buscarServicos(true);
+    }
+
+    async function excluirTipo(t) {
+      let aviso = 'Excluir o tipo ' + t.nome + '?';
+      if (t.em_uso > 0) {
+        aviso = 'O tipo ' + t.nome + ' está em ' + t.em_uso +
+          ' serviço(s). Se excluir, esses serviços ficarão sem tipo. Continuar?';
+      }
+      if (!confirm(aviso)) return;
+      let resp;
+      try {
+        resp = await fetch('/api/tipos-servico/' + t.id, { method: 'DELETE' });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao excluir tipo.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir tipo.', 'erro');
+        return;
+      }
+      mostrarMensagem('Tipo excluído.', 'ok');
+      await carregarTipos();
+      buscarServicos(true);
+    }
+
+    function aplicarVisibilidadeColunas() {
+      const tabela = document.getElementById('tabelaServicos');
+      document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+        tabela.classList.toggle('sem-' + chk.dataset.coluna, !chk.checked);
+      });
+    }
+
+    // Redimensionar coluna usando Pointer Capture (mesma técnica do
+    // itens.html) — garante que o navegador entrega todos os eventos do
+    // arrasto pro mesmo elemento até soltar, o que elimina a classe de bug
+    // que causava o "soluço" de a coluna pular de tamanho sozinha.
+    function iniciarRedimensionamento() {
+      const thead = document.querySelector('#tabelaServicos thead tr');
+      if (!thead) return;
+      thead.querySelectorAll('th[data-coluna]').forEach(th => {
+        const handle = document.createElement('div');
+        handle.className = 'resizer';
+        handle.title = 'Arraste para aumentar ou diminuir a coluna';
+
+        let inicioX = 0;
+        let larguraInicial = 0;
+        let arrastandoEste = false;
+
+        function mover(e) {
+          if (!arrastandoEste) return;
+          const nova = Math.max(60, larguraInicial + (e.clientX - inicioX));
+          th.style.width = nova + 'px';
+        }
+
+        function soltar(e) {
+          if (!arrastandoEste) return;
+          arrastandoEste = false;
+          if (handle.hasPointerCapture(e.pointerId)) {
+            handle.releasePointerCapture(e.pointerId);
+          }
+          document.body.classList.remove('redimensionando');
+        }
+
+        handle.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          inicioX = e.clientX;
+          larguraInicial = th.offsetWidth;
+          arrastandoEste = true;
+          handle.setPointerCapture(e.pointerId);
+          document.body.classList.add('redimensionando');
+        });
+        handle.addEventListener('pointermove', mover);
+        handle.addEventListener('pointerup', soltar);
+        handle.addEventListener('lostpointercapture', soltar);
+
+        th.appendChild(handle);
+      });
+    }
+
+    function redefinirLarguras() {
+      const thead = document.querySelector('#tabelaServicos thead tr');
+      if (!thead) return;
+      thead.querySelectorAll('th[data-coluna]').forEach(th => {
+        th.style.width = LARGURAS_PADRAO[th.dataset.coluna] || '';
+      });
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', () => buscarServicos(true));
+    ['busca', 'busca2', 'busca3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') buscarServicos(true);
+      });
+    });
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      document.getElementById('busca2').value = '';
+      document.getElementById('busca3').value = '';
+      buscarServicos(true);
+    });
+    document.getElementById('tabelaServicos').addEventListener('click', e => {
+      // Mesmo motivo do itens.html: ignora o clique que "vaza" da alcinha de
+      // redimensionar coluna, pra não reordenar a tabela sem querer.
+      if (e.target.closest('.resizer')) return;
+      const th = e.target.closest('th.ordenavel');
+      if (th) alternarOrdenacao(th.dataset.ordem);
+    });
+    document.getElementById('btnCarregarMais').addEventListener('click', () => {
+      paginaAtual += 1;
+      buscarServicos(false);
+    });
+    document.getElementById('btnNovo').addEventListener('click', () => abrirFormulario(null));
+    document.getElementById('btnSalvar').addEventListener('click', salvar);
+    document.getElementById('btnCancelar').addEventListener('click', fecharFormulario);
+    document.getElementById('btnExcluirItem').addEventListener('click', () => excluirItem(editandoId));
+
+    document.getElementById('btnColunas').addEventListener('click', () => {
+      document.getElementById('painelColunas').classList.toggle('oculto');
+    });
+    document.getElementById('btnFecharColunas').addEventListener('click', () => {
+      document.getElementById('painelColunas').classList.add('oculto');
+    });
+    document.getElementById('btnLarguras').addEventListener('click', redefinirLarguras);
+
+    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+      chk.addEventListener('change', aplicarVisibilidadeColunas);
+    });
+
+    tbody.addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acoes]');
+      const linha = e.target.closest('tr[data-id]');
+      if (!linha) return;
+      const id = linha.dataset.id;
+      // Clicar no código do serviço (início da linha) abre a edição direto,
+      // sem precisar clicar no botão "Editar" — mesmo comportamento da
+      // tabela de itens.
+      if (!botao) {
+        if (e.target.closest('td.col-codigo')) {
+          const item = acharItem(id);
+          if (item) abrirFormulario(item);
+        }
+        return;
+      }
+      e.preventDefault();
+      const acao = botao.dataset.acoes;
+      if (acao === 'editar') {
+        const item = acharItem(id);
+        if (item) abrirFormulario(item);
+      } else if (acao === 'excluir') {
+        excluirItem(id);
+      }
+    });
+
+    tbody.addEventListener('mousedown', e => {
+      const td = e.target.closest('td.nome-longo, td.rolavel');
+      if (!td) return;
+      if (td.scrollWidth <= td.clientWidth) return;
+      e.preventDefault();
+      const startX = e.clientX;
+      const startScroll = td.scrollLeft;
+      const mover = ev => {
+        td.scrollLeft = startScroll - (ev.clientX - startX);
+      };
+      const soltar = () => {
+        document.removeEventListener('mousemove', mover);
+        document.removeEventListener('mouseup', soltar);
+      };
+      document.addEventListener('mousemove', mover);
+      document.addEventListener('mouseup', soltar);
+    });
+
+    function aplicarParametrosDaURL() {
+      const params = new URLSearchParams(location.search);
+      const campos = ['busca', 'busca2', 'busca3'];
+      campos.forEach((id, idx) => {
+        const v = params.get('f' + (idx + 1));
+        if (v) document.getElementById(id).value = v;
+      });
+    }
+
+    document.getElementById('btnGerenciarTipos').addEventListener('click', async () => {
+      await carregarTipos();
+      document.getElementById('dialogTipos').showModal();
+    });
+    document.getElementById('btnFecharTipos').addEventListener('click', () => {
+      document.getElementById('dialogTipos').close();
+    });
+    document.getElementById('btnAdicionarTipo').addEventListener('click', adicionarTipo);
+    document.getElementById('novoTipoNome').addEventListener('keydown', e => {
+      if (e.key === 'Enter') adicionarTipo();
+    });
+    document.getElementById('listaTipos').addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acao]');
+      if (!botao) return;
+      const linha = e.target.closest('.tipo-linha');
+      if (!linha) return;
+      const id = linha.dataset.id;
+      if (botao.dataset.acao === 'salvar') {
+        salvarTipo(id);
+      } else if (botao.dataset.acao === 'excluir') {
+        const t = tiposCache.find(x => String(x.id) === String(id));
+        if (t) excluirTipo(t);
+      }
+    });
+
+    carregarTipos();
+
+    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+      chk.checked = chk.dataset.coluna !== 'acoes';
+    });
+    aplicarVisibilidadeColunas();
+    iniciarRedimensionamento();
+    redefinirLarguras();
+    aplicarParametrosDaURL();
+    buscarServicos(true);
+  </script>
+</body>
+</html>

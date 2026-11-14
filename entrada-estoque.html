@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrada de estoque - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ENTRADA DE ESTOQUE</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Entrada de estoque: as peças lançadas nos boletos esperam aqui até o
+       balconista conferir e dar a entrada. Só nessa hora entram no estoque.
+       Servidor: src/routes/entrada-estoque.js. -->
+  <main class="os-main">
+    <div class="sem-imp" style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <a href="/" class="btn-voltar">← Painel</a>
+      <a href="/fluxo.html" class="secundario">Como funciona</a>
+      <button type="button" class="secundario" id="btnImprimirTudo">Imprimir tudo (papel)</button>
+    </div>
+
+    <!-- Só no papel -->
+    <div class="so-imp en-papel-topo">
+      <strong>Auto Vidros Sport · Conferência de mercadoria</strong>
+      <span>Impresso em <span id="dataImpressao"></span></span>
+    </div>
+
+    <div class="os-secao sem-imp">
+      <h2>Peças aguardando entrada <span id="cont" class="er-cont"></span></h2>
+      <p class="aviso-vazio" style="margin-top:0">
+        São as peças lançadas nos boletos. Quando a peça chegar, confira e aperte <strong>Dar entrada</strong>.
+        Ela só entra no estoque nessa hora.
+      </p>
+      <div class="en-topo">
+        <label class="er-quem">Quem está conferindo?
+          <select id="campoQuem"><option value="">— escolha seu nome —</option></select>
+        </label>
+        <label class="en-busca">Procurar peça
+          <input type="text" id="campoBusca" class="busca" autocomplete="off" spellcheck="false"
+                 placeholder="Nome, nº, código ou bipe a etiqueta">
+        </label>
+      </div>
+    </div>
+
+    <div id="mensagens" class="sem-imp"></div>
+    <div id="lista"><p class="aviso-vazio">Carregando...</p></div>
+  </main>
+
+  <dialog id="dialogEntrada" class="dialog-tipos en-dialog">
+    <h3>Dar entrada</h3>
+    <div id="dePeca"></div>
+
+    <label class="en-campo">Quantas chegaram?
+      <input type="number" id="deChegou" min="1" step="1" inputmode="numeric">
+      <span class="en-ajuda" id="deChegouAjuda"></span>
+    </label>
+    <div class="en-conta" id="deConta"></div>
+
+    <label class="en-campo">Atualizar saldo geral <span class="en-ajuda">(opcional)</span>
+      <input type="number" id="deContado" min="0" step="1" inputmode="numeric" placeholder="—">
+      <span class="en-ajuda">Contou a prateleira? Digite quantas tem <strong>no total</strong>, já com as que chegaram.
+        O saldo fica igual à contagem e a conferência fica com a data de hoje. Se não contou, deixe em branco.</span>
+      <span id="deDiferenca" class="en-diferenca"></span>
+    </label>
+
+    <label class="en-campo">Local na prateleira <span class="en-ajuda">(opcional)</span>
+      <input type="text" id="deLocal" class="en-local" maxlength="50" placeholder="Ex.: A-12">
+    </label>
+
+    <div class="dialog-acoes">
+      <button id="deConfirmar" class="sucesso" type="button">Dar entrada</button>
+      <button id="deCancelar" class="secundario" type="button">Cancelar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const campoQuem = document.getElementById('campoQuem');
+    const campoBusca = document.getElementById('campoBusca');
+    const listaEl = document.getElementById('lista');
+    const mensagens = document.getElementById('mensagens');
+    const dialogo = document.getElementById('dialogEntrada');
+    const CHAVE_QUEM = 'quem-recebe';
+    let linhas = [];
+    let atual = null; // linha aberta no diálogo
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+    function numeroEtiqueta(n) { return n ? String(n).padStart(6, '0') : ''; }
+    function dataBR(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString('pt-BR');
+    }
+    function pecas(n) { return n + (n === 1 ? ' peça' : ' peças'); }
+    function mostrarMensagem(html, tipo) {
+      mensagens.innerHTML = '<div class="' + tipo + '">' + html + '</div>';
+      mensagens.scrollIntoView({ block: 'nearest' });
+    }
+
+    // ---------- quem está conferindo (fica lembrado neste computador) ----------
+    (async () => {
+      try {
+        const lista = await fetch('/api/funcionarios').then(r => r.json());
+        lista.filter(f => f.ativo !== false).forEach(f => {
+          const o = document.createElement('option');
+          o.value = f.id; o.textContent = f.nome;
+          campoQuem.appendChild(o);
+        });
+        let ultimo = null;
+        try { ultimo = localStorage.getItem(CHAVE_QUEM); } catch (e) { /* ok */ }
+        if (ultimo && campoQuem.querySelector('option[value="' + CSS.escape(ultimo) + '"]')) campoQuem.value = ultimo;
+      } catch (e) { /* ok */ }
+    })();
+    campoQuem.addEventListener('change', () => {
+      try { localStorage.setItem(CHAVE_QUEM, campoQuem.value); } catch (e) { /* ok */ }
+      campoQuem.classList.remove('er-falta');
+    });
+
+    // ---------- lista ----------
+    async function carregar() {
+      try {
+        const r = await fetch('/api/entrada-estoque', { cache: 'no-store' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro ao carregar a lista.');
+        linhas = d.linhas;
+        document.getElementById('cont').textContent = d.total_pecas ? '(' + pecas(d.total_pecas) + ')' : '';
+        desenhar();
+      } catch (e) {
+        listaEl.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    function filtradas() {
+      const t = campoBusca.value.trim().toLowerCase();
+      if (!t) return linhas;
+      const n = /^\d{1,10}$/.test(t) ? Number(t) : null;
+      return linhas.filter(l =>
+        (n !== null && l.numero_interno === n) ||
+        String(l.nome || '').toLowerCase().includes(t) ||
+        String(l.codigo || '').toLowerCase().includes(t) ||
+        String(l.fornecedor || '').toLowerCase().includes(t));
+    }
+
+    // Separa as peças por boleto (mais antigo primeiro), uma tabela para cada.
+    function agrupar(lista) {
+      const mapa = new Map();
+      for (const l of lista) {
+        if (!mapa.has(l.boleto_id)) {
+          mapa.set(l.boleto_id, { id: l.boleto_id, codigo: l.boleto_codigo, fornecedor: l.fornecedor, data: l.boleto_data, nf: l.nota_fiscal, linhas: [] });
+        }
+        mapa.get(l.boleto_id).linhas.push(l);
+      }
+      return [...mapa.values()];
+    }
+
+    function desenhar() {
+      if (!linhas.length) {
+        listaEl.innerHTML = '<p class="aviso-vazio">Nenhuma peça aguardando entrada. Quando um boleto for lançado, as peças dele aparecem aqui.</p>';
+        return;
+      }
+      const lista = filtradas();
+      if (!lista.length) {
+        listaEl.innerHTML = '<p class="aviso-vazio">Nenhuma peça aguardando entrada com "' + escapeHtml(campoBusca.value.trim()) + '".</p>';
+        return;
+      }
+      listaEl.innerHTML = agrupar(lista).map(b => {
+        const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
+        return `
+        <section class="os-secao en-boleto" data-boleto="${b.id}">
+          <div class="en-boleto-topo">
+            <div>
+              <h3>Boleto nº ${escapeHtml(b.codigo)} · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}</h3>
+              <span class="er-sub">Lançado em ${dataBR(b.data)} · ${pecas(total)}</span>
+            </div>
+            <div class="os-acoes sem-imp" style="margin:0">
+              <a class="secundario" href="/despesas.html?boleto=${b.id}">Ver boleto</a>
+              <button type="button" class="secundario" data-etiquetas="${b.id}" title="Etiqueta com QR Code para colar nas peças (1 por peça)">Imprimir QR Code</button>
+              <button type="button" class="secundario" data-imprimir="${b.id}">Imprimir este boleto</button>
+            </div>
+          </div>
+          <div class="tabela-envolve">
+            <table class="en-tabela">
+              <thead><tr>
+                <th style="width:80px">Nº</th>
+                <th>Peça</th>
+                <th style="width:90px">Local</th>
+                <th style="width:72px;text-align:center">Na nota</th>
+                <th style="width:80px;text-align:center">Saldo hoje</th>
+                <th class="so-imp en-escrever">Chegou</th>
+                <th class="so-imp en-escrever">Saldo contado</th>
+                <th class="so-imp en-ok">✓</th>
+                <th class="sem-imp" style="width:130px"></th>
+              </tr></thead>
+              <tbody>${b.linhas.map(l => `
+                <tr class="${l.novo ? 'en-novo' : ''}">
+                  <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
+                  <td><strong>${escapeHtml(l.nome)}</strong>
+                    <span class="er-sub">${l.novo ? 'Peça nova: é cadastrada quando der entrada' : escapeHtml(l.codigo || '')}</span></td>
+                  <td>${escapeHtml(l.localizacao || '—')}</td>
+                  <td class="en-qtd">${l.quantidade}</td>
+                  <td class="en-saldo">${l.novo ? '—' : l.estoque}</td>
+                  <td class="so-imp en-escrever"></td>
+                  <td class="so-imp en-escrever"></td>
+                  <td class="so-imp en-ok"></td>
+                  <td class="sem-imp"><button type="button" class="sucesso" data-linha="${l.linha_id}">Dar entrada</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="so-imp en-assina">Conferido por: ______________________________ &nbsp;&nbsp; Data: ____/____/________</div>
+        </section>`;
+      }).join('');
+    }
+
+    // ---------- imprimir (a conferência ainda é muito no papel) ----------
+    // "Imprimir tudo" sai com todos os boletos; "Imprimir este boleto" só com
+    // aquele. O papel tem colunas em branco para anotar à caneta: quantas
+    // chegaram, o saldo contado na prateleira e um ✓. Depois é só lançar aqui.
+    function imprimir(boletoId) {
+      if (campoBusca.value) { campoBusca.value = ''; desenhar(); }
+      document.getElementById('dataImpressao').textContent = new Date().toLocaleString('pt-BR');
+      document.querySelectorAll('.en-boleto').forEach(s => {
+        s.classList.toggle('en-fora-da-impressao', boletoId !== undefined && Number(s.dataset.boleto) !== boletoId);
+      });
+      window.print();
+    }
+    window.addEventListener('afterprint', () => {
+      document.querySelectorAll('.en-fora-da-impressao').forEach(s => s.classList.remove('en-fora-da-impressao'));
+    });
+    document.getElementById('btnImprimirTudo').addEventListener('click', () => {
+      if (!linhas.length) return alert('Não há peças aguardando entrada para imprimir.');
+      imprimir();
+    });
+
+    listaEl.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-linha]');
+      if (b) return abrir(Number(b.dataset.linha));
+      const imp = ev.target.closest('[data-imprimir]');
+      if (imp) return imprimir(Number(imp.dataset.imprimir));
+      const et = ev.target.closest('[data-etiquetas]');
+      if (et) etiquetasDoBoleto(Number(et.dataset.etiquetas));
+    });
+    campoBusca.addEventListener('input', desenhar);
+    // Leitor: bipou a etiqueta e só sobrou uma peça na lista -> já abre.
+    campoBusca.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const lista = filtradas();
+      if (lista.length === 1) abrir(lista[0].linha_id);
+      else if (!lista.length) mostrarMensagem('"' + escapeHtml(campoBusca.value.trim()) + '" não está aguardando entrada (não foi lançada em nenhum boleto, ou já entrou).', 'erro');
+    });
+
+    // ---------- diálogo "Dar entrada" ----------
+    const deChegou = document.getElementById('deChegou');
+    const deContado = document.getElementById('deContado');
+
+    function abrir(linhaId) {
+      atual = linhas.find(l => l.linha_id === linhaId);
+      if (!atual) return;
+      if (!campoQuem.value) {
+        campoQuem.classList.add('er-falta');
+        campoQuem.focus();
+        mostrarMensagem('Primeiro escolha quem está conferindo (lá em cima).', 'erro');
+        return;
+      }
+      document.getElementById('dePeca').innerHTML =
+        '<p style="margin:4px 0 0"><strong>' + escapeHtml(atual.nome) + '</strong>' +
+        (atual.novo ? ' <span class="mini-selo pendente">nova</span>' : ' <span class="er-num">' + numeroEtiqueta(atual.numero_interno) + '</span>') +
+        '<span class="er-sub">Boleto nº ' + escapeHtml(atual.boleto_codigo) + ' · ' + escapeHtml(atual.fornecedor || 'sem fornecedor') + '</span></p>';
+      deChegou.value = atual.quantidade;
+      deChegou.max = atual.quantidade;
+      document.getElementById('deChegouAjuda').textContent = 'Na nota: ' + pecas(atual.quantidade) +
+        (atual.quantidade > 1 ? '. Se chegou menos, o resto continua aguardando aqui.' : '.');
+      deContado.value = '';
+      document.getElementById('deLocal').value = atual.localizacao || '';
+      atualizarConta();
+      document.getElementById('deConfirmar').disabled = false;
+      dialogo.showModal();
+      deChegou.select();
+    }
+
+    function atualizarConta() {
+      if (!atual) return;
+      const chegou = Number(deChegou.value) || 0;
+      const depois = atual.estoque + chegou;
+      document.getElementById('deConta').innerHTML = atual.novo
+        ? 'Peça nova: entra com <strong>' + chegou + '</strong> no estoque.'
+        : 'Saldo hoje: ' + atual.estoque + ' &nbsp;→&nbsp; com a entrada: <strong>' + depois + '</strong>';
+      const txt = deContado.value.trim();
+      const contado = Number(txt);
+      const dif = document.getElementById('deDiferenca');
+      if (txt === '' || !Number.isInteger(contado) || contado < 0 || contado === depois) {
+        dif.textContent = '';
+        return;
+      }
+      const d = contado - depois;
+      dif.textContent = 'O saldo vai ficar ' + contado + ' (' + Math.abs(d) + (d > 0 ? ' a mais' : ' a menos') + ' do que o sistema dizia).';
+    }
+    deChegou.addEventListener('input', atualizarConta);
+    deContado.addEventListener('input', atualizarConta);
+    document.getElementById('deCancelar').addEventListener('click', () => dialogo.close());
+    dialogo.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' && ev.target.tagName === 'INPUT') { ev.preventDefault(); confirmar(); }
+    });
+    document.getElementById('deConfirmar').addEventListener('click', confirmar);
+
+    async function confirmar() {
+      if (!atual) return;
+      const chegou = Number(deChegou.value);
+      if (!Number.isInteger(chegou) || chegou < 1 || chegou > atual.quantidade) {
+        deChegou.focus();
+        alert('Quantas chegaram: de 1 a ' + atual.quantidade + '.');
+        return;
+      }
+      const txt = deContado.value.trim();
+      if (txt !== '' && (!Number.isInteger(Number(txt)) || Number(txt) < 0)) {
+        deContado.focus();
+        alert('Saldo geral: número inteiro, 0 ou mais (ou deixe em branco).');
+        return;
+      }
+      const btn = document.getElementById('deConfirmar');
+      btn.disabled = true;
+      const linha = atual;
+      try {
+        const r = await fetch('/api/entrada-estoque/linha/' + linha.linha_id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            funcionario_id: Number(campoQuem.value),
+            chegou,
+            saldo_contado: txt === '' ? null : Number(txt),
+            localizacao: document.getElementById('deLocal').value,
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao dar entrada.');
+        dialogo.close();
+        let html = '✓ <strong>' + escapeHtml(linha.nome) + '</strong>: entrada de ' + pecas(d.entrou) +
+          '. Saldo agora: <strong>' + d.estoque + '</strong>';
+        if (d.ajuste) html += ' (saldo geral corrigido ' + (d.ajuste > 0 ? '+' : '') + d.ajuste + ' pela contagem)';
+        else if (d.conferido) html += ' (contagem bateu)';
+        html += '.';
+        if (d.restante) html += ' As outras ' + d.restante + ' continuam aguardando.';
+        if (d.item_novo) {
+          html += '<br>Peça nova cadastrada com o nº <strong>' + numeroEtiqueta(d.numero_interno) + '</strong>. ' +
+            '<button type="button" class="btn-mini secundario" id="btnEtqNova">Imprimir ' + d.entrou + (d.entrou === 1 ? ' etiqueta' : ' etiquetas') + '</button>';
+        }
+        mostrarMensagem(html, 'ok');
+        const bn = document.getElementById('btnEtqNova');
+        if (bn) bn.addEventListener('click', () => abrirEtiquetas([{ id: d.item_id, copias: d.entrou }]));
+        campoBusca.value = '';
+        await carregar();
+        campoBusca.focus();
+      } catch (e) {
+        btn.disabled = false;
+        alert(e.message);
+      }
+    }
+
+    // Etiquetas QR das peças de um boleto (1 por peça). Peça nova ainda não
+    // tem número: a etiqueta dela sai depois de dar entrada.
+    function etiquetasDoBoleto(boletoId) {
+      const doBoleto = linhas.filter(l => l.boleto_id === boletoId);
+      if (!doBoleto.length) return;
+      const porItem = new Map();
+      doBoleto.filter(l => !l.novo).forEach(l => porItem.set(l.item_id, (porItem.get(l.item_id) || 0) + l.quantidade));
+      const itens = [...porItem].map(([id, copias]) => ({ id, copias }));
+      const novas = doBoleto.filter(l => l.novo).length;
+      const avisoNovas = novas ? (novas === 1 ? '1 peça nova ainda não tem número' : novas + ' peças novas ainda não têm número') +
+        ': a etiqueta dela sai depois de dar entrada.' : '';
+      if (!itens.length) return alert(avisoNovas || 'Nada para imprimir.');
+      const total = itens.reduce((s, x) => s + x.copias, 0);
+      if (!confirm('Imprimir ' + total + (total === 1 ? ' etiqueta' : ' etiquetas') + ' com QR Code (1 por peça) do boleto nº ' +
+        doBoleto[0].boleto_codigo + '?' + (avisoNovas ? '\n\n' + avisoNovas : ''))) return;
+      abrirEtiquetas(itens);
+    }
+
+    async function abrirEtiquetas(itens) {
+      let formato = 'grande';
+      try { formato = localStorage.getItem('etiquetas-formato') || 'grande'; } catch (e) { /* ok */ }
+      const aba = window.open('', '_blank');
+      if (aba) aba.document.write('<p style="font-family:sans-serif">Gerando etiquetas...</p>');
+      try {
+        const resp = await fetch('/api/itens/etiquetas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ formato, itens }),
+        });
+        if (!resp.ok) {
+          const erro = await resp.json().catch(() => ({}));
+          throw new Error(erro.erro || 'Erro ao gerar as etiquetas.');
+        }
+        const url = URL.createObjectURL(await resp.blob());
+        if (aba) aba.location.href = url; else window.location.href = url;
+      } catch (e) {
+        if (aba) aba.close();
+        alert(e.message || 'Falha de conexão ao gerar as etiquetas.');
+      }
+    }
+
+    carregar();
+  </script>
+</body>
+</html>

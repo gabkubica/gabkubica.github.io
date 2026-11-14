@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordens de Serviço - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/os-cliente-carro.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ORDEM DE SERVIÇO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="os-main">
+    <div id="mensagens"></div>
+
+    <div class="abas">
+      <button class="aba ativa" data-aba="nova" type="button">Nova OS</button>
+      <button class="aba" data-aba="placa" type="button">Pesquisa por Placa</button>
+      <button class="aba" data-aba="antiga" type="button">Consultar OS antiga</button>
+    </div>
+
+    <!-- ============ Aba: Pesquisa por Placa ============ -->
+    <section id="aba-placa" class="oculto">
+      <div class="os-secao">
+        <h2>Pesquisar veículo pela placa</h2>
+        <div class="busca-linha">
+          <input type="text" id="placaHist" placeholder="Placa do veículo" maxlength="10" autocomplete="off" style="text-transform:uppercase">
+          <button id="btnHist" class="sucesso">Pesquisar</button>
+        </div>
+      </div>
+      <div id="histResultado"></div>
+    </section>
+
+    <!-- ============ Aba: Nova OS ============ -->
+    <section id="aba-nova">
+      <div class="os-secao">
+        <h2>Abrir nova OS</h2>
+        <div class="busca-linha">
+          <input type="text" id="novaPlaca" placeholder="Placa do veículo" maxlength="10" autocomplete="off" style="text-transform:uppercase">
+          <button id="btnBuscarPlacaNova" class="sucesso">Buscar veículo</button>
+        </div>
+        <div class="os-acoes" style="margin-top:12px">
+          <button id="btnNovaSemPlaca" class="secundario" type="button">Abrir OS sem placa e sem cliente</button>
+        </div>
+      </div>
+      <div id="novaResultado"></div>
+    </section>
+
+    <!-- ============ Aba: Consultar OS antiga ============ -->
+    <section id="aba-antiga" class="oculto">
+      <div class="os-secao">
+        <div class="planilha-toolbar" style="margin-bottom:0">
+          <div class="busca-3linhas">
+            <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
+            <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
+            <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+          </div>
+          <div class="busca-acoes">
+            <select id="filtroTipo">
+              <option value="">Todas (OS + Balcão + Externas)</option>
+              <option value="os">Somente OS de veículo</option>
+              <option value="venda">Somente vendas balcão</option>
+              <option value="externo">Somente serviços externos</option>
+            </select>
+            <select id="filtroStatus">
+              <option value="">Todos os status</option>
+              <option value="recepcao">Aberta</option>
+              <option value="concluida">Concluída</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="aguardando_pagamento">Balcão (a pagar)</option>
+            </select>
+            <button id="btnBuscar">Buscar</button>
+            <button id="btnLimpar" class="secundario">Limpar</button>
+          </div>
+        </div>
+      </div>
+      <div class="os-secao" style="padding:0;overflow:hidden">
+        <div style="overflow:auto;max-height:calc(100vh - 320px)">
+          <table class="planilha-tabela" id="tabelaOs">
+            <thead>
+              <tr>
+                <th class="ordenavel" data-ordem="codigo" style="width:100px">Número <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="placa" style="width:120px">Placa <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="cliente" style="width:260px">Cliente <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="status" style="width:130px">Status <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="valor" style="width:130px">Valor (R$) <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="abertura" style="width:170px">Abertura <span class="seta-ordem"></span></th>
+                <th style="width:170px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela"></tbody>
+          </table>
+        </div>
+        <div class="planilha-rodape">
+          <span id="contador"></span>
+          <button id="btnCarregarMais" class="secundario">Carregar mais</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+
+    let campoRegCliente = null;
+    let paginaAtual = 0;
+    let totalRegistros = 0;
+    const TAM_PAGINA = 100;
+    let cache = [];
+    let ordemCampo = '';
+    let ordemDirecao = 'desc';
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return '—';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const ROTULO_STATUS = {
+      recepcao: 'Aberta',
+      orcamento: 'Orçamento',
+      execucao: 'Execução',
+      concluida: 'Concluída',
+      cancelada: 'Cancelada',
+      aguardando_pagamento: 'Balcão (a pagar)',
+    };
+
+    function statusBadge(status) {
+      const rotulo = ROTULO_STATUS[status] || status;
+      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(rotulo) + '</span>';
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    function abrirOs(id) {
+      location.href = '/os.html?id=' + encodeURIComponent(id);
+    }
+
+    function imprimirOs(id) {
+      window.open('/api/ordens-servico/' + id + '/pdf', '_blank');
+    }
+
+    function acoesOs(id) {
+      return '<button type="button" class="btn-mini" data-acao="abrir" data-id="' + id + '">Abrir</button>' +
+        '<button type="button" class="btn-mini azul" data-acao="pdf" data-id="' + id + '">PDF</button>';
+    }
+
+    // Botões padronizados da coluna "Ações": mesmo formato para OS de veículo,
+    // serviço externo, venda de balcão e exclusão de canceladas.
+    function acoesDocumento(o) {
+      const ehVenda = !!o.venda_balcao_id;
+      const ehExterno = o.origem === 'externo' || o.tipo === 'externo';
+      // Venda: sempre pelo id DA VENDA (venda_balcao_id). Depois de paga, a
+      // linha da lista é a OS gerada pelo pagamento, e o o.id é o da OS.
+      const acoes = ehVenda
+        ? '<button type="button" class="btn-mini" data-acao="abrir-venda" data-id="' + encodeURIComponent(o.venda_balcao_id) + '">Abrir venda</button>'
+        : ehExterno
+          ? '<button type="button" class="btn-mini" data-acao="abrir-externo" data-id="' + encodeURIComponent(o.id) + '">Serviço externo</button>' +
+            '<button type="button" class="btn-mini azul" data-acao="pdf" data-id="' + o.id + '">PDF</button>'
+          : acoesOs(o.id);
+      const excluir = o.status === 'cancelada'
+        ? '<button type="button" class="btn-mini secundario" data-acao="excluir-doc" data-id="' + encodeURIComponent(o.id) + '" data-tipo="' + o.origem + '" data-trava-gerente>Excluir</button>'
+        : '';
+      return '<div class="acoes-celula">' + acoes + excluir + '</div>';
+    }
+
+    // ---------- Abas ----------
+    function ativarAba(nome) {
+      document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+      ['placa', 'nova', 'antiga'].forEach(n => {
+        document.getElementById('aba-' + n).classList.toggle('oculto', n !== nome);
+      });
+    }
+
+    document.querySelectorAll('.aba').forEach(botao => {
+      botao.addEventListener('click', () => ativarAba(botao.dataset.aba));
+    });
+
+    // =====================================================
+    // Aba: Pesquisa por Placa
+    // =====================================================
+    function renderRegistroVeiculo(placa) {
+      document.getElementById('novaResultado').innerHTML = `
+        <div class="os-secao">
+          <h2>Veículo não cadastrado</h2>
+          <p class="aviso-vazio">A placa <strong>${escapeHtml(placa)}</strong> ainda não está no sistema. Preencha os dados para cadastrar e abrir a OS.</p>
+          <div class="os-grid">
+            <div>
+              <label>Modelo *</label>
+              <input type="text" id="regModelo" autocomplete="off">
+            </div>
+            <div>
+              <label>Marca</label>
+              <input type="text" id="regMarca" autocomplete="off">
+            </div>
+            <div>
+              <label>Ano</label>
+              <input type="number" id="regAno" min="1900" max="2100">
+            </div>
+            <div>
+              <label>Cliente (opcional)</label>
+              <div id="regClienteCampo"></div>
+            </div>
+          </div>
+          <div class="os-acoes">
+            <button id="btnSalvarVeiculo" class="sucesso">Cadastrar veículo</button>
+          </div>
+        </div>`;
+      document.getElementById('btnSalvarVeiculo').addEventListener('click', () => salvarVeiculo(placa));
+      // Dono do carro: campo com busca (acha qualquer cliente; cadastrar um
+      // novo é pela própria busca).
+      campoRegCliente = ClienteCarro.campoCliente(document.getElementById('regClienteCampo'), {
+        titulo: 'Dono do veículo',
+        onde: 'neste carro',
+        vazio: '— sem cliente —',
+      });
+    }
+
+    async function salvarVeiculo(placa) {
+      const modelo = document.getElementById('regModelo').value.trim();
+      const marca = document.getElementById('regMarca').value.trim();
+      const ano = document.getElementById('regAno').value;
+      const clienteId = campoRegCliente ? campoRegCliente.valor() : null;
+
+      if (!modelo) {
+        mostrarMensagem('Informe o modelo do veículo.', 'erro');
+        return;
+      }
+
+      try {
+        const respCarro = await fetch('/api/carros', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placa, modelo, marca, ano, cliente_id: clienteId }),
+        });
+        await lerJson(respCarro);
+        mostrarMensagem('Veículo cadastrado.', 'ok');
+        buscarVeiculoNova(placa);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    function renderNovaOs(carro, osAberta) {
+      const el = document.getElementById('novaResultado');
+      const info = `
+        <div class="os-grid">
+          <div><label>Cliente</label><div class="valor">${carro.cliente_nome ? (carro.cliente_id ? '<a href="/clientes.html?id=' + carro.cliente_id + '">' + escapeHtml(carro.cliente_nome) + '</a>' : escapeHtml(carro.cliente_nome)) : '—'}</div></div>
+          <div><label>Telefone</label><div class="valor">${escapeHtml(carro.cliente_telefone) || '—'}</div></div>
+          <div><label>Placa</label><div class="valor">${escapeHtml(carro.placa)}</div></div>
+          <div><label>Veículo</label><div class="valor">${escapeHtml(carro.marca || '')} ${escapeHtml(carro.modelo)}${carro.ano ? ' ' + carro.ano : ''}</div></div>
+        </div>`;
+
+      if (osAberta) {
+        el.innerHTML = `
+          <div class="os-secao">
+            <h2>Veículo encontrado</h2>
+            ${info}
+            <div class="aviso-bloco">Este veículo já tem uma OS em aberto (<strong>nº ${escapeHtml(osAberta.codigo)}</strong>).</div>
+            <div class="os-acoes">
+              <button id="btnAbrirExistente" class="sucesso">Abrir OS nº ${escapeHtml(osAberta.codigo)}</button>
+            </div>
+          </div>`;
+        document.getElementById('btnAbrirExistente').addEventListener('click', () => abrirOs(osAberta.id));
+        return;
+      }
+
+      el.innerHTML = `
+        <div class="os-secao">
+          <h2>Veículo encontrado</h2>
+          ${info}
+          <div style="margin-top:12px">
+            <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;color:var(--texto-suave)">Relato do cliente</label>
+            <textarea id="novaRelato" class="campo-grande"></textarea>
+          </div>
+          <div class="os-acoes">
+            <button id="btnAbrirOs" class="sucesso">Abrir OS</button>
+          </div>
+        </div>`;
+      document.getElementById('btnAbrirOs').addEventListener('click', () => abrirNovaOs(carro.placa));
+    }
+
+    async function abrirNovaOs(placa) {
+      const apontamento_cliente = document.getElementById('novaRelato').value.trim();
+      try {
+        const resp = await fetch('/api/ordens-servico', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placa, apontamento_cliente }),
+        });
+        const os = await lerJson(resp);
+        abrirOs(os.id);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    function abrirOsSemPlaca() {
+      location.href = '/os.html';
+    }
+
+    async function buscarVeiculoNova(placa) {
+      placa = (placa || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!placa) {
+        mostrarMensagem('Informe a placa.', 'erro');
+        return;
+      }
+      document.getElementById('novaPlaca').value = placa;
+      try {
+        const respCarro = await fetch('/api/carros/' + encodeURIComponent(placa));
+        if (respCarro.status === 404) {
+          renderRegistroVeiculo(placa);
+          return;
+        }
+        const carro = await lerJson(respCarro);
+        const respPlaca = await fetch('/api/ordens-servico/por-placa/' + encodeURIComponent(placa));
+        const dados = respPlaca.ok ? await respPlaca.json() : { os_aberta: null };
+        renderNovaOs(carro, dados.os_aberta);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function pesquisarPlaca() {
+      const placa = document.getElementById('placaHist').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!placa) {
+        mostrarMensagem('Informe a placa.', 'erro');
+        return;
+      }
+      const el = document.getElementById('histResultado');
+      el.innerHTML = '<div class="os-secao"><div class="aviso-vazio">Carregando...</div></div>';
+      let dados;
+      try {
+        const resp = await fetch('/api/ordens-servico/por-placa/' + encodeURIComponent(placa));
+        if (resp.status === 404) {
+          el.innerHTML = '<div class="os-secao"><p class="aviso-vazio">Nenhum veículo cadastrado com a placa ' + escapeHtml(placa) + '.</p><div class="hist-acoes"><button id="btnIrNovaOs" class="sucesso">Cadastrar e abrir OS</button></div></div>';
+          document.getElementById('btnIrNovaOs').addEventListener('click', () => {
+            document.querySelector('.aba[data-aba="nova"]').click();
+            buscarVeiculoNova(placa);
+          });
+          return;
+        }
+        dados = await lerJson(resp);
+      } catch (e) {
+        el.innerHTML = '<div class="os-secao"><p class="aviso-vazio">' + escapeHtml(e.message) + '</p></div>';
+        return;
+      }
+
+      const carro = dados.carro;
+      let acoes = '<div class="hist-acoes">';
+      if (dados.os_aberta) {
+        acoes += '<button id="btnAbrirAberta" class="sucesso">Abrir OS aberta nº ' + escapeHtml(dados.os_aberta.codigo) + '</button>';
+      } else {
+        acoes += '<button id="btnNovaParaPlaca" class="sucesso">Abrir nova OS para esta placa</button>';
+      }
+      acoes += '</div>';
+
+      const linhas = dados.ordens.length === 0
+        ? '<tr><td colspan="7"><div class="sem-resultados">Nenhuma OS para esta placa.</div></td></tr>'
+        : dados.ordens.map(o => `
+          <tr>
+            <td><strong>${escapeHtml(o.codigo)}</strong></td>
+            <td>${formatarData(o.data_abertura)}</td>
+            <td>${statusBadge(o.status)}</td>
+            <td>${formatarMoeda(o.valor_total)}</td>
+            <td class="rolavel" title="${escapeHtml(o.servicos_executados || '')}">${escapeHtml(o.servicos_executados || '—')}</td>
+            <td>${escapeHtml(o.apontamento_cliente || '—')}</td>
+            <td>${acoesDocumento(o)}</td>
+          </tr>`).join('');
+
+      el.innerHTML = `
+        <div class="os-secao">
+          <h2>Veículo e histórico</h2>
+          <div class="os-grid">
+            <div><label>Cliente</label><div class="valor">${carro.cliente_nome ? (carro.cliente_id ? '<a href="/clientes.html?id=' + carro.cliente_id + '">' + escapeHtml(carro.cliente_nome) + '</a>' : escapeHtml(carro.cliente_nome)) : '—'}</div></div>
+            <div><label>Telefone</label><div class="valor">${escapeHtml(carro.cliente_telefone) || '—'}</div></div>
+            <div><label>Placa</label><div class="valor">${escapeHtml(carro.placa)}</div></div>
+            <div><label>Veículo</label><div class="valor">${escapeHtml(carro.marca || '')} ${escapeHtml(carro.modelo)}${carro.ano ? ' ' + carro.ano : ''}</div></div>
+          </div>
+          ${acoes}
+        </div>
+        <div class="os-secao" style="padding:0;overflow:hidden">
+          <div style="padding:14px 16px 0"><h2>Histórico de OS da placa (${dados.ordens.length})</h2></div>
+          <div style="overflow:auto;max-height:50vh">
+            <table class="planilha-tabela">
+              <thead>
+                <tr>
+                  <th style="width:100px">Número</th>
+                  <th style="width:170px">Abertura</th>
+                  <th style="width:130px">Status</th>
+                  <th style="width:130px">Valor (R$)</th>
+                  <th>Serviços executados</th>
+                  <th>Relato do cliente</th>
+                  <th style="width:170px">Ações</th>
+                </tr>
+              </thead>
+              <tbody>${linhas}</tbody>
+            </table>
+          </div>
+        </div>`;
+
+      if (dados.os_aberta) {
+        document.getElementById('btnAbrirAberta').addEventListener('click', () => abrirOs(dados.os_aberta.id));
+      } else {
+        document.getElementById('btnNovaParaPlaca').addEventListener('click', () => {
+          document.querySelector('.aba[data-aba="nova"]').click();
+          buscarVeiculoNova(placa);
+        });
+      }
+    }
+
+    function tratarAcoesOs(e) {
+      const botao = e.target.closest('button[data-acao]');
+      if (!botao) return;
+      const id = botao.dataset.id;
+      if (botao.dataset.acao === 'abrir') abrirOs(id);
+      if (botao.dataset.acao === 'pdf') imprimirOs(id);
+      if (botao.dataset.acao === 'abrir-externo') {
+        window.location.href = '/externa.html?id=' + encodeURIComponent(id);
+      }
+      if (botao.dataset.acao === 'abrir-venda') {
+        window.location.href = '/venda.html?id=' + encodeURIComponent(id);
+      }
+      if (botao.dataset.acao === 'excluir-doc') {
+        if (!confirm('Excluir DEFINITIVAMENTE este documento cancelado?\nNão dá para desfazer.')) return;
+        excluirDocumento(botao.dataset.tipo, id);
+      }
+    }
+
+    async function excluirDocumento(tipo, id) {
+      const url = tipo === 'venda' ? '/api/vendas-balcao/' + id : '/api/ordens-servico/' + id;
+      try {
+        const resp = await fetch(url, { method: 'DELETE' });
+        await lerJson(resp);
+        mostrarMensagem('Documento excluído definitivamente.', 'ok');
+        buscarOs(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // =====================================================
+    // Aba: Consultar OS antiga
+    // =====================================================
+    function pintarSetas() {
+      document.querySelectorAll('#tabelaOs thead th.ordenavel').forEach(th => {
+        const span = th.querySelector('.seta-ordem');
+        if (!span) return;
+        span.textContent = th.dataset.ordem === ordemCampo ? (ordemDirecao === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
+      });
+    }
+
+    function alternarOrdenacao(campo) {
+      if (ordemCampo === campo) {
+        ordemDirecao = ordemDirecao === 'desc' ? 'asc' : 'desc';
+      } else {
+        ordemCampo = campo;
+        ordemDirecao = 'desc';
+      }
+      pintarSetas();
+      buscarOs(true);
+    }
+
+    async function buscarOs(reset) {
+      const tbody = document.getElementById('corpoTabela');
+      const contador = document.getElementById('contador');
+      const q = [document.getElementById('busca').value, document.getElementById('busca2').value, document.getElementById('busca3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+
+      if (reset) {
+        paginaAtual = 0;
+        cache = [];
+        tbody.innerHTML = '';
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      const tipo = document.getElementById('filtroTipo').value;
+      if (tipo) params.append('tipo', tipo);
+      const status = document.getElementById('filtroStatus').value;
+      if (status) params.append('status', status);
+      if (ordemCampo) {
+        params.append('ordem', ordemCampo);
+        params.append('dir', ordemDirecao);
+      }
+      params.append('inicio', paginaAtual * TAM_PAGINA);
+      params.append('limite', TAM_PAGINA);
+
+      let dados;
+      try {
+        dados = await lerJson(await fetch('/api/ordens-servico?' + params.toString()));
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+        return;
+      }
+
+      totalRegistros = dados.total;
+      cache = cache.concat(dados.ordens);
+      if (dados.ordens.length === 0 && paginaAtual === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhum documento encontrado.</div></td></tr>';
+      } else {
+        tbody.insertAdjacentHTML('beforeend', dados.ordens.map(montarLinhaOs).join(''));
+      // "Excluir" (documento cancelado) so no Modo Gerenciador.
+      if (window.Gerente) Gerente.aplicarTravas(tbody);
+      }
+      contador.textContent = cache.length === 0 ? '' : 'Mostrando ' + cache.length + ' de ' + totalRegistros + ' documentos.';
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', cache.length >= totalRegistros);
+    }
+
+    function montarLinhaOs(o) {
+      return `
+        <tr>
+          <td><strong>${escapeHtml(o.codigo)}</strong></td>
+          <td>${o.placa ? escapeHtml(o.placa) : o.venda_balcao_id ? '— balcão —' : (o.origem === 'externo' || o.tipo === 'externo') ? '— externo —' : '— sem placa —'}</td>
+          <td class="rolavel" title="${escapeHtml(o.cliente_nome || '')}">${o.cliente_nome ? (o.cliente_id ? '<a href="/clientes.html?id=' + o.cliente_id + '">' + escapeHtml(o.cliente_nome) + '</a>' : escapeHtml(o.cliente_nome)) : '—'}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td>${formatarMoeda(o.valor_total)}</td>
+          <td>${formatarData(o.data_abertura)}</td>
+          <td>${acoesDocumento(o)}</td>
+        </tr>`;
+    }
+
+    document.addEventListener('click', tratarAcoesOs);
+
+    // ---------- Eventos ----------
+    document.getElementById('btnHist').addEventListener('click', pesquisarPlaca);
+    document.getElementById('placaHist').addEventListener('keydown', e => { if (e.key === 'Enter') pesquisarPlaca(); });
+    document.getElementById('btnBuscarPlacaNova').addEventListener('click', () => buscarVeiculoNova(document.getElementById('novaPlaca').value));
+    document.getElementById('btnNovaSemPlaca').addEventListener('click', abrirOsSemPlaca);
+    document.getElementById('novaPlaca').addEventListener('keydown', e => { if (e.key === 'Enter') buscarVeiculoNova(document.getElementById('novaPlaca').value); });
+
+    document.getElementById('btnBuscar').addEventListener('click', () => buscarOs(true));
+    ['busca', 'busca2', 'busca3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') buscarOs(true); });
+    });
+    document.getElementById('filtroTipo').addEventListener('change', () => buscarOs(true));
+    document.getElementById('filtroStatus').addEventListener('change', () => buscarOs(true));
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      document.getElementById('busca2').value = '';
+      document.getElementById('busca3').value = '';
+      document.getElementById('filtroTipo').value = '';
+      document.getElementById('filtroStatus').value = '';
+      buscarOs(true);
+    });
+    document.getElementById('btnCarregarMais').addEventListener('click', () => { paginaAtual += 1; buscarOs(false); });
+    document.querySelector('#tabelaOs thead').addEventListener('click', e => {
+      const th = e.target.closest('th.ordenavel');
+      if (th) alternarOrdenacao(th.dataset.ordem);
+    });
+
+    // ---------- Início ----------
+    (async function iniciar() {
+      const params = new URLSearchParams(location.search);
+      const placa = params.get('placa');
+      if (placa) {
+        ativarAba('placa');
+        document.getElementById('placaHist').value = placa;
+        pesquisarPlaca();
+      }
+      // Atalho "+ Nova OS" da barra vermelha: aba Nova OS com o cursor já no
+      // campo da placa — é só digitar e apertar Enter.
+      if (window.abertoPorAtalho && window.abertoPorAtalho('nova')) {
+        ativarAba('nova');
+        document.getElementById('novaPlaca').focus();
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Itens - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>TABELA</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="planilha-main">
+    <div class="planilha-toolbar">
+      <div class="busca-3linhas">
+        <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
+        <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
+        <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+      </div>
+      <div class="busca-acoes">
+        <button id="btnBuscar">Buscar</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnColunas" class="secundario" type="button" title="Mostrar/ocultar colunas e ajustar larguras">Gerenciar visualização</button>
+        <button id="btnNovo" class="sucesso">Novo Produto</button>
+        <a href="/entrada-estoque.html" class="secundario" title="Peças dos boletos aguardando entrada no estoque">Entrada de estoque</a>
+        <button id="btnEtiquetas" class="secundario" type="button" title="Lista de etiquetas com QR code para imprimir">Etiquetas QR<span id="contEtiquetas"></span></button>
+        <label class="filtro-estoque">
+          <input type="checkbox" id="chkEstoqueBaixo"> Abaixo do mínimo
+        </label>
+        <label class="filtro-estoque" title="Itens que saíram mais do que estava cadastrado">
+          <input type="checkbox" id="chkEstoqueNegativo"> Estoque negativo
+        </label>
+      </div>
+    </div>
+
+    <div id="painelColunas" class="toolbar-colunas oculto">
+      <span>Gerenciar visualização:</span>
+      <label><input type="checkbox" data-coluna="codigo" checked> Código</label>
+      <label><input type="checkbox" data-coluna="nome" checked> Nome</label>
+      <label><input type="checkbox" data-coluna="marca" checked> Marca</label>
+      <label><input type="checkbox" data-coluna="estoque" checked> Estoque</label>
+      <label><input type="checkbox" data-coluna="preco" checked> Preço levar</label>
+      <label><input type="checkbox" data-coluna="precoInst" checked> Preço c/ inst.</label>
+      <label><input type="checkbox" data-coluna="local" checked> Local</label>
+      <label><input type="checkbox" data-coluna="conferencia" checked> Conferência</label>
+      <label><input type="checkbox" data-coluna="acoes"> Ações</label>
+      <button id="btnLarguras" type="button" class="secundario">Redefinir larguras</button>
+      <button id="btnFecharColunas" type="button" class="secundario">Fechar</button>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <div class="planilha-envolve">
+      <table class="planilha-tabela" id="tabelaItens">
+        <thead>
+          <tr>
+            <th class="col-codigo" data-coluna="codigo">Código</th>
+            <th class="col-nome" data-coluna="nome">Nome</th>
+            <th class="col-marca" data-coluna="marca">Marca</th>
+            <th class="col-estoque ordenavel" data-coluna="estoque" data-ordem="estoque" title="Clique para ordenar">Estoque <span class="seta-ordem"></span></th>
+            <th class="col-preco ordenavel" data-coluna="preco" data-ordem="preco" title="Clique para ordenar">Preço levar <span class="seta-ordem"></span></th>
+            <th class="col-precoInst ordenavel" data-coluna="precoInst" data-ordem="preco_com_instalacao" title="Clique para ordenar">Preço c/ inst. <span class="seta-ordem"></span></th>
+            <th class="col-local" data-coluna="local">Local</th>
+            <th class="col-conferencia" data-coluna="conferencia">Conferência</th>
+            <th class="col-acoes" data-coluna="acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div class="planilha-rodape">
+        <span id="contador"></span>
+        <button id="btnCarregarMais" class="secundario">Carregar mais</button>
+      </div>
+    </div>
+  </main>
+
+  <style>
+    /* Histórico de notas dentro do painel Editar. */
+    #historicoNotas {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--borda);
+    }
+    #historicoNotas .titulo-notas {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+    #historicoNotas .aviso-notas {
+      margin: 0 0 10px;
+      font-size: .85rem;
+      color: var(--texto-suave);
+    }
+    #historicoNotas .tabela-notas table { font-size: .87rem; }
+
+    /* Número interno, discreto, logo abaixo do título do Editar. */
+    .linha-numero-interno {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: -4px 0 14px;
+      font-size: .82rem;
+      color: var(--texto-suave);
+    }
+    .linha-numero-interno strong { color: var(--texto); letter-spacing: .05em; }
+
+    /* Lista de impressão de etiquetas. */
+    #dialogEtiquetas .opcoes-etiquetas,
+    #dialogQrItem .opcoes-etiquetas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      margin: 12px 0 4px;
+      font-size: .88rem;
+    }
+    #dialogEtiquetas input[type="number"],
+    #dialogQrItem input[type="number"] { width: 70px; }
+    #dialogQrItem .aviso-qr { color: #b3352b; font-weight: 600; }
+    #dialogEtiquetas .resumo-etiquetas,
+    #dialogQrItem .resumo-etiquetas { font-size: .85rem; color: var(--texto-suave); margin: 6px 0 0; }
+    .contador-etiquetas {
+      display: inline-block;
+      min-width: 18px;
+      padding: 0 5px;
+      margin-left: 4px;
+      border-radius: 9px;
+      font-size: .75rem;
+      background: var(--vermelho);
+      color: #fff;
+    }
+    #historicoNotas .tabela-notas th,
+    #historicoNotas .tabela-notas td { padding: 5px 8px; }
+  </style>
+
+  <aside class="painel-formulario oculto" id="cardFormulario">
+    <h2 id="tituloFormulario">Novo produto</h2>
+    <!-- Número interno: é o que vai dentro do QR da etiqueta. Fica discreto,
+         só para consulta; ninguém digita nem altera. -->
+    <div id="linhaNumeroInterno" class="linha-numero-interno oculto">
+      <span>Nº interno (etiqueta): <strong id="numeroInternoTexto"></strong></span>
+      <button id="btnGerarQrItem" type="button" class="btn-mini sucesso">Gerar QR code</button>
+      <button id="btnAddEtiquetaItem" type="button" class="btn-mini secundario">Adicionar à impressão</button>
+    </div>
+    <div id="avisoEstoqueNegativo" class="aviso-estoque-negativo oculto"></div>
+    <div class="form-grid">
+      <div>
+        <label for="codigo">Código *</label>
+        <input type="text" id="codigo" placeholder="Ex.: VID-PB-001" autocomplete="off" data-trava-gerente>
+      </div>
+      <div>
+        <label for="nome">Nome *</label>
+        <input type="text" id="nome" placeholder="Ex.: Para-brisa dianteiro" autocomplete="off" data-trava-gerente>
+      </div>
+      <div>
+        <label for="marca">Marca</label>
+        <input type="text" id="marca" placeholder="Ex.: Carglass" autocomplete="off">
+      </div>
+      <div>
+        <label for="estoque">Estoque *</label>
+        <input type="number" id="estoque" min="0" step="1">
+      </div>
+      <div>
+        <label for="preco">Preço para levar (R$) *</label>
+        <input type="number" id="preco" min="0" step="0.01" data-trava-gerente>
+      </div>
+      <div>
+        <label for="precoComInstalacao">Preço com instalação (R$) *</label>
+        <input type="number" id="precoComInstalacao" min="0" step="0.01" data-trava-gerente>
+      </div>
+      <div>
+        <label for="localizacao">Localização</label>
+        <input type="text" id="localizacao" placeholder="Ex.: a-12, b-25" autocomplete="off">
+      </div>
+      <div>
+        <label for="estoqueMinimo">Estoque mínimo</label>
+        <input type="number" id="estoqueMinimo" min="0" step="1">
+      </div>
+      <div>
+        <label for="conferente">Última conferência — funcionário</label>
+        <select id="conferente">
+          <option value="">— sem conferência —</option>
+        </select>
+      </div>
+      <div>
+        <label for="dataConferencia">Última conferência — data</label>
+        <input type="date" id="dataConferencia">
+      </div>
+      <div class="form-full calculadora-margem">
+        <label>Preço de custo e margem <span style="font-weight:400;color:var(--texto-suave)">(opcional — para calcular sugestão de preço)</span></label>
+        <div class="calculadora-margem-linha">
+          <div>
+            <label for="precoCusto" style="font-size:12px">Preço de custo (sem margem, R$)</label>
+            <input type="number" id="precoCusto" min="0" step="0.01" placeholder="Ex.: valor da nota do fornecedor" data-trava-gerente>
+          </div>
+          <div>
+            <label for="margemPercentual" style="font-size:12px">Margem (%)</label>
+            <input type="number" id="margemPercentual" min="0" step="0.1" placeholder="Ex.: 30" data-trava-gerente>
+          </div>
+          <div class="calculadora-margem-resultado">
+            <label style="font-size:12px">Preço de venda sugerido</label>
+            <div id="precoSugeridoTexto">—</div>
+          </div>
+          <button id="btnUsarSugestao" type="button" class="secundario" disabled data-trava-gerente>Usar esse preço</button>
+        </div>
+        <p style="font-size:12px;color:var(--texto-suave);margin:4px 0 0">
+          Preencher custo e margem só calcula a sugestão aqui em cima — o preço para levar só muda de verdade quando você
+          clicar em "Usar esse preço" (e depois em Salvar). Sem preço de custo, é só digitar o preço para levar manualmente, como sempre.
+        </p>
+      </div>
+    </div>
+    <div class="form-acoes">
+      <button id="btnExcluirItem" class="perigo oculto" data-trava-gerente>Excluir produto</button>
+      <button id="btnSalvar" class="sucesso">Salvar</button>
+      <button id="btnCancelar" class="secundario">Cancelar</button>
+    </div>
+
+    <!-- Histórico de notas do item: em quais boletos ele foi comprado e por
+         qual preço em cada um. Fica aqui dentro do Editar, junto dos outros
+         dados do produto, e só aparece quando se abre um item existente. -->
+    <div id="historicoNotas" class="oculto"></div>
+  </aside>
+
+  <!-- QR code de UM item, direto do painel do item (sem passar pela lista). -->
+  <dialog id="dialogQrItem" class="dialog-tipos" style="width:min(440px,96vw)">
+    <h3 id="tituloQrItem">QR code do item</h3>
+    <p class="resumo-etiquetas" style="margin-top:0">
+      A etiqueta sai com o logo, o QR, o nome, o código e o local do item,
+      em folha A4 (adesiva inteira, para recortar).
+    </p>
+    <p id="infoQrItem" class="resumo-etiquetas"></p>
+    <div class="opcoes-etiquetas">
+      <label>Tamanho
+        <select id="qrFormato">
+          <option value="grande">Grande — 6 por folha (95 × 91 mm)</option>
+          <option value="media">Média — 9 por folha (62 × 91 mm)</option>
+          <option value="pequena">Pequena — 12 por folha (95 × 43,5 mm)</option>
+        </select></label>
+    </div>
+    <div class="opcoes-etiquetas">
+      <label>Cópias <input type="number" id="qrCopias" min="1" max="1050" value="1"></label>
+      <label>Começar na etiqueta nº
+        <input type="number" id="qrPular" min="1" max="6" value="1"
+          title="Para aproveitar uma folha que já teve etiquetas usadas: as posições antes desta ficam em branco"></label>
+    </div>
+    <div class="opcoes-etiquetas">
+      <label><input type="checkbox" id="qrContorno"> desenhar contorno (para testar em papel comum)</label>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnQrGerar" type="button" class="sucesso">Gerar PDF</button>
+      <button id="btnQrFechar" type="button" class="secundario">Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogEtiquetas" class="dialog-tipos" style="width:min(820px,96vw)">
+    <h3>Etiquetas QR para imprimir</h3>
+    <p class="resumo-etiquetas" style="margin-top:0">
+      Folha A4 (adesiva inteira, para recortar), em 3 tamanhos. Cada etiqueta leva o
+      logo, o QR com o número interno, o nome, o código e o local do produto.
+    </p>
+    <div class="tabela-envolve" style="max-height:48vh;overflow:auto">
+      <table>
+        <thead>
+          <tr><th>Nº</th><th>Código</th><th>Nome</th><th>Cópias</th><th></th></tr>
+        </thead>
+        <tbody id="corpoEtiquetas"></tbody>
+      </table>
+    </div>
+    <p id="resumoEtiquetas" class="resumo-etiquetas"></p>
+    <div class="opcoes-etiquetas">
+      <button id="btnEtqAddBusca" type="button" class="btn-mini secundario"
+        title="Coloca na lista todos os produtos que estão aparecendo na tabela agora">Adicionar os itens da busca atual</button>
+      <label><input type="checkbox" id="etqCopiasEstoque"> ao adicionar, cópias = quantidade em estoque</label>
+    </div>
+    <div class="opcoes-etiquetas">
+      <label>Tamanho
+        <select id="etqFormato">
+          <option value="grande">Grande — 6 por folha (95 × 91 mm)</option>
+          <option value="media">Média — 9 por folha (62 × 91 mm)</option>
+          <option value="pequena">Pequena — 12 por folha (95 × 43,5 mm)</option>
+        </select></label>
+      <label>Começar na etiqueta nº
+        <input type="number" id="etqPular" min="1" max="6" value="1"
+          title="Para aproveitar uma folha que já teve etiquetas usadas: as posições antes desta ficam em branco"></label>
+      <label><input type="checkbox" id="etqContorno"> desenhar contorno (para testar em papel comum)</label>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnEtqGerar" type="button" class="sucesso">Gerar PDF</button>
+      <button id="btnEtqLimpar" type="button" class="perigo">Limpar lista</button>
+      <button id="btnEtqFechar" type="button" class="secundario">Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogHistorico" class="dialog-tipos" style="width:min(780px,94vw)">
+    <h3>Histórico de boletos <span id="historicoItemTitulo"></span></h3>
+    <div class="tabela-envolve">
+      <table>
+        <thead>
+          <tr>
+            <th>Boleto</th>
+            <th>Fornecedor</th>
+            <th>Vencimento</th>
+            <th>Qtd</th>
+            <th>Valor unit.</th>
+            <th>Total</th>
+            <th>Entrada</th>
+            <th>Status</th>
+            <th>Conferente</th>
+          </tr>
+        </thead>
+        <tbody id="corpoHistorico"></tbody>
+      </table>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnFecharHistorico" class="secundario" type="button">Fechar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const tbody = document.getElementById('corpoTabela');
+    const mensagens = document.getElementById('mensagens');
+    const contador = document.getElementById('contador');
+    const cardFormulario = document.getElementById('cardFormulario');
+    const tituloFormulario = document.getElementById('tituloFormulario');
+
+    let editandoId = null;
+    let itemEmEdicao = null;
+    let paginaAtual = 0;
+    let totalItens = 0;
+    const TAM_PAGINA = 200;
+    let itensCache = [];
+    let ordemCampo = '';
+    let ordemDirecao = 'desc';
+
+    const LARGURAS_PADRAO = {
+      'codigo': '130px', 'nome': '460px', 'marca': '100px', 'estoque': '110px',
+      'preco': '90px', 'precoInst': '100px', 'local': '90px',
+      'conferencia': '160px', 'acoes': '130px',
+    };
+
+    function pintarSetasOrdenacao() {
+      document.querySelectorAll('#tabelaItens thead th.ordenavel').forEach(th => {
+        const span = th.querySelector('.seta-ordem');
+        if (!span) return;
+        if (th.dataset.ordem === ordemCampo) {
+          span.textContent = ordemDirecao === 'desc' ? ' ▼' : ' ▲';
+        } else {
+          span.textContent = ' ⇅';
+        }
+      });
+    }
+
+    function alternarOrdenacao(campo) {
+      if (ordemCampo === campo) {
+        ordemDirecao = ordemDirecao === 'desc' ? 'asc' : 'desc';
+      } else {
+        ordemCampo = campo;
+        ordemDirecao = 'desc';
+      }
+      pintarSetasOrdenacao();
+      buscarItens(true);
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return '';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(valor) {
+      if (!valor) return '';
+      const s = String(valor).trim();
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+      if (m) return m[3] + '/' + m[2] + '/' + m[1];
+      const d = new Date(valor);
+      if (Number.isNaN(d.getTime())) return '';
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
+
+    function paraDataInput(valor) {
+      if (valor === null || valor === undefined || valor === '') return '';
+      const s = String(valor).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const d = new Date(valor);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // "+2": peças desse item em boleto lançado que ainda não foram guardadas
+    // (a caminho). Ainda NÃO estão no saldo.
+    function aCaminho(item) {
+      if (!item.a_caminho) return '';
+      return ' <a class="a-caminho" href="/entrada-estoque.html" title="' + item.a_caminho +
+        (item.a_caminho === 1 ? ' peça aguardando entrada' : ' peças aguardando entrada') +
+        ' (lançadas em boleto). Ainda não estão no saldo.">+' + item.a_caminho + '</a>';
+    }
+
+    function badgeEstoque(item) {
+      // Negativo: foi lançada peça sem estoque (o sistema permite, com aviso).
+      // Fica marcado até alguém conferir a prateleira e corrigir o estoque.
+      if (item.estoque < 0) {
+        return '<span class="status-estoque negativo" title="Estoque negativo: saiu mais do que estava ' +
+          'cadastrado. Confira a prateleira e corrija o estoque do item.">Negativo</span>';
+      }
+      if (item.estoque <= 0) {
+        return '<span class="status-estoque ruim">Sem estoque</span>';
+      }
+      if (item.estoque_minimo > 0 && item.estoque <= item.estoque_minimo) {
+        return '<span class="status-estoque atencao">Repor</span>';
+      }
+      return '<span class="status-estoque ok">OK</span>';
+    }
+
+    function textoConferencia(item) {
+      if (item.conferente_nome && item.data_conferencia) {
+        return escapeHtml(item.conferente_nome) + ' · ' + escapeHtml(formatarData(item.data_conferencia));
+      }
+      if (item.conferente_nome) return escapeHtml(item.conferente_nome);
+      if (item.data_conferencia) return escapeHtml(formatarData(item.data_conferencia));
+      return '<span style="color:var(--texto-suave)">—</span>';
+    }
+
+    async function buscarItens(reset) {
+      const q = [document.getElementById('busca').value,
+        document.getElementById('busca2').value,
+        document.getElementById('busca3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+      const estoqueBaixo = document.getElementById('chkEstoqueBaixo').checked;
+
+      if (reset) {
+        paginaAtual = 0;
+        itensCache = [];
+        tbody.innerHTML = '';
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      if (estoqueBaixo) params.append('estoque_baixo', 'true');
+      if (document.getElementById('chkEstoqueNegativo').checked) params.append('estoque_negativo', 'true');
+      if (ordemCampo) {
+        params.append('ordem', ordemCampo);
+        params.append('dir', ordemDirecao);
+      }
+      params.append('inicio', paginaAtual * TAM_PAGINA);
+      params.append('limite', TAM_PAGINA);
+
+      let resp;
+      try {
+        resp = await fetch('/api/itens?' + params.toString());
+      } catch (e) {
+        mostrarMensagem('Falha ao carregar itens.', 'erro');
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(dados.erro || 'Erro ao carregar itens.', 'erro');
+        return;
+      }
+
+      totalItens = dados.total;
+      itensCache = itensCache.concat(dados.itens);
+      appendRows(dados.itens);
+      atualizarContador();
+      const fim = itensCache.length >= totalItens;
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', fim);
+    }
+
+    function atualizarContador() {
+      const mostrados = itensCache.length;
+      contador.textContent = mostrados === 0
+        ? ''
+        : 'Mostrando ' + mostrados + ' de ' + totalItens + ' produto(s).';
+      const fim = itensCache.length >= totalItens;
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', fim);
+    }
+
+    function mostrarVazioSeNecessario() {
+      if (itensCache.length !== 0) return;
+      tbody.innerHTML = '<tr><td colspan="9"><div class="sem-resultados">Nenhum item encontrado.</div></td></tr>';
+    }
+
+    function celula(conteudo, extra) {
+      return '<td class="celula ' + (extra || '') + '">' + conteudo + '</td>';
+    }
+
+    function montarLinha(i) {
+      return `
+        <tr data-id="${i.id}">
+          ${celula('<strong>' + escapeHtml(i.codigo) + '</strong>', 'col-codigo')}
+          ${celula(escapeHtml(i.nome), 'col-nome nome-longo')}
+          ${celula(escapeHtml(i.marca || ''), 'col-marca')}
+          ${celula((i.estoque < 0 ? '<span class="estoque-negativo">' + i.estoque + '</span>' : i.estoque) + aCaminho(i) + ' ' + badgeEstoque(i), 'col-estoque')}
+          ${celula(formatarMoeda(i.preco), 'col-preco')}
+          ${celula(formatarMoeda(i.preco_com_instalacao), 'col-precoInst')}
+          ${celula(escapeHtml(i.localizacao || ''), 'col-local')}
+          ${celula(textoConferencia(i), 'col-conferencia rolavel')}
+          <td class="celula col-acoes">
+            <button class="btn-mini" data-acoes="editar">Editar</button>
+            <button class="btn-mini" data-acoes="historico">Histórico</button>
+            <button class="btn-mini secundario" data-acoes="excluir" data-trava-gerente>Excluir</button>
+          </td>
+        </tr>`;
+    }
+
+    function definirTitulosRolaveis() {
+      tbody.querySelectorAll('td.nome-longo, td.rolavel').forEach(td => {
+        const texto = td.textContent.trim();
+        if (texto && texto !== '—') td.setAttribute('title', texto);
+      });
+    }
+
+    function appendRows(itens) {
+      if (itens.length === 0) {
+        if (paginaAtual === 0) {
+          mostrarVazioSeNecessario();
+        }
+        return;
+      }
+      tbody.insertAdjacentHTML('beforeend', itens.map(montarLinha).join(''));
+      definirTitulosRolaveis();
+      // Botão "Excluir" das linhas novas: travado fora do Modo Gerenciador.
+      if (window.Gerente) Gerente.aplicarTravas(tbody);
+    }
+
+    function abrirFormulario(item) {
+      editandoId = item ? item.id : null;
+      itemEmEdicao = item || null;
+      tituloFormulario.textContent = item ? 'Editar produto ' + item.codigo : 'Novo produto';
+      // Produto novo ainda não tem número: o banco dá um ao salvar.
+      document.getElementById('linhaNumeroInterno').classList.toggle('oculto', !item);
+      document.getElementById('numeroInternoTexto').textContent =
+        item ? formatarNumeroInterno(item.numero_interno) : '';
+      document.getElementById('btnExcluirItem').classList.toggle('oculto', !item);
+      const aviso = document.getElementById('avisoEstoqueNegativo');
+      const negativo = item && Number(item.estoque) < 0;
+      aviso.classList.toggle('oculto', !negativo);
+      aviso.textContent = negativo
+        ? 'Estoque negativo (' + item.estoque + '): saiu mais do que estava cadastrado. ' +
+          'Confira a prateleira e corrija o estoque abaixo.'
+        : '';
+      document.getElementById('codigo').value = item ? item.codigo : '';
+      document.getElementById('nome').value = item ? item.nome : '';
+      document.getElementById('marca').value = item ? (item.marca || '') : '';
+      document.getElementById('estoque').value = item ? item.estoque : '';
+      document.getElementById('preco').value = item ? item.preco : '';
+      document.getElementById('precoComInstalacao').value = item ? item.preco_com_instalacao : '';
+      document.getElementById('localizacao').value = item ? (item.localizacao || '') : '';
+      document.getElementById('estoqueMinimo').value = item ? item.estoque_minimo : '';
+      document.getElementById('conferente').value = item ? (item.conferente_id || '') : '';
+      document.getElementById('dataConferencia').value = item ? paraDataInput(item.data_conferencia) : '';
+      document.getElementById('precoCusto').value = item && item.preco_custo !== null && item.preco_custo !== undefined ? item.preco_custo : '';
+      document.getElementById('margemPercentual').value = item && item.margem_percentual !== null && item.margem_percentual !== undefined ? item.margem_percentual : '';
+      // Produto NOVO: tudo editável (quem cadastra precisa preencher código,
+      // nome e preços). Item que já existe: fora do Modo Gerenciador, os
+      // campos marcados com data-trava-gerente ficam travados com cadeado.
+      cardFormulario.toggleAttribute('data-trava-desligada', !item);
+      if (window.Gerente) Gerente.aplicarTravas(cardFormulario);
+      atualizarPrecoSugerido();
+      cardFormulario.classList.remove('oculto');
+      // Cursor no primeiro campo que dá para editar (o código pode estar travado).
+      const primeiroEditavel = [...cardFormulario.querySelectorAll('.form-grid input, .form-grid select')]
+        .find(el => !el.readOnly && !el.disabled);
+      if (primeiroEditavel) primeiroEditavel.focus();
+      carregarHistoricoNotas(item);
+    }
+
+    // Histórico de notas: todos os boletos em que este item aparece e o preço
+    // que ele custou em cada um. Produto novo ainda não tem nota, então a
+    // seção nem aparece.
+    async function carregarHistoricoNotas(item) {
+      const caixa = document.getElementById('historicoNotas');
+      if (!item) {
+        caixa.classList.add('oculto');
+        caixa.innerHTML = '';
+        return;
+      }
+      caixa.classList.remove('oculto');
+      caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+        '<p class="aviso-notas">Carregando...</p>';
+
+      let resp;
+      try {
+        resp = await fetch('/api/itens/' + item.id + '/historico');
+      } catch (e) {
+        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+          '<p class="aviso-notas">Falha ao carregar o histórico de notas.</p>';
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+          '<p class="aviso-notas">' + escapeHtml(dados.erro || 'Erro ao carregar.') + '</p>';
+        return;
+      }
+      // O item pode ter sido trocado enquanto a busca estava no ar.
+      if (editandoId !== item.id) return;
+
+      if (!dados.historico.length) {
+        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+          '<p class="aviso-notas">Este item ainda não foi comprado em nenhuma nota.</p>';
+        return;
+      }
+
+      // Só as notas já recebidas dizem quanto o item custou de fato.
+      const recebidas = dados.historico.filter(h => h.entrada === 'feita');
+      const ultima = recebidas.length ? recebidas[recebidas.length - 1] : null;
+
+      caixa.innerHTML =
+        '<h3 class="titulo-notas">Histórico de notas</h3>' +
+        (ultima
+          ? '<p class="aviso-notas">Último preço pago: <strong>' +
+            formatarMoeda(ultima.precoUnitario) + '</strong> (nota ' +
+            escapeHtml(ultima.boletoCodigo) + ').</p>'
+          : '<p class="aviso-notas">Nenhuma nota recebida ainda — as abaixo estão pendentes.</p>') +
+        '<div class="tabela-envolve tabela-notas"><table><thead><tr>' +
+        '<th>Nota</th><th>Fornecedor</th><th>Qtd</th><th>Preço unit.</th>' +
+        '<th>Total</th><th>Situação</th>' +
+        '</tr></thead><tbody>' +
+        dados.historico.map(h =>
+          '<tr>' +
+          '<td><a href="/despesas.html?boleto=' + h.boletoId + '"><strong>' +
+            escapeHtml(h.boletoCodigo) + '</strong></a></td>' +
+          '<td>' + escapeHtml(h.clienteNome || '—') + '</td>' +
+          '<td>' + h.quantidade + '</td>' +
+          '<td><strong>' + formatarMoeda(h.precoUnitario) + '</strong></td>' +
+          '<td>' + formatarMoeda(h.total) + '</td>' +
+          '<td><span class="status-estoque ' +
+            (h.entrada === 'feita' ? 'ok' : 'atencao') + '">' +
+            (h.entrada === 'feita' ? 'Recebida ' + formatarData(h.dataEntrada) : 'A caminho') +
+            '</span></td>' +
+          '</tr>'
+        ).join('') +
+        '</tbody></table></div>';
+    }
+
+    function atualizarPrecoSugerido() {
+      const custo = Number(document.getElementById('precoCusto').value);
+      const margem = Number(document.getElementById('margemPercentual').value);
+      const texto = document.getElementById('precoSugeridoTexto');
+      const botao = document.getElementById('btnUsarSugestao');
+      const custoValido = document.getElementById('precoCusto').value !== '' && Number.isFinite(custo) && custo >= 0;
+      const margemValida = document.getElementById('margemPercentual').value !== '' && Number.isFinite(margem) && margem >= 0;
+      if (!custoValido || !margemValida) {
+        texto.textContent = '—';
+        botao.disabled = true;
+        botao.dataset.valor = '';
+        return;
+      }
+      const sugerido = Math.round(custo * (1 + margem / 100) * 100) / 100;
+      texto.textContent = formatarMoeda(sugerido);
+      // A sugestão aparece para todo mundo, mas "Usar esse preço" muda o
+      // preço — fica travado fora do Modo Gerenciador (item já existente).
+      botao.disabled = botao.dataset.travado === '1';
+      botao.dataset.valor = String(sugerido);
+    }
+
+    // =====================================================
+    // Etiquetas QR: lista de impressão
+    // =====================================================
+    // A lista fica guardada neste navegador, para não se perder se a página
+    // recarregar no meio da montagem. Cada entrada: { id, numero, codigo,
+    // nome, copias }.
+    const CHAVE_FILA = 'etiquetas-fila';
+    let filaEtiquetas = [];
+    try {
+      filaEtiquetas = JSON.parse(localStorage.getItem(CHAVE_FILA) || '[]');
+      if (!Array.isArray(filaEtiquetas)) filaEtiquetas = [];
+    } catch (e) {
+      filaEtiquetas = [];
+    }
+
+    function formatarNumeroInterno(n) {
+      return n === null || n === undefined ? '' : String(n).padStart(6, '0');
+    }
+
+    function salvarFila() {
+      try { localStorage.setItem(CHAVE_FILA, JSON.stringify(filaEtiquetas)); } catch (e) { /* sem espaço/privado: segue só em memória */ }
+      atualizarContadorEtiquetas();
+    }
+
+    function atualizarContadorEtiquetas() {
+      const total = filaEtiquetas.reduce((s, e) => s + (Number(e.copias) || 0), 0);
+      document.getElementById('contEtiquetas').innerHTML =
+        total ? '<span class="contador-etiquetas">' + total + '</span>' : '';
+    }
+
+    // Se o item já está na lista, soma as cópias em vez de duplicar a linha.
+    function adicionarNaFila(item, copias) {
+      const existente = filaEtiquetas.find(e => e.id === item.id);
+      if (existente) {
+        existente.copias = Number(existente.copias || 0) + copias;
+      } else {
+        filaEtiquetas.push({
+          id: item.id,
+          numero: item.numero_interno,
+          codigo: item.codigo,
+          nome: item.nome,
+          copias,
+        });
+      }
+      salvarFila();
+    }
+
+    function renderFila() {
+      const corpo = document.getElementById('corpoEtiquetas');
+      if (!filaEtiquetas.length) {
+        corpo.innerHTML = '<tr><td colspan="5"><div class="sem-resultados">' +
+          'Lista vazia. Abra um produto (Editar) e clique em "Adicionar à impressão", ' +
+          'ou use "Adicionar os itens da busca atual".</div></td></tr>';
+      } else {
+        corpo.innerHTML = filaEtiquetas.map((e, i) =>
+          '<tr>' +
+          '<td>' + escapeHtml(formatarNumeroInterno(e.numero)) + '</td>' +
+          '<td><strong>' + escapeHtml(e.codigo || '') + '</strong></td>' +
+          '<td>' + escapeHtml(e.nome || '') + '</td>' +
+          '<td><input type="number" min="0" step="1" data-fila-copias="' + i + '" value="' + (Number(e.copias) || 0) + '"></td>' +
+          '<td><button type="button" class="btn-mini secundario" data-fila-remover="' + i + '">Remover</button></td>' +
+          '</tr>'
+        ).join('');
+      }
+      atualizarResumoEtiquetas();
+    }
+
+    // Tamanhos de etiqueta (iguais aos do servidor, src/pdf/etiquetas.js).
+    const POR_FOLHA_ETQ = { grande: 6, media: 9, pequena: 12 };
+    const CHAVE_FORMATO = 'etiquetas-formato';
+    function formatoSalvo() {
+      try {
+        const v = localStorage.getItem(CHAVE_FORMATO);
+        if (POR_FOLHA_ETQ[v]) return v;
+      } catch (e) { /* sem armazenamento */ }
+      return 'grande';
+    }
+    // O tamanho escolhido numa janela vale para a outra e fica lembrado.
+    function usarFormato(valor) {
+      if (!POR_FOLHA_ETQ[valor]) valor = 'grande';
+      try { localStorage.setItem(CHAVE_FORMATO, valor); } catch (e) { /* segue só nesta página */ }
+      ['etqFormato', 'qrFormato'].forEach(id => { document.getElementById(id).value = valor; });
+      ['etqPular', 'qrPular'].forEach(id => {
+        const campo = document.getElementById(id);
+        campo.max = POR_FOLHA_ETQ[valor];
+        if (Number(campo.value) > POR_FOLHA_ETQ[valor]) campo.value = 1;
+      });
+      atualizarResumoEtiquetas();
+    }
+    // "Começar na etiqueta nº" -> quantas posições pular (0 a por folha - 1).
+    function posicoesAPular(idCampo, formato) {
+      const v = Math.floor(Number(document.getElementById(idCampo).value) || 1);
+      return Math.min(POR_FOLHA_ETQ[formato] - 1, Math.max(0, v - 1));
+    }
+
+    function atualizarResumoEtiquetas() {
+      const formato = document.getElementById('etqFormato').value;
+      const total = filaEtiquetas.reduce((s, e) => s + (Number(e.copias) || 0), 0);
+      const folhas = total ? Math.ceil((total + posicoesAPular('etqPular', formato)) / POR_FOLHA_ETQ[formato]) : 0;
+      document.getElementById('resumoEtiquetas').textContent = total
+        ? total + (total === 1 ? ' etiqueta' : ' etiquetas') + ' · ' + folhas + (folhas === 1 ? ' folha' : ' folhas')
+        : '';
+    }
+
+    async function gerarPdfEtiquetas() {
+      const itens = filaEtiquetas
+        .map(e => ({ id: e.id, copias: Number(e.copias) || 0 }))
+        .filter(e => e.copias > 0);
+      if (!itens.length) {
+        alert('Nenhuma etiqueta para imprimir: a lista está vazia ou todas as cópias estão em 0.');
+        return;
+      }
+      const formato = document.getElementById('etqFormato').value;
+      await abrirPdfEtiquetas({
+        itens,
+        formato,
+        pular: posicoesAPular('etqPular', formato),
+        contorno: document.getElementById('etqContorno').checked,
+      });
+    }
+
+    // Pede o PDF ao servidor e abre numa aba nova.
+    async function abrirPdfEtiquetas(corpo) {
+      // A aba é aberta ANTES de esperar o servidor: se abrisse depois, o
+      // navegador acharia que é propaganda e bloquearia.
+      const aba = window.open('', '_blank');
+      if (aba) aba.document.write('<p style="font-family:sans-serif">Gerando etiquetas...</p>');
+
+      let resp;
+      try {
+        resp = await fetch('/api/itens/etiquetas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+      } catch (e) {
+        if (aba) aba.close();
+        alert('Falha de conexão ao gerar as etiquetas.');
+        return;
+      }
+      if (!resp.ok) {
+        const erro = await resp.json().catch(() => ({}));
+        if (aba) aba.close();
+        alert(erro.erro || 'Erro ao gerar as etiquetas.');
+        return;
+      }
+      const url = URL.createObjectURL(await resp.blob());
+      if (aba) {
+        aba.location.href = url;
+      } else {
+        window.location.href = url;
+      }
+    }
+
+    document.getElementById('btnEtiquetas').addEventListener('click', () => {
+      renderFila();
+      document.getElementById('dialogEtiquetas').showModal();
+    });
+    document.getElementById('btnEtqFechar').addEventListener('click', () => {
+      document.getElementById('dialogEtiquetas').close();
+    });
+    document.getElementById('btnEtqGerar').addEventListener('click', gerarPdfEtiquetas);
+    document.getElementById('btnEtqLimpar').addEventListener('click', () => {
+      if (!filaEtiquetas.length) return;
+      if (!confirm('Tirar todos os produtos da lista de etiquetas?')) return;
+      filaEtiquetas = [];
+      salvarFila();
+      renderFila();
+    });
+    document.getElementById('btnEtqAddBusca').addEventListener('click', () => {
+      if (!itensCache.length) {
+        alert('Nenhum produto na tabela. Faça uma busca primeiro.');
+        return;
+      }
+      const porEstoque = document.getElementById('etqCopiasEstoque').checked;
+      const quantos = itensCache.length;
+      if (quantos > 30 && !confirm('Adicionar ' + quantos + ' produtos à lista de etiquetas?')) return;
+      itensCache.forEach(i => adicionarNaFila(i, porEstoque ? Math.max(0, Number(i.estoque) || 0) : 1));
+      renderFila();
+    });
+    document.getElementById('etqPular').addEventListener('input', renderFila);
+    document.getElementById('etqFormato').addEventListener('change', e => usarFormato(e.target.value));
+    document.getElementById('qrFormato').addEventListener('change', e => usarFormato(e.target.value));
+    usarFormato(formatoSalvo());
+    document.getElementById('corpoEtiquetas').addEventListener('input', e => {
+      const campo = e.target.closest('[data-fila-copias]');
+      if (!campo) return;
+      const i = Number(campo.dataset.filaCopias);
+      filaEtiquetas[i].copias = Math.max(0, Math.floor(Number(campo.value) || 0));
+      salvarFila();
+      // Só atualiza o resumo: redesenhar a tabela tiraria o foco do campo.
+      atualizarResumoEtiquetas();
+    });
+    document.getElementById('corpoEtiquetas').addEventListener('click', e => {
+      const botao = e.target.closest('[data-fila-remover]');
+      if (!botao) return;
+      filaEtiquetas.splice(Number(botao.dataset.filaRemover), 1);
+      salvarFila();
+      renderFila();
+    });
+    // ---------- QR code de um item (painel do item) ----------
+    document.getElementById('btnGerarQrItem').addEventListener('click', () => {
+      if (!itemEmEdicao) return;
+      const it = itemEmEdicao;
+      document.getElementById('tituloQrItem').textContent = 'QR code — ' + it.codigo;
+      const localSalvo = String(it.localizacao || '').trim();
+      const localNaTela = document.getElementById('localizacao').value.trim();
+      // A etiqueta usa o que está SALVO: avisa se o local foi mudado e não salvo.
+      const avisoLocal = localNaTela !== localSalvo
+        ? '<br><span class="aviso-qr">O local foi alterado e ainda não foi salvo: salve o item antes, senão a etiqueta sai com o local antigo.</span>'
+        : (localSalvo ? '' : '<br><span class="aviso-qr">Este item não tem local cadastrado: a etiqueta sai sem local.</span>');
+      document.getElementById('infoQrItem').innerHTML =
+        '<strong>' + escapeHtml(it.nome) + '</strong><br>Local: ' + (localSalvo ? escapeHtml(localSalvo) : '—') +
+        ' · Nº interno ' + escapeHtml(formatarNumeroInterno(it.numero_interno)) + avisoLocal;
+      document.getElementById('qrCopias').value = 1;
+      document.getElementById('qrPular').value = 1;
+      document.getElementById('dialogQrItem').showModal();
+    });
+    document.getElementById('btnQrFechar').addEventListener('click', () => {
+      document.getElementById('dialogQrItem').close();
+    });
+    document.getElementById('btnQrGerar').addEventListener('click', async () => {
+      if (!itemEmEdicao) return;
+      const copias = Math.floor(Number(document.getElementById('qrCopias').value) || 0);
+      if (copias < 1) { alert('Informe quantas etiquetas (pelo menos 1).'); return; }
+      const formato = document.getElementById('qrFormato').value;
+      const pular = posicoesAPular('qrPular', formato);
+      document.getElementById('dialogQrItem').close();
+      await abrirPdfEtiquetas({
+        itens: [{ id: itemEmEdicao.id, copias }],
+        formato,
+        pular,
+        contorno: document.getElementById('qrContorno').checked,
+      });
+    });
+
+    document.getElementById('btnAddEtiquetaItem').addEventListener('click', () => {
+      if (!itemEmEdicao) return;
+      adicionarNaFila(itemEmEdicao, 1);
+      mostrarMensagem('Etiqueta de ' + itemEmEdicao.codigo + ' adicionada à lista de impressão (botão "Etiquetas QR").', 'ok');
+    });
+    atualizarContadorEtiquetas();
+
+    function fecharFormulario() {
+      cardFormulario.classList.add('oculto');
+      editandoId = null;
+      itemEmEdicao = null;
+      document.getElementById('btnExcluirItem').classList.add('oculto');
+    }
+
+    function acharItem(id) {
+      return itensCache.find(i => Number(i.id) === Number(id)) || null;
+    }
+
+    async function abrirHistorico(id) {
+      const alvo = acharItem(id);
+      const titulo = document.getElementById('historicoItemTitulo');
+      const corpo = document.getElementById('corpoHistorico');
+      titulo.textContent = alvo ? '· ' + alvo.codigo + ' - ' + alvo.nome : '';
+      corpo.innerHTML = '<tr><td colspan="9"><div class="sem-resultados">Carregando histórico...</div></td></tr>';
+      document.getElementById('dialogHistorico').showModal();
+      let resp;
+      try {
+        resp = await fetch('/api/itens/' + id + '/historico');
+      } catch (e) {
+        corpo.innerHTML = '<tr><td colspan="9"><div class="sem-resultados">Falha ao carregar histórico.</div></td></tr>';
+        return;
+      }
+      const dados = await resp.json();
+      if (!resp.ok) {
+        corpo.innerHTML = '<tr><td colspan="9"><div class="sem-resultados">' + escapeHtml(dados.erro || 'Erro ao carregar histórico.') + '</div></td></tr>';
+        return;
+      }
+      if (dados.historico.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="9"><div class="sem-resultados">Este item ainda não aparece em nenhum boleto.</div></td></tr>';
+        return;
+      }
+      corpo.innerHTML = dados.historico.map(h => {
+        const boletoClasse = h.boletoStatus === 'pago' ? 'ok' : 'atencao';
+        const entradaClasse = h.entrada === 'feita' ? 'ok' : 'atencao';
+        return '<tr>' +
+          '<td><strong>' + escapeHtml(h.boletoCodigo) + '</strong></td>' +
+          '<td>' + escapeHtml(h.clienteNome || '—') + '</td>' +
+          '<td>' + escapeHtml(formatarData(h.dataVencimento)) + '</td>' +
+          '<td>' + h.quantidade + '</td>' +
+          '<td>' + formatarMoeda(h.precoUnitario) + '</td>' +
+          '<td>' + formatarMoeda(h.total) + '</td>' +
+          '<td><span class="status-estoque ' + entradaClasse + '">' + (h.entrada === 'feita' ? 'Entregue' : 'Pendente') + '</span></td>' +
+          '<td><span class="status-estoque ' + boletoClasse + '">' + (h.boletoStatus === 'pago' ? 'Pago' : 'Pendente') + '</span></td>' +
+          '<td>' + escapeHtml(h.conferenteNome || '—') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    async function excluirItem(id) {
+      const alvo = acharItem(id) || itemEmEdicao;
+      if (!alvo) {
+        mostrarMensagem('Item não encontrado.', 'erro');
+        return;
+      }
+      if (!confirm('Excluir o produto ' + alvo.codigo + '?')) return;
+      let resp;
+      try {
+        resp = await fetch('/api/itens/' + alvo.id, { method: 'DELETE' });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao excluir.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir.', 'erro');
+        return;
+      }
+      mostrarMensagem('Produto excluído.', 'ok');
+      if (editarFoiDestaLinha(alvo.id)) fecharFormulario();
+      removerLinhaLocal(alvo.id);
+    }
+
+    function removerLinhaLocal(id) {
+      const linha = tbody.querySelector('tr[data-id="' + id + '"]');
+      if (linha) linha.remove();
+      itensCache = itensCache.filter(i => Number(i.id) !== Number(id));
+      totalItens = Math.max(0, totalItens - 1);
+      atualizarContador();
+      mostrarVazioSeNecessario();
+    }
+
+    function editarFoiDestaLinha(id) {
+      return editandoId !== null && Number(editandoId) === Number(id);
+    }
+
+    function reRenderizarLinha(id) {
+      const item = acharItem(id);
+      if (!item) return;
+      const linhaAntiga = tbody.querySelector('tr[data-id="' + id + '"]');
+      if (linhaAntiga) {
+        linhaAntiga.outerHTML = montarLinha(item);
+      } else {
+        tbody.insertAdjacentHTML('beforeend', montarLinha(item));
+      }
+      definirTitulosRolaveis();
+      if (window.Gerente) Gerente.aplicarTravas(tbody);
+    }
+
+    async function salvar() {
+      const dados = {
+        codigo: document.getElementById('codigo').value,
+        nome: document.getElementById('nome').value,
+        marca: document.getElementById('marca').value,
+        estoque: document.getElementById('estoque').value,
+        preco: document.getElementById('preco').value,
+        preco_com_instalacao: document.getElementById('precoComInstalacao').value,
+        localizacao: document.getElementById('localizacao').value,
+        estoque_minimo: document.getElementById('estoqueMinimo').value,
+        conferente_id: document.getElementById('conferente').value,
+        data_conferencia: document.getElementById('dataConferencia').value,
+        preco_custo: document.getElementById('precoCusto').value,
+        margem_percentual: document.getElementById('margemPercentual').value,
+      };
+
+      const idEmEdicao = editandoId;
+      const url = idEmEdicao ? '/api/itens/' + idEmEdicao : '/api/itens';
+      const metodo = idEmEdicao ? 'PUT' : 'POST';
+
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: metodo,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados),
+        });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao salvar.', 'erro');
+        return;
+      }
+
+      const resultado = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar.', 'erro');
+        return;
+      }
+
+      if (idEmEdicao) {
+        mostrarMensagem('Produto atualizado.', 'ok');
+      } else {
+        // Mercadoria nova precisa de etiqueta: já entra na lista de impressão,
+        // com uma cópia por unidade em estoque (mínimo 1). Dá para ajustar ou
+        // remover na lista antes de gerar o PDF.
+        const copias = Math.max(1, Number(resultado.estoque) || 0);
+        adicionarNaFila(resultado, copias);
+        mostrarMensagem('Produto cadastrado. Etiqueta Nº ' +
+          formatarNumeroInterno(resultado.numero_interno) + ' (' + copias +
+          (copias === 1 ? ' cópia' : ' cópias') + ') adicionada à lista de impressão — botão "Etiquetas QR".', 'ok');
+      }
+      fecharFormulario();
+      if (idEmEdicao) {
+        const item = acharItem(idEmEdicao);
+        if (item) {
+          Object.assign(item, resultado);
+          reRenderizarLinha(item.id);
+          return;
+        }
+      }
+      buscarItens(true);
+    }
+
+    async function carregarFuncionarios() {
+      const resp = await fetch('/api/funcionarios');
+      if (!resp.ok) return;
+      const funcs = await resp.json();
+      const select = document.getElementById('conferente');
+      select.innerHTML = '<option value="">— sem conferência —</option>' + funcs.map(f => `
+        <option value="${f.id}">${escapeHtml(f.nome)}${f.ativo ? '' : ' (inativo)'}</option>`).join('');
+    }
+
+    function aplicarVisibilidadeColunas() {
+      const tabela = document.getElementById('tabelaItens');
+      document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+        tabela.classList.toggle('sem-' + chk.dataset.coluna, !chk.checked);
+      });
+    }
+
+    // Redimensionar coluna usando Pointer Capture (o jeito correto e robusto
+    // do navegador para "arrastar" um elemento). Duas tentativas anteriores
+    // com mousedown/mousemove/mouseup manuais não resolveram de vez um bug
+    // intermitente de a coluna "pular" de tamanho — a suspeita é que, em
+    // algum cenário (ex.: o ponteiro saindo da área do elemento por um
+    // instante), o navegador para de entregar os eventos de mousemove pro
+    // nosso listener, e quando volta a entregar, entrega com uma posição já
+    // bem distante, causando o salto. Pointer Capture existe exatamente pra
+    // isso: depois de handle.setPointerCapture(id), TODOS os eventos daquele
+    // ponteiro (mova ele pra onde for, até pra fora da janela) são
+    // garantidamente entregues pro mesmo elemento, sem exceção, até soltar.
+    function iniciarRedimensionamento() {
+      const thead = document.querySelector('#tabelaItens thead tr');
+      if (!thead) return;
+      thead.querySelectorAll('th[data-coluna]').forEach(th => {
+        const handle = document.createElement('div');
+        handle.className = 'resizer';
+        handle.title = 'Arraste para aumentar ou diminuir a coluna';
+
+        let inicioX = 0;
+        let larguraInicial = 0;
+        let arrastandoEste = false;
+
+        function mover(e) {
+          if (!arrastandoEste) return;
+          const nova = Math.max(60, larguraInicial + (e.clientX - inicioX));
+          th.style.width = nova + 'px';
+        }
+
+        function soltar(e) {
+          if (!arrastandoEste) return;
+          arrastandoEste = false;
+          if (handle.hasPointerCapture(e.pointerId)) {
+            handle.releasePointerCapture(e.pointerId);
+          }
+          document.body.classList.remove('redimensionando');
+        }
+
+        handle.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          inicioX = e.clientX;
+          larguraInicial = th.offsetWidth;
+          arrastandoEste = true;
+          handle.setPointerCapture(e.pointerId);
+          document.body.classList.add('redimensionando');
+        });
+        handle.addEventListener('pointermove', mover);
+        handle.addEventListener('pointerup', soltar);
+        // Disparado automaticamente pelo navegador se a captura for perdida
+        // por qualquer motivo (ex.: a janela perder o foco no meio do
+        // arrasto) — garante que nunca fica um arrasto "preso" ativo.
+        handle.addEventListener('lostpointercapture', soltar);
+
+        th.appendChild(handle);
+      });
+    }
+
+    function redefinirLarguras() {
+      const thead = document.querySelector('#tabelaItens thead tr');
+      if (!thead) return;
+      thead.querySelectorAll('th[data-coluna]').forEach(th => {
+        th.style.width = LARGURAS_PADRAO[th.dataset.coluna] || '';
+      });
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', () => buscarItens(true));
+    ['busca', 'busca2', 'busca3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') buscarItens(true);
+      });
+    });
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      document.getElementById('busca2').value = '';
+      document.getElementById('busca3').value = '';
+      buscarItens(true);
+    });
+    document.getElementById('chkEstoqueBaixo').addEventListener('change', () => buscarItens(true));
+    document.getElementById('chkEstoqueNegativo').addEventListener('change', () => buscarItens(true));
+    document.getElementById('tabelaItens').addEventListener('click', e => {
+      // Ignora o clique que o navegador dispara depois de soltar o mouse ao
+      // arrastar a alcinha de redimensionar a coluna — sem isso, redimensionar
+      // uma coluna ordenável (Estoque, Preço...) também reordenava a tabela
+      // inteira sem querer, porque esse clique "vaza" pro cabeçalho.
+      if (e.target.closest('.resizer')) return;
+      const th = e.target.closest('th.ordenavel');
+      if (th) alternarOrdenacao(th.dataset.ordem);
+    });
+    document.getElementById('btnCarregarMais').addEventListener('click', () => {
+      paginaAtual += 1;
+      buscarItens(false);
+    });
+    document.getElementById('precoCusto').addEventListener('input', atualizarPrecoSugerido);
+    document.getElementById('margemPercentual').addEventListener('input', atualizarPrecoSugerido);
+    document.getElementById('btnUsarSugestao').addEventListener('click', (e) => {
+      const valor = e.currentTarget.dataset.valor;
+      if (!valor) return;
+      document.getElementById('preco').value = valor;
+      mostrarMensagem('Preço sugerido aplicado no campo "Preço para levar". Clique em Salvar para confirmar.', 'ok');
+    });
+
+    document.getElementById('btnNovo').addEventListener('click', () => abrirFormulario(null));
+    document.getElementById('btnSalvar').addEventListener('click', salvar);
+    document.getElementById('btnCancelar').addEventListener('click', fecharFormulario);
+    document.getElementById('btnExcluirItem').addEventListener('click', () => excluirItem(editandoId));
+
+    // O Modo Gerenciador ligou/desligou com o painel aberto: o gerente.js já
+    // trava/destrava os campos; aqui só recalcula o "Usar esse preço", que
+    // depende também de custo e margem estarem preenchidos.
+    window.addEventListener('gerente:mudou', () => atualizarPrecoSugerido());
+
+    document.getElementById('btnColunas').addEventListener('click', () => {
+      document.getElementById('painelColunas').classList.toggle('oculto');
+    });
+    document.getElementById('btnFecharColunas').addEventListener('click', () => {
+      document.getElementById('painelColunas').classList.add('oculto');
+    });
+    document.getElementById('btnLarguras').addEventListener('click', redefinirLarguras);
+
+    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+      chk.addEventListener('change', aplicarVisibilidadeColunas);
+    });
+
+    tbody.addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acoes]');
+      const linha = e.target.closest('tr[data-id]');
+      if (!linha) return;
+      const id = linha.dataset.id;
+      // Clicar no código do produto (início da linha) abre a edição direto,
+      // sem precisar clicar no botão "Editar".
+      if (!botao) {
+        if (e.target.closest('td.col-codigo')) {
+          const item = acharItem(id);
+          if (item) abrirFormulario(item);
+        }
+        return;
+      }
+      e.preventDefault();
+      const acao = botao.dataset.acoes;
+      if (acao === 'editar') {
+        const item = acharItem(id);
+        if (item) abrirFormulario(item);
+      } else if (acao === 'historico') {
+        abrirHistorico(id);
+      } else if (acao === 'excluir') {
+        excluirItem(id);
+      }
+    });
+
+    document.getElementById('btnFecharHistorico').addEventListener('click', () => {
+      document.getElementById('dialogHistorico').close();
+    });
+
+    tbody.addEventListener('mousedown', e => {
+      const td = e.target.closest('td.nome-longo, td.rolavel');
+      if (!td) return;
+      if (td.scrollWidth <= td.clientWidth) return;
+      e.preventDefault();
+      const startX = e.clientX;
+      const startScroll = td.scrollLeft;
+      const mover = ev => {
+        td.scrollLeft = startScroll - (ev.clientX - startX);
+      };
+      const soltar = () => {
+        document.removeEventListener('mousemove', mover);
+        document.removeEventListener('mouseup', soltar);
+      };
+      document.addEventListener('mousemove', mover);
+      document.addEventListener('mouseup', soltar);
+    });
+
+    function aplicarParametrosDaURL() {
+      const params = new URLSearchParams(location.search);
+      const campos = ['busca', 'busca2', 'busca3'];
+      campos.forEach((id, idx) => {
+        const v = params.get('f' + (idx + 1));
+        if (v) document.getElementById(id).value = v;
+      });
+      if (params.get('estoque_baixo')) {
+        document.getElementById('chkEstoqueBaixo').checked = true;
+      }
+      if (params.get('estoque_negativo')) {
+        document.getElementById('chkEstoqueNegativo').checked = true;
+      }
+    }
+
+    carregarFuncionarios();
+
+    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
+      chk.checked = chk.dataset.coluna !== 'acoes';
+    });
+    aplicarVisibilidadeColunas();
+    iniciarRedimensionamento();
+    redefinirLarguras();
+    aplicarParametrosDaURL();
+    buscarItens(true);
+
+    // Atalho "+ Item" da barra vermelha: abre direto o formulário de produto
+    // novo. (carregarFuncionarios roda em paralelo; se a lista de
+    // conferentes chegar depois, o select só ganha as opções — nada se perde.)
+    if (window.abertoPorAtalho && window.abertoPorAtalho('novo')) {
+      abrirFormulario(null);
+    }
+  </script>
+</body>
+</html>

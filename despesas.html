@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Despesas - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/os-cliente-carro.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>FINANCEIRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="os-main">
+    <div class="abas">
+      <a class="aba" href="/caixa.html">Caixa do dia</a>
+      <a class="aba" href="/faturamento.html">Faturamento</a>
+      <a class="aba ativa" href="/despesas.html">Despesas</a>
+    </div>
+
+    <div class="abas" style="margin-top:8px">
+      <button class="aba ativa" type="button" data-aba="boletos" id="abaBoletos">Boletos</button>
+      <button class="aba" type="button" data-aba="manuais" id="abaManuais">Despesas manuais</button>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <section id="secaoBoletos">
+      <div class="os-secao oculto nb-editor" id="editorBoleto">
+        <h2 id="tituloEditorBoleto">Novo boleto</h2>
+        <p class="aviso-vazio oculto" id="nbAvisoGrupo" style="margin-top:0"></p>
+
+        <h3 class="nb-sub">Nota do fornecedor</h3>
+        <div class="os-grid nb-grid-nota">
+          <div>
+            <label>Fornecedor *</label>
+            <div id="boletoClienteCampo"></div>
+          </div>
+          <div>
+            <label>Nº da nota fiscal</label>
+            <input type="text" id="boletoNF" maxlength="30" autocomplete="off" placeholder="Ex.: 104512">
+          </div>
+          <div>
+            <label>Data de emissão</label>
+            <input type="date" id="boletoEmissao">
+          </div>
+          <div>
+            <label>Frete (R$)</label>
+            <input type="number" id="boletoFrete" min="0" step="0.01" inputmode="decimal" placeholder="0,00">
+          </div>
+          <div>
+            <label>Valor total da nota (R$)</label>
+            <input type="number" id="boletoValorNota" min="0" step="0.01" inputmode="decimal" placeholder="Para conferir a soma">
+          </div>
+        </div>
+
+        <div id="areaItensBoleto">
+          <h3 class="nb-sub">Peças da nota</h3>
+          <div id="nbPecas"></div>
+          <div id="nbConferencia" class="nb-conferencia"></div>
+        </div>
+
+        <h3 class="nb-sub">Pagamento</h3>
+        <div class="os-grid nb-grid-pag">
+          <div id="nbParcelasWrap">
+            <label>Parcelas</label>
+            <select id="boletoParcelas">
+              <option value="1">À vista (1 boleto)</option>
+              <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+              <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option>
+              <option value="8">8x</option><option value="9">9x</option><option value="10">10x</option>
+              <option value="11">11x</option><option value="12">12x</option>
+            </select>
+          </div>
+          <div id="nbVencWrap">
+            <label>Vencimento *</label>
+            <input type="date" id="boletoVencimento">
+          </div>
+          <div id="nbValorParcelaWrap" class="oculto">
+            <label>Valor desta parcela (R$) *</label>
+            <input type="number" id="boletoValorParcela" min="0.01" step="0.01" inputmode="decimal">
+          </div>
+        </div>
+        <div id="nbParcelas"></div>
+
+        <div class="nb-obs">
+          <label>Observações</label>
+          <input type="text" id="boletoObs" maxlength="3000" autocomplete="off">
+        </div>
+        <div class="os-acoes" style="margin-top:14px">
+          <button id="btnSalvarBoleto" class="sucesso" type="button">Salvar boleto</button>
+          <button id="btnCancelarBoleto" class="secundario" type="button">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="barra-titulo">
+        <h1>Boletos</h1>
+        <button id="btnNovoBoleto" class="sucesso" type="button">Novo boleto</button>
+      </div>
+
+      <div class="os-secao">
+        <h2>Agenda de vencimentos</h2>
+        <div class="agenda-layout">
+          <div class="cal cal-grande">
+            <div class="cal-cab">
+              <button id="calAnt" type="button" title="Mês anterior">‹</button>
+              <span id="calTitulo"></span>
+              <button id="calProx" type="button" title="Próximo mês">›</button>
+            </div>
+            <div class="cal-semana">
+              <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+            </div>
+            <div id="calDias" class="cal-grade"></div>
+          </div>
+
+          <!-- Ao lado do calendário: o que precisa ser pago. Só boletos
+               pendentes; atualiza sozinho depois de pagar/salvar. -->
+          <aside class="painel-lateral" aria-label="Boletos a pagar">
+            <h3>Vencendo hoje</h3>
+            <div id="listaVenceHoje"><p class="aviso-vazio">Carregando...</p></div>
+            <h3 class="painel-segundo">Atrasados</h3>
+            <div id="listaAtrasados"><p class="aviso-vazio">Carregando...</p></div>
+          </aside>
+        </div>
+        <div id="agendaDia"></div>
+      </div>
+
+      <div id="detalheBoleto"></div>
+
+      <div class="os-secao" style="padding:0;overflow:hidden">
+        <div style="padding:14px 16px 0">
+          <h2 style="padding:0;margin-bottom:10px">Consultar boletos</h2>
+          <div class="planilha-toolbar" style="margin-bottom:0">
+            <div class="busca-3linhas">
+              <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
+              <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
+              <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+            </div>
+            <div class="busca-acoes">
+              <select id="filtroStatus">
+                <option value="">Todos os status</option>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+              </select>
+              <button id="btnBuscar" type="button">Buscar</button>
+              <button id="btnLimpar" class="secundario" type="button">Limpar</button>
+            </div>
+          </div>
+        </div>
+        <div style="overflow:auto;max-height:calc(100vh - 400px)">
+          <table class="planilha-tabela" id="tabelaBoletos">
+            <thead>
+              <tr>
+                <th class="ordenavel" data-ordem="codigo" style="width:100px">Número <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="vencimento" style="width:130px">Vencimento <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="cliente" style="width:260px">Cliente <span class="seta-ordem"></span></th>
+                <th style="width:160px">Itens</th>
+                <th class="ordenavel" data-ordem="status" style="width:110px">Status <span class="seta-ordem"></span></th>
+                <th class="ordenavel" data-ordem="valor" style="width:130px">Valor (R$) <span class="seta-ordem"></span></th>
+                <th style="width:190px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela"></tbody>
+          </table>
+        </div>
+        <div class="planilha-rodape">
+          <span id="contador"></span>
+          <button id="btnCarregarMais" class="secundario" type="button">Carregar mais</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="secaoManuais" class="oculto">
+      <div class="barra-titulo">
+        <h1>Despesas manuais</h1>
+        <button id="btnNovaManual" class="sucesso" type="button">Nova despesa</button>
+      </div>
+
+      <div class="os-secao" style="padding:0;overflow:hidden">
+        <div style="padding:14px 16px 0">
+          <div class="planilha-toolbar" style="margin-bottom:0">
+            <div class="busca-3linhas">
+              <input type="text" id="mBusca" class="busca" placeholder="" autocomplete="off">
+              <input type="text" id="mBusca2" class="busca" placeholder="" autocomplete="off">
+              <input type="text" id="mBusca3" class="busca" placeholder="" autocomplete="off">
+            </div>
+            <div class="busca-acoes">
+              <label for="manDataFiltro" style="align-self:center;font-weight:600;font-size:13px">Data:</label>
+              <input type="date" id="manDataFiltro" class="busca" style="max-width:150px">
+              <button id="btnBuscarM" type="button">Buscar</button>
+              <button id="btnLimparM" class="secundario" type="button">Limpar</button>
+            </div>
+          </div>
+        </div>
+        <div style="overflow:auto;max-height:calc(100vh - 320px)">
+          <table class="planilha-tabela" id="tabelaManuais">
+            <thead>
+              <tr>
+                <th style="width:90px">Data</th>
+                <th>Descrição</th>
+                <th style="width:140px">Forma</th>
+                <th style="width:130px">Valor (R$)</th>
+                <th style="width:190px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabelaM"></tbody>
+          </table>
+        </div>
+        <div class="planilha-rodape">
+          <span id="contadorM"></span>
+          <button id="btnCarregarMaisM" class="secundario" type="button">Carregar mais</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dialogLinha" class="dialog-tipos" style="width:min(680px,95vw)">
+    <h3 id="tituloDialogLinha">Adicionar item ao boleto</h3>
+    <div class="dialog-form">
+      <div>
+        <label>Item (busque por código ou nome) ou digite o nome de um item novo</label>
+        <div class="busca-cliente-wrap">
+          <input type="text" id="linhaItem" autocomplete="off">
+          <div id="sugestoesItem" class="sugestoes oculto"></div>
+        </div>
+        <span id="linhaItemTipo" style="font-size:12px;color:var(--texto-suave)"></span>
+      </div>
+    </div>
+    <div class="dialog-form">
+      <div><label>Quantidade *</label><input type="number" id="linhaQtd" min="1" step="1" value="1"></div>
+      <div><label>Preço unitário (R$) *</label><input type="number" id="linhaPreco" min="0" step="0.01"></div>
+    </div>
+    <p class="aviso-vazio" style="margin:4px 0 0">A peça vai para a <strong>Entrada de estoque</strong>: entra no estoque quando o balconista conferir e der a entrada.</p>
+    <div class="dialog-acoes">
+      <button id="btnSalvarLinha" class="sucesso" type="button">Adicionar</button>
+      <button id="btnFecharLinha" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogConferente" class="dialog-tipos">
+    <h3>Dar entrada no estoque</h3>
+    <p style="margin-top:6px">A entrada precisa de um conferente. Selecione quem confere esta mercadoria:</p>
+    <div class="dialog-form">
+      <div>
+        <label>Conferente *</label>
+        <select id="confFuncId"><option value="">—</option></select>
+      </div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnConfirmarConferente" class="sucesso" type="button">Dar entrada</button>
+      <button id="btnFecharConferente" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogPagar" class="dialog-tipos">
+    <h3>Registrar pagamento do boleto</h3>
+    <p style="margin-top:6px">Boleto <strong id="pagarCodigo">—</strong> · Total: <strong id="pagarInfo">—</strong></p>
+    <div class="dialog-form">
+      <div>
+        <label>Forma de pagamento *</label>
+        <select id="pagarForma"></select>
+      </div>
+      <div>
+        <label>Comprovante (PDF, JPG ou PNG)</label>
+        <input type="file" id="pagarAnexo" accept=".pdf,image/jpeg,image/png">
+      </div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnConfirmarPagar" class="sucesso" type="button">Confirmar pagamento</button>
+      <button id="btnFecharPagar" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogManual" class="dialog-tipos">
+    <h3 id="tituloDialogManual">Nova despesa manual</h3>
+    <div class="dialog-form">
+      <div style="flex:1.4"><label>Descrição *</label><input type="text" id="manDescricao" maxlength="500" autocomplete="off"></div>
+      <div><label>Valor (R$) *</label><input type="number" id="manValor" min="0" step="0.01"></div>
+    </div>
+    <div class="dialog-form">
+      <div><label>Data *</label><input type="date" id="manData"></div>
+      <div><label>Forma de pagamento</label><select id="manForma"></select></div>
+      <div style="flex:1.4"><label>Observações</label><input type="text" id="manObs" maxlength="1000" autocomplete="off"></div>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnSalvarManual" class="sucesso" type="button">Salvar</button>
+      <button id="btnFecharManual" class="secundario" type="button">Voltar</button>
+    </div>
+  </dialog>
+
+  <script src="/js/boleto-pecas.js"></script>
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    const TAM_PAGINA = 100;
+    const FORMAS = ['Dinheiro', 'Pix', 'Débito', 'Crédito', 'Transferência', 'Boleto'];
+
+    let funcsCache = [];
+
+    let paginaAtual = 0;
+    let totalRegistros = 0;
+    let cache = [];
+    let ordemCampo = 'codigo';
+    let ordemDirecao = 'desc';
+
+    let paginaManual = 0;
+    let totalManuais = 0;
+    let cacheManuais = [];
+
+    let mesAtual = new Date();
+    mesAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+    let diaSelecionado = null;
+    let agendaMes = [];
+
+    let boletoAtual = null;
+    let boletoEditando = null;
+    let linhaEditando = null;
+    let linhaSel = { itemId: null, codigo: null, nome: null };
+    let despesaEditando = null;
+    let boletoPagar = null;
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return '—';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarDataHora(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatarDataDia(iso) {
+      if (!iso) return '—';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+      if (m) return m[3] + '/' + m[2] + '/' + m[1];
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('pt-BR');
+    }
+
+    function hojeISO() {
+      return new Date().toLocaleDateString('en-CA');
+    }
+
+    function statusBadge(status) {
+      const rotulo = status === 'pago' ? 'Pago' : status === 'pendente' ? 'Pendente' : status;
+      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(rotulo) + '</span>';
+    }
+
+    // "2/3" quando o boleto é uma parcela de nota parcelada.
+    function rotuloParcela(b) {
+      return b && b.parcelas ? ' <span class="parcela-selo">' + b.parcela + '/' + b.parcelas + '</span>' : '';
+    }
+
+    function miniSelo(texto, tipo) {
+      return '<span class="mini-selo ' + escapeHtml(tipo) + '">' + escapeHtml(texto) + '</span>';
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    // Fornecedor: campo com busca (acha qualquer cadastro, não só os 200
+    // primeiros de uma lista). Cadastrar um novo é pela própria busca.
+    const campoFornecedor = ClienteCarro.campoCliente(document.getElementById('boletoClienteCampo'), {
+      titulo: 'Fornecedor do boleto',
+      onde: 'neste boleto',
+      vazio: '— escolha o fornecedor —',
+    });
+
+    function preencherFuncs(sel) {
+      sel.innerHTML = '<option value="">—</option>' +
+        funcsCache.map(f => '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>').join('');
+    }
+
+    function preencherFormas(sel) {
+      sel.innerHTML = '<option value="">Selecione...</option>' +
+        FORMAS.map(f => '<option>' + f + '</option>').join('');
+    }
+
+    function preencherSelects() {
+      preencherFormas(document.getElementById('pagarForma'));
+      preencherFormas(document.getElementById('manForma'));
+    }
+
+    async function carregarBases() {
+      try {
+        const f = await fetch('/api/funcionarios').then(r => r.json());
+        funcsCache = Array.isArray(f) ? f : [];
+      } catch (e) {
+        funcsCache = [];
+      }
+    }
+
+    function ativarAba(nome) {
+      document.getElementById('abaBoletos').classList.toggle('ativa', nome === 'boletos');
+      document.getElementById('abaManuais').classList.toggle('ativa', nome === 'manuais');
+      document.getElementById('secaoBoletos').classList.toggle('oculto', nome !== 'boletos');
+      document.getElementById('secaoManuais').classList.toggle('oculto', nome !== 'manuais');
+    }
+
+    // =====================================================
+    // Mini agenda de vencimentos
+    // =====================================================
+    function padraoDia(d) {
+      const p = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    async function carregarAgendaMes() {
+      const ultimo = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0).getDate();
+      const params = new URLSearchParams({
+        inicio: padraoDia(mesAtual),
+        fim: padraoDia(mesAtual) + '-31',
+      });
+      const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0);
+      params.set('fim', padraoDia(fim));
+      try {
+        const resp = await fetch('/api/boletos/agenda?' + params.toString());
+        const dados = await lerJson(resp);
+        agendaMes = dados.boletos || [];
+      } catch (e) {
+        agendaMes = [];
+        mostrarMensagem('Falha ao carregar a agenda.', 'erro');
+      }
+    }
+
+    function renderCalendario() {
+      const hojeChave = hojeISO();
+      const primeiroDiaSemana = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+      const qtdDias = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0).getDate();
+      // Semana começando no DOMINGO, igual ao cabeçalho (D S T Q Q S S).
+      // Antes a conta começava na segunda e cada dia aparecia uma coluna
+      // antes da letra certa (ex.: terça 22/09 debaixo do "S" de segunda).
+      const inicioGrade = primeiroDiaSemana.getDay();
+      const primeiro = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1 - inicioGrade);
+
+      const mapa = {};
+      for (const a of agendaMes) {
+        const k = a.dataVencimento;
+        if (!k) continue;
+        if (!mapa[k]) mapa[k] = [];
+        mapa[k].push(a);
+      }
+
+      const titulo = mesAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      document.getElementById('calTitulo').textContent = titulo.charAt(0).toUpperCase() + titulo.slice(1);
+
+      const grade = document.getElementById('calDias');
+      grade.innerHTML = '';
+      for (let i = 0; i < 42; i++) {
+        const dt = new Date(primeiro.getFullYear(), primeiro.getMonth(), primeiro.getDate() + i);
+        const chave = padraoDia(dt);
+        const doMes = dt.getMonth() === mesAtual.getMonth();
+        const hojeDia = chave === hojeChave;
+        const sel = chave === diaSelecionado;
+        const contagem = (mapa[chave] || []).length;
+        const celula = document.createElement('div');
+        celula.className = 'cal-dia' + (doMes ? '' : ' fora') + (hojeDia ? ' hoje' : '') + (sel ? ' sel' : '') + (contagem ? ' tem' : '');
+        celula.dataset.dia = chave;
+        celula.innerHTML = '<span class="num">' + dt.getDate() + '</span>' + (contagem ? '<span class="conta" title="' + contagem + ' boleto(s)">' + contagem + '</span>' : '');
+        celula.addEventListener('click', () => selecionarDia(chave));
+        grade.appendChild(celula);
+      }
+      renderAgendaDia();
+    }
+
+    function selecionarDia(chave) {
+      diaSelecionado = diaSelecionado === chave ? null : chave;
+      renderCalendario();
+    }
+
+    function renderAgendaDia() {
+      const el = document.getElementById('agendaDia');
+      const mapa = {};
+      for (const a of agendaMes) {
+        const k = a.dataVencimento;
+        if (!k) continue;
+        if (!mapa[k]) mapa[k] = [];
+        mapa[k].push(a);
+      }
+      const lista = (mapa[diaSelecionado] || []).sort((a, b) => String(a.codigo).localeCompare(String(b.codigo)));
+
+      if (!diaSelecionado) {
+        el.innerHTML = '<p class="aviso-vazio" style="margin-top:12px">Clique em um dia para ver os boletos que vencem nele.</p>';
+        return;
+      }
+      if (lista.length === 0) {
+        el.innerHTML = '<p class="aviso-vazio" style="margin-top:12px">Nenhum boleto vence em <strong>' + escapeHtml(formatarDataDia(diaSelecionado)) + '</strong>.</p>';
+        return;
+      }
+      el.innerHTML = '<h2 style="margin-top:14px">Vencimentos em ' + escapeHtml(formatarDataDia(diaSelecionado)) + ' (' + lista.length + ')</h2>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' +
+        lista.map(a => {
+          const pagarBtn = a.status === 'pendente'
+            ? '<button type="button" class="btn-mini sucesso" data-pagar-bol="' + a.id + '">Pagar</button>'
+            : '';
+          return `<div class="cal-agenda">
+            <span class="cal-info"><strong>Boleto nº ${escapeHtml(a.codigo)}</strong>${rotuloParcela(a)} · ${escapeHtml(a.clienteNome || '—')} · ${formatarMoeda(a.valorTotal)}</span>
+            <span class="cal-status">${statusBadge(a.status)}</span>
+            <span class="cal-acoes">
+              <button type="button" class="btn-mini" data-abrir-bol="${a.id}">Abrir</button>
+              ${pagarBtn}
+            </span>
+          </div>`;
+        }).join('') +
+        '</div>';
+    }
+
+    // =====================================================
+    // Lista de boletos (consulta)
+    // =====================================================
+    function pintarSetas() {
+      document.querySelectorAll('#tabelaBoletos thead th.ordenavel').forEach(th => {
+        const span = th.querySelector('.seta-ordem');
+        if (!span) return;
+        span.textContent = th.dataset.ordem === ordemCampo ? (ordemDirecao === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
+      });
+    }
+
+    function alternarOrdenacao(campo) {
+      if (ordemCampo === campo) {
+        ordemDirecao = ordemDirecao === 'desc' ? 'asc' : 'desc';
+      } else {
+        ordemCampo = campo;
+        ordemDirecao = 'desc';
+      }
+      pintarSetas();
+      buscarBoletos(true);
+    }
+
+    async function buscarBoletos(reset) {
+      const tbody = document.getElementById('corpoTabela');
+      const contador = document.getElementById('contador');
+      const q = [document.getElementById('busca').value, document.getElementById('busca2').value, document.getElementById('busca3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+
+      if (reset) {
+        paginaAtual = 0;
+        cache = [];
+        tbody.innerHTML = '';
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      const status = document.getElementById('filtroStatus').value;
+      if (status) params.append('status', status);
+      params.append('ordem', ordemCampo);
+      params.append('dir', ordemDirecao);
+      params.append('inicio', paginaAtual * TAM_PAGINA);
+      params.append('limite', TAM_PAGINA);
+
+      let dados;
+      try {
+        dados = await lerJson(await fetch('/api/boletos?' + params.toString()));
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+        return;
+      }
+
+      totalRegistros = dados.total;
+      cache = cache.concat(dados.boletos);
+      if (dados.boletos.length === 0 && paginaAtual === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhum boleto encontrado.</div></td></tr>';
+      } else {
+        tbody.insertAdjacentHTML('beforeend', dados.boletos.map(montarLinhaBoleto).join(''));
+      }
+      contador.textContent = cache.length === 0 ? '' : 'Mostrando ' + cache.length + ' de ' + totalRegistros + ' boletos.';
+      document.getElementById('btnCarregarMais').classList.toggle('oculto', cache.length >= totalRegistros);
+    }
+
+    function montarLinhaBoleto(b) {
+      const entrada = b.entradaPendente
+        ? miniSelo('aguardando mercadoria', 'pendente')
+        : (b.quantidadeItens > 0 ? miniSelo('entrada ok', 'ok') : '—');
+      const acoes = '<button type="button" class="btn-mini" data-abrir-bol="' + b.id + '">Abrir</button>' +
+        (b.status === 'pendente' ? '<button type="button" class="btn-mini azul" data-pagar-bol="' + b.id + '">Pagar</button>' : '') +
+        (b.comprovante ? '<button type="button" class="btn-mini sucesso" data-comprovante-bol="' + b.id + '">Ver comprovante</button>' : '');
+      return `
+        <tr>
+          <td><strong>${escapeHtml(b.codigo)}</strong>${rotuloParcela(b)}</td>
+          <td>${escapeHtml(formatarDataDia(b.dataVencimento))}</td>
+          <td class="rolavel" title="${escapeHtml(b.clienteNome || '')}">${escapeHtml(b.clienteNome || '—')}${b.notaFiscal ? ' <span class="er-sub" style="display:inline">· NF ' + escapeHtml(b.notaFiscal) + '</span>' : ''}</td>
+          <td>${b.quantidadeItens} ${b.quantidadeItens === 1 ? 'item' : 'itens'} ${entrada}</td>
+          <td>${statusBadge(b.status)}</td>
+          <td>${formatarMoeda(b.valorTotal)}</td>
+          <td><div class="acoes-celula">${acoes}</div></td>
+        </tr>`;
+    }
+
+    // =====================================================
+    // Detalhe do boleto
+    // =====================================================
+    async function abrirBoleto(id) {
+      try {
+        boletoAtual = await lerJson(await fetch('/api/boletos/' + id));
+        renderDetalheBoleto();
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+      document.getElementById('detalheBoleto').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Ficha: lista das parcelas da nota (com a atual destacada) e aviso se a
+    // soma das parcelas não bate mais com as peças (peça mudou depois).
+    function blocoParcelas(b) {
+      if (!b.grupo || !b.grupo.length) return '';
+      const soma = b.grupo.reduce((t, g) => t + Math.round(g.valorTotal * 100), 0);
+      const pecas = Math.round(b.valorPecasNota * 100) + Math.round(b.valorFrete * 100);
+      const oQue = b.valorFrete ? 'as peças + frete' : 'as peças da nota';
+      return '<div class="nb-grupo"><label>Parcelas da nota</label><div class="tabela-envolve"><table class="planilha-tabela"><thead><tr>' +
+        '<th style="width:80px">Parcela</th><th>Boleto</th><th>Vencimento</th><th>Valor</th><th>Status</th><th style="width:90px"></th></tr></thead><tbody>' +
+        b.grupo.map(g => '<tr' + (g.id === b.id ? ' class="nb-atual"' : '') + '><td>' + g.parcela + '/' + b.parcelas + '</td><td>nº ' + escapeHtml(g.codigo) +
+          '</td><td>' + escapeHtml(formatarDataDia(g.dataVencimento)) + '</td><td>' + formatarMoeda(g.valorTotal) + '</td><td>' + statusBadge(g.status) +
+          '</td><td>' + (g.id === b.id ? '<span class="er-sub">esta</span>' : '<button type="button" class="btn-mini" data-abrir-bol="' + g.id + '">Abrir</button>') + '</td></tr>').join('') +
+        '</tbody></table></div>' +
+        (soma !== pecas ? '<div class="aviso" style="margin-top:8px">⚠ As parcelas somam <strong>' + formatarMoeda(soma / 100) + '</strong> e ' + oQue + ' <strong>' +
+          formatarMoeda(pecas / 100) + '</strong>. Ajuste o valor das parcelas pendentes (Editar boleto).</div>' : '') + '</div>';
+    }
+
+    function renderDetalheBoleto() {
+      const b = boletoAtual;
+      if (!b) return;
+
+      const acoes = b.status === 'pendente'
+        ? '<button id="btnEditarBoleto" class="secundario" type="button">Editar boleto</button>' +
+          '<button id="btnPagarBoleto" class="sucesso" type="button">Pagar boleto</button>'
+        : '';
+      // Excluir: só pendente e sem nenhuma entrada no estoque (o servidor
+      // confere de novo), e só no Modo Gerenciador.
+      const podeExcluir = b.status === 'pendente' && !b.itens.some(l => l.entrada === 'feita');
+      const temPendente = b.itens.some(l => l.entrada === 'pendente');
+      const excluir = podeExcluir
+        ? '<button id="btnExcluirBoleto" class="perigo" type="button" data-trava-gerente>Excluir boleto</button>'
+        : '';
+
+      const pagamento = b.status === 'pago'
+        ? '<div><label>Pago em</label><div class="valor">' + escapeHtml(formatarDataHora(b.dataPagamento)) +
+          (b.formaPagamento ? ' · ' + escapeHtml(b.formaPagamento) : '') + '</div></div>' +
+          (b.comprovante ? '<div><label>Comprovante</label><div class="valor"><a class="link-comprovante" href="/uploads/' + encodeURIComponent(b.comprovante) + '" target="_blank">Ver comprovante</a></div></div>' : '')
+        : '';
+
+      // Vencido e ainda não pago: avisa ao lado da data.
+      const diasAtraso = b.status === 'pendente' && b.dataVencimento
+        ? Math.floor((new Date(hojeISO() + 'T12:00:00') - new Date(String(b.dataVencimento).slice(0, 10) + 'T12:00:00')) / 86400000)
+        : 0;
+      const atraso = diasAtraso > 0
+        ? ' <span class="ficha-atraso">venceu há ' + diasAtraso + (diasAtraso === 1 ? ' dia' : ' dias') + '</span>'
+        : (diasAtraso === 0 && b.status === 'pendente' ? ' <span class="ficha-atraso hoje">vence hoje</span>' : '');
+
+      // O boleto é uma FICHA, como a OS: folha com o timbre da loja.
+      document.getElementById('detalheBoleto').innerHTML = `
+        <article class="ficha ficha-boleto">
+          <div class="ficha-topo">
+            <div class="ficha-marca" aria-label="Auto Vidros Sport">
+              <span class="ficha-av">Auto<br>vidros</span><span class="ficha-sport">SPORT</span>
+            </div>
+            <div class="ficha-doc">
+              <span class="ficha-tipo">Boleto</span>
+              <h1 class="ficha-numero">nº ${escapeHtml(b.codigo)}</h1>
+              ${b.parcelas ? '<div class="ficha-parcela">parcela ' + b.parcela + ' de ' + b.parcelas + '</div>' : ''}
+              ${statusBadge(b.status)}
+            </div>
+          </div>
+          <div class="os-secao">
+            <h2>Fornecedor e pagamento</h2>
+            <div class="os-grid">
+              <div><label>Fornecedor</label><div class="valor">${escapeHtml(b.clienteNome || '—')}</div></div>
+              <div><label>Vencimento</label><div class="valor">${escapeHtml(formatarDataDia(b.dataVencimento))}${atraso}</div></div>
+              <div><label>Cadastro</label><div class="valor">${escapeHtml(formatarDataHora(b.dataCadastro))}</div></div>
+              ${pagamento}
+              <div><label>Nota fiscal</label><div class="valor">${b.notaFiscal ? 'nº ' + escapeHtml(b.notaFiscal) : '—'}${b.dataEmissao ? ' · emitida em ' + escapeHtml(formatarDataDia(b.dataEmissao)) : ''}</div></div>
+              ${b.valorFrete ? '<div><label>Frete</label><div class="valor">' + formatarMoeda(b.valorFrete) + '</div></div>' : ''}
+              ${b.valorNota !== null ? '<div><label>Valor da nota</label><div class="valor">' + formatarMoeda(b.valorNota) + '</div></div>' : ''}
+            </div>
+            ${blocoParcelas(b)}
+            <div class="os-grid" style="margin-top:12px">
+              <div style="grid-column:1/-1"><label>Observações</label><div class="valor">${escapeHtml(b.observacoes || '—')}</div></div>
+            </div>
+            <div class="os-acoes" style="margin-top:14px">${acoes}${excluir}</div>
+          </div>
+          ${b.parcela > 1 ? `<div class="os-secao">
+            <h2>Peças</h2>
+            <p>As peças desta nota estão na <strong>parcela 1</strong> (boleto nº ${escapeHtml((b.grupo.find(g => g.parcela === 1) || {}).codigo || '')}).
+              <button type="button" class="btn-mini" data-abrir-bol="${b.grupoId}">Abrir a parcela 1</button></p>
+          </div>` : ''}
+          <div class="os-secao${b.parcela > 1 ? ' oculto' : ''}">
+            <h2>Itens (${b.itens.length})</h2>
+            <div style="overflow:auto;max-height:50vh">
+              <table class="planilha-tabela">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style="width:90px">Qtd</th>
+                    <th style="width:120px">Preço unit.</th>
+                    <th style="width:120px">Subtotal</th>
+                    <th style="width:180px">Entrada</th>
+                    <th style="width:130px">Conferido por</th>
+                    <th style="width:200px">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>${b.itens.map(linhaDetalhe).join('')}</tbody>
+              </table>
+            </div>
+            <div class="os-acoes" style="margin-top:10px">
+              ${b.status === 'pendente' && !(b.parcela > 1) ? '<button id="btnAddLinhaBoleto" class="secundario" type="button">+ Adicionar item</button>' : ''}
+              ${temPendente ? '<button id="btnEtiquetasBoleto" class="secundario" type="button">Imprimir etiquetas do boleto</button>' : ''}
+              ${temPendente ? '<a class="sucesso" href="/entrada-estoque.html">Ir para Entrada de estoque</a>' : ''}
+            </div>
+            <p class="aviso-vazio" style="margin-top:8px">Peças "aguardando" ainda não estão no estoque: aparecem na <a href="/entrada-estoque.html">Entrada de estoque</a> e entram quando o balconista conferir e der a entrada (mesmo depois de pago). O gerente pode dar "Entrada direto".</p>
+          </div>
+          <div class="os-secao">
+            ${b.grupoId
+              ? '<div class="os-total">Valor desta parcela: ' + formatarMoeda(b.valorTotal) + '</div>' +
+                '<div class="aviso-vazio" style="text-align:right">Peças da nota (todas as parcelas): ' + formatarMoeda(b.valorPecasNota) +
+                (b.valorFrete ? ' + frete ' + formatarMoeda(b.valorFrete) + ' = ' + formatarMoeda(b.valorPecasNota + b.valorFrete) : '') + '</div>'
+              : (b.valorFrete ? '<div class="aviso-vazio" style="text-align:right">Peças ' + formatarMoeda(b.valorTotal - b.valorFrete) +
+                  ' + frete ' + formatarMoeda(b.valorFrete) + '</div>' : '') +
+                '<div class="os-total">Total: ' + formatarMoeda(b.valorTotal) + '</div>'}
+          </div>
+        </article>`;
+
+      if (b.status === 'pendente') {
+        document.getElementById('btnEditarBoleto').addEventListener('click', () => abrirEditorBoleto(b));
+        document.getElementById('btnPagarBoleto').addEventListener('click', () => abrirDialogPagar(b));
+        const add = document.getElementById('btnAddLinhaBoleto');
+        if (add) add.addEventListener('click', () => abrirDialogLinha('add'));
+      }
+      if (temPendente) {
+        document.getElementById('btnEtiquetasBoleto').addEventListener('click', () => imprimirEtiquetasBoleto(b));
+      }
+      if (podeExcluir) {
+        document.getElementById('btnExcluirBoleto').addEventListener('click', () => excluirBoleto(b));
+      }
+      if (window.Gerente) Gerente.aplicarTravas(document.getElementById('detalheBoleto'));
+    }
+
+    // Etiquetas das peças do boleto que ainda aguardam entrada.
+
+    async function imprimirEtiquetasBoleto(b) {
+      const pend = b.itens.filter(l => l.entrada === 'pendente');
+      const comItem = pend.filter(l => l.itemId);
+      const novos = pend.filter(l => !l.itemId);
+      if (!comItem.length) {
+        alert('Os itens pendentes deste boleto são itens NOVOS (ainda sem cadastro), então ainda não têm número de etiqueta.\n\nDê entrada neles (botão "Dar entrada") e depois imprima as etiquetas pela tela de Itens.');
+        return;
+      }
+      const total = comItem.reduce((s, l) => s + l.quantidade, 0);
+      let msg = 'Imprimir ' + total + (total === 1 ? ' etiqueta' : ' etiquetas') + ' (1 por peça) dos itens ainda não recebidos?';
+      if (novos.length) msg += '\n\n' + novos.length + (novos.length === 1 ? ' item novo fica' : ' itens novos ficam') + ' de fora (ainda sem cadastro).';
+      if (!confirm(msg)) return;
+      let formato = 'grande';
+      try { formato = localStorage.getItem('etiquetas-formato') || 'grande'; } catch (e) { /* ok */ }
+      const aba = window.open('', '_blank');
+      if (aba) aba.document.write('<p style="font-family:sans-serif">Gerando etiquetas...</p>');
+      try {
+        const resp = await fetch('/api/itens/etiquetas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ formato, itens: comItem.map(l => ({ id: l.itemId, copias: l.quantidade })) }),
+        });
+        if (!resp.ok) {
+          const erro = await resp.json().catch(() => ({}));
+          throw new Error(erro.erro || 'Erro ao gerar as etiquetas.');
+        }
+        const url = URL.createObjectURL(await resp.blob());
+        if (aba) aba.location.href = url; else window.location.href = url;
+      } catch (e) {
+        if (aba) aba.close();
+        alert(e.message || 'Falha de conexão ao gerar as etiquetas.');
+      }
+    }
+
+    async function excluirBoleto(b) {
+      const msgExcluir = b.grupo && b.grupo.length > 1
+        ? 'Este boleto é a parcela ' + b.parcela + ' de ' + b.parcelas + ' de uma nota parcelada.\n\nExcluir apaga a NOTA INTEIRA: as ' + b.grupo.length +
+          ' parcelas (boletos nº ' + b.grupo.map(g => g.codigo).join(', ') + ') e as peças.\nNão dá para desfazer.'
+        : 'Excluir DEFINITIVAMENTE o boleto nº ' + b.codigo + ' (' + (b.clienteNome || 'sem fornecedor') + ', ' +
+          formatarMoeda(b.valorTotal) + ')?\nNão dá para desfazer.';
+      if (!confirm(msgExcluir)) return;
+      try {
+        await lerJson(await fetch('/api/boletos/' + b.id, { method: 'DELETE' }));
+        boletoAtual = null;
+        document.getElementById('detalheBoleto').innerHTML = '';
+        mostrarMensagem(b.grupo && b.grupo.length > 1 ? 'Nota excluída (' + b.grupo.length + ' parcelas).' : 'Boleto nº ' + b.codigo + ' excluído.', 'ok');
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    function linhaDetalhe(l) {
+      const itemNome = l.itemCodigo
+        ? '<strong>#' + escapeHtml(l.itemCodigo) + '</strong> ' + escapeHtml(l.itemNome || '')
+        : miniSelo('novo', 'pendente') + ' ' + escapeHtml(l.nomeNovo || '');
+      const entrada = l.entrada === 'feita'
+        ? miniSelo('feita', 'ok') + (l.dataEntrada ? '<br><small style="color:var(--texto-suave)">' + escapeHtml(formatarDataDia(l.dataEntrada)) + '</small>' : '')
+        : miniSelo('pendente', 'pendente') + '<br><small style="color:var(--texto-suave)">aguardando</small>';
+
+      let acoes = '';
+      const editavel = boletoAtual.status === 'pendente' && l.entrada === 'pendente';
+      const entrar = l.entrada === 'pendente';
+      if (entrar) {
+        acoes += '<button type="button" class="btn-mini sucesso" data-entrada="' + l.lineId + '" data-trava-gerente title="Entrada direto no estoque, sem passar pela Entrada de estoque">Entrada direto</button>';
+      }
+      if (editavel) {
+        acoes += '<button type="button" class="btn-mini azul" data-editar-linha="' + l.lineId + '">Editar</button>' +
+          '<button type="button" class="btn-mini secundario" data-remover-linha="' + l.lineId + '">Remover</button>';
+      }
+      return `<tr>
+        <td class="rolavel" title="${escapeHtml(l.itemNome || l.nomeNovo || '')}">${itemNome}</td>
+        <td>${l.quantidade}</td>
+        <td>${formatarMoeda(l.precoUnitario)}</td>
+        <td>${formatarMoeda(l.subtotal)}</td>
+        <td>${entrada}</td>
+        <td>${escapeHtml(l.conferenteNome || '—')}</td>
+        <td><div class="acoes-celula">${acoes || '<span style="color:var(--texto-suave)">—</span>'}</div></td>
+      </tr>`;
+    }
+
+    // =====================================================
+    // Editor de boleto (novo / editar cabeçalho)
+    // =====================================================
+    // Novo boleto: nota do fornecedor, peças numa tabela (js/boleto-pecas.js)
+    // e pagamento à vista ou parcelado. Editar: só os dados da nota e desta
+    // parcela; as peças se mexem na ficha do boleto.
+    const tabelaPecas = BoletoPecas.montar(document.getElementById('nbPecas'), {
+      aoMudar: () => {
+        conferirNota();
+        if (parcelasManuais) conferirParcelas(); else gerarParcelas(true);
+      },
+    });
+    let parcelasManuais = false;
+
+    function freteDigitado() {
+      const n = Number(document.getElementById('boletoFrete').value || 0);
+      return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+    }
+    // O que o fornecedor cobra: peças + frete.
+    function totalCobrado() {
+      return Math.round((tabelaPecas.soma() + freteDigitado()) * 100) / 100;
+    }
+
+    function valorNotaDigitado() {
+      const t = document.getElementById('boletoValorNota').value.trim();
+      return t === '' ? null : Number(t);
+    }
+
+    // Confere a soma das peças com o valor que está na nota.
+    function conferirNota() {
+      const el = document.getElementById('nbConferencia');
+      const soma = totalCobrado();
+      const frete = freteDigitado();
+      const rotulo = frete ? 'Peças + frete' : 'Soma das peças';
+      const nota = valorNotaDigitado();
+      if (nota === null || !Number.isFinite(nota)) {
+        if (frete) {
+          el.className = 'nb-conferencia';
+          el.innerHTML = 'Peças ' + formatarMoeda(tabelaPecas.soma()) + ' + frete ' + formatarMoeda(frete) + ' = <strong>' + formatarMoeda(soma) + '</strong>';
+          return;
+        }
+        el.className = 'nb-conferencia';
+        el.innerHTML = '';
+        return;
+      }
+      const dif = Math.round((nota - soma) * 100) / 100;
+      if (Math.abs(dif) < 0.005) {
+        el.className = 'nb-conferencia nb-conf-ok';
+        el.textContent = '✓ ' + (frete ? 'Peças + frete batem' : 'A soma das peças bate') + ' com o valor da nota (' + formatarMoeda(nota) + ').';
+      } else {
+        el.className = 'nb-conferencia nb-conf-aviso';
+        el.innerHTML = '⚠ ' + rotulo + ': <strong>' + formatarMoeda(soma) + '</strong> · Valor da nota: <strong>' + formatarMoeda(nota) +
+          '</strong> · ' + (dif > 0 ? 'faltam ' : 'sobram ') + '<strong>' + formatarMoeda(Math.abs(dif)) + '</strong>. Confira as quantidades e os preços.';
+      }
+    }
+
+    function somarDias(iso, dias) {
+      const d = new Date(iso + 'T12:00:00');
+      d.setDate(d.getDate() + dias);
+      return d.toLocaleDateString('en-CA');
+    }
+    function nParcelas() {
+      return Number(document.getElementById('boletoParcelas').value) || 1;
+    }
+
+    // Parcelas: vencimento de 30 em 30 dias a partir da emissão (ou de hoje) e
+    // valor dividido igual (os centavos que sobram vão na 1ª). Tudo editável.
+    function gerarParcelas(manterDatas) {
+      const n = nParcelas();
+      const el = document.getElementById('nbParcelas');
+      document.getElementById('nbVencWrap').classList.toggle('oculto', n > 1);
+      if (n <= 1) {
+        el.innerHTML = '';
+        return;
+      }
+      const total = Math.round(totalCobrado() * 100);
+      const base = Math.floor(total / n);
+      const resto = total - base * n;
+      const inicio = document.getElementById('boletoEmissao').value || hojeISO();
+      const datas = [...el.querySelectorAll('.nb-parc-data')].map(i => i.value);
+      el.innerHTML = '<div class="tabela-envolve nb-parcelas"><table class="planilha-tabela"><thead><tr><th style="width:90px">Parcela</th><th>Vencimento</th><th>Valor (R$)</th></tr></thead><tbody>' +
+        Array.from({ length: n }, (_, i) => '<tr><td>' + (i + 1) + '/' + n + '</td>' +
+          '<td><input type="date" class="nb-parc-data" value="' + ((manterDatas && datas.length === n && datas[i]) || somarDias(inicio, 30 * (i + 1))) + '"></td>' +
+          '<td><input type="number" class="nb-parc-valor" min="0.01" step="0.01" inputmode="decimal" value="' + ((base + (i === 0 ? resto : 0)) / 100).toFixed(2) + '"></td></tr>').join('') +
+        '</tbody></table></div><div class="nb-parc-rodape"><button type="button" class="secundario" id="nbDividir">Dividir igual</button><span id="nbParcSoma"></span></div>';
+      parcelasManuais = false;
+      conferirParcelas();
+    }
+
+    function conferirParcelas() {
+      const el = document.getElementById('nbParcSoma');
+      if (!el) return;
+      const soma = [...document.querySelectorAll('.nb-parc-valor')].reduce((t, i) => t + Math.round(Number(i.value || 0) * 100), 0);
+      const pecas = Math.round(totalCobrado() * 100);
+      el.className = soma === pecas ? 'nb-ok' : 'nb-aviso';
+      el.innerHTML = 'Soma das parcelas: <strong>' + formatarMoeda(soma / 100) + '</strong>' +
+        (soma === pecas ? ' ✓' : ' · tem que dar <strong>' + formatarMoeda(pecas / 100) + '</strong> (' + (freteDigitado() ? 'peças + frete' : 'a soma das peças') + ')');
+    }
+
+    function fecharEditorBoleto() {
+      boletoAtual = null;
+      boletoEditando = null;
+      document.getElementById('editorBoleto').classList.add('oculto');
+      tabelaPecas.limpar();
+    }
+
+    function abrirEditorBoleto(b) {
+      const editando = !!b;
+      boletoAtual = null;
+      boletoEditando = editando ? b : null;
+      document.getElementById('detalheBoleto').innerHTML = '';
+
+      campoFornecedor.definir(editando ? b.clienteId : null, editando ? b.clienteNome : '');
+      document.getElementById('boletoNF').value = editando ? (b.notaFiscal || '') : '';
+      document.getElementById('boletoEmissao').value = editando ? (b.dataEmissao || '') : '';
+      document.getElementById('boletoValorNota').value = editando && b.valorNota !== null ? b.valorNota : '';
+      document.getElementById('boletoFrete').value = editando && b.valorFrete ? b.valorFrete : '';
+      document.getElementById('boletoVencimento').value = editando ? (b.dataVencimento || '') : hojeISO();
+      document.getElementById('boletoObs').value = editando ? (b.observacoes || '') : '';
+      document.getElementById('boletoParcelas').value = '1';
+      document.getElementById('boletoValorParcela').value = editando ? b.valorTotal : '';
+      document.getElementById('tituloEditorBoleto').textContent = editando
+        ? 'Editar boleto nº ' + b.codigo + (b.parcelas ? ' (parcela ' + b.parcela + ' de ' + b.parcelas + ')' : '')
+        : 'Novo boleto';
+      const grupo = editando && b.grupoId;
+      document.getElementById('areaItensBoleto').classList.toggle('oculto', editando);
+      document.getElementById('nbParcelasWrap').classList.toggle('oculto', editando);
+      document.getElementById('nbValorParcelaWrap').classList.toggle('oculto', !grupo);
+      const aviso = document.getElementById('nbAvisoGrupo');
+      aviso.classList.toggle('oculto', !editando);
+      aviso.textContent = grupo
+        ? 'Fornecedor e dados da nota mudam em todas as parcelas. Vencimento, valor e observações mudam só nesta parcela. As peças se mexem na ficha do boleto.'
+        : 'As peças se mexem na ficha do boleto (Adicionar item / Editar / Remover).';
+      if (!editando) tabelaPecas.limpar();
+      gerarParcelas(false);
+      conferirNota();
+
+      const editor = document.getElementById('editorBoleto');
+      editor.classList.remove('oculto');
+      // Só rola a tela ao EDITAR um boleto (ação disparada lá da lista, no fim
+      // da página — sem rolar, o editor abriria fora da vista).
+      if (editando) editor.scrollIntoView({ block: 'start' });
+    }
+
+    async function salvarBoleto() {
+      const clienteId = campoFornecedor.valor();
+      if (!clienteId) {
+        mostrarMensagem('Escolha o fornecedor.', 'erro');
+        return;
+      }
+      const nota = {
+        nota_fiscal: document.getElementById('boletoNF').value.trim(),
+        data_emissao: document.getElementById('boletoEmissao').value || null,
+        valor_nota: valorNotaDigitado(),
+        valor_frete: freteDigitado() || null,
+      };
+      const freteTxt = document.getElementById('boletoFrete').value.trim();
+      if (freteTxt !== '' && !(Number(freteTxt) >= 0)) {
+        mostrarMensagem('Valor do frete inválido.', 'erro');
+        return;
+      }
+      if (nota.valor_nota !== null && !(Number.isFinite(nota.valor_nota) && nota.valor_nota >= 0)) {
+        mostrarMensagem('Valor total da nota inválido.', 'erro');
+        return;
+      }
+      const observacoes = document.getElementById('boletoObs').value.trim();
+      const vencimento = document.getElementById('boletoVencimento').value;
+      const btn = document.getElementById('btnSalvarBoleto');
+
+      try {
+        btn.disabled = true;
+        if (boletoEditando) {
+          if (!vencimento) {
+            mostrarMensagem('Informe a data de vencimento.', 'erro');
+            return;
+          }
+          const corpo = { cliente_id: Number(clienteId), data_vencimento: vencimento, observacoes, ...nota };
+          if (boletoEditando.grupoId) corpo.valor_parcela = Number(document.getElementById('boletoValorParcela').value);
+          const atualizado = await lerJson(await fetch('/api/boletos/' + boletoEditando.id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo),
+          }));
+          fecharEditorBoleto();
+          boletoAtual = atualizado;
+          mostrarMensagem('Boleto atualizado.', 'ok');
+        } else {
+          const r = tabelaPecas.linhas();
+          if (r.erro) {
+            mostrarMensagem(r.erro, 'erro');
+            return;
+          }
+          if (!r.linhas.length) {
+            mostrarMensagem('Lance ao menos uma peça da nota.', 'erro');
+            tabelaPecas.focar();
+            return;
+          }
+          // Peça nova com o mesmo nome de uma cadastrada: confirma antes.
+          for (const l of r.linhas.filter(x => !x.itemId)) {
+            if (!(await confirmarItemNovoSemDuplicata(l.nome))) return;
+          }
+          const soma = totalCobrado();
+          const oQue = nota.valor_frete ? 'peças + frete' : 'a soma das peças';
+          if (nota.valor_nota !== null && Math.round(nota.valor_nota * 100) !== Math.round(soma * 100) &&
+            !confirm('O total (' + oQue + ': ' + formatarMoeda(soma) + ') não bate com o valor da nota (' + formatarMoeda(nota.valor_nota) + ').\n\nSalvar assim mesmo?')) return;
+          const n = nParcelas();
+          let parcelas = null;
+          if (n > 1) {
+            parcelas = [...document.querySelectorAll('#nbParcelas tbody tr')].map(tr => ({
+              data_vencimento: tr.querySelector('.nb-parc-data').value,
+              valor: Number(tr.querySelector('.nb-parc-valor').value),
+            }));
+            if (parcelas.some(p => !p.data_vencimento)) {
+              mostrarMensagem('Preencha o vencimento de todas as parcelas.', 'erro');
+              return;
+            }
+            const somaParc = parcelas.reduce((t, p) => t + Math.round(p.valor * 100), 0);
+            if (somaParc !== Math.round(soma * 100)) {
+              mostrarMensagem('A soma das parcelas (' + formatarMoeda(somaParc / 100) + ') tem que ser igual a ' + oQue + ' (' + formatarMoeda(soma) + '). Use "Dividir igual" ou ajuste os valores.', 'erro');
+              return;
+            }
+          } else if (!vencimento) {
+            mostrarMensagem('Informe a data de vencimento.', 'erro');
+            return;
+          }
+          const criado = await lerJson(await fetch('/api/boletos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cliente_id: Number(clienteId),
+              data_vencimento: parcelas ? parcelas[0].data_vencimento : vencimento,
+              observacoes,
+              ...nota,
+              parcelas,
+              itens: r.linhas.map(l => ({
+                item_id: l.itemId,
+                nome_novo: l.itemId ? null : l.nome,
+                quantidade: l.quantidade,
+                preco_unitario: l.preco,
+              })),
+            }),
+          }));
+          fecharEditorBoleto();
+          boletoAtual = criado;
+          mostrarMensagem(parcelas
+            ? 'Nota lançada em ' + parcelas.length + ' boletos (um por parcela). As peças estão na parcela 1 e foram para a Entrada de estoque.'
+            : 'Boleto criado. As peças foram para a Entrada de estoque.', 'ok');
+        }
+        renderDetalheBoleto();
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('boletoValorNota').addEventListener('input', conferirNota);
+    // Frete muda o total: refaz a conferência e as parcelas (se ninguém mexeu nelas).
+    document.getElementById('boletoFrete').addEventListener('input', () => {
+      conferirNota();
+      if (parcelasManuais) conferirParcelas(); else gerarParcelas(true);
+    });
+    document.getElementById('boletoParcelas').addEventListener('change', () => gerarParcelas(false));
+    document.getElementById('boletoEmissao').addEventListener('change', () => { if (nParcelas() > 1) gerarParcelas(false); });
+    document.getElementById('nbParcelas').addEventListener('input', (e) => {
+      if (e.target.classList.contains('nb-parc-valor')) {
+        parcelasManuais = true;
+        conferirParcelas();
+      }
+    });
+    document.getElementById('nbParcelas').addEventListener('click', (e) => {
+      if (e.target.id === 'nbDividir') gerarParcelas(true);
+    });
+
+    // =====================================================
+    // Dialog de linha (item do boleto)
+    // =====================================================
+    function resetarLinhaDialog() {
+      linhaEditando = null;
+      linhaSel = { itemId: null, codigo: null, nome: null };
+      document.getElementById('linhaItem').value = '';
+      document.getElementById('linhaQtd').value = '1';
+      document.getElementById('linhaPreco').value = '';
+      document.getElementById('linhaItemTipo').textContent = '';
+      document.getElementById('sugestoesItem').classList.add('oculto');
+    }
+
+    function abrirDialogLinha(modo, linha) {
+      linhaEditando = (modo === 'editar') ? linha : null;
+      resetarLinhaDialog();
+      document.getElementById('tituloDialogLinha').textContent =
+        modo === 'editar' ? 'Editar item do boleto' : 'Adicionar item ao boleto';
+
+      if (modo === 'editar' && linha) {
+        const nome = linha.itemCodigo
+          ? linha.itemCodigo + ' - ' + (linha.itemNome || '')
+          : (linha.nomeNovo || '');
+        document.getElementById('linhaItem').value = nome;
+        linhaSel.itemId = linha.itemId || null;
+        atualizarTipoItem(nome);
+        document.getElementById('linhaQtd').value = linha.quantidade;
+        document.getElementById('linhaPreco').value = linha.precoUnitario;
+      }
+      document.getElementById('dialogLinha').showModal();
+      document.getElementById('linhaItem').focus();
+    }
+
+    function atualizarTipoItem(nome) {
+      const el = document.getElementById('linhaItemTipo');
+      if (!nome) {
+        el.textContent = '';
+        return;
+      }
+      el.textContent = linhaSel.itemId ? 'Item cadastrado no catálogo.' : 'Será cadastrado como novo item ao salvar.';
+    }
+
+    async function buscarItensParaLinha(termo) {
+      try {
+        const resp = await fetch('/api/itens?q=' + encodeURIComponent(termo) + '&inicio=0&limite=8');
+        const dados = await lerJson(resp);
+        return dados.itens || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function escolherItemLinha(item) {
+      linhaSel.itemId = item.id;
+      linhaSel.codigo = item.codigo;
+      linhaSel.nome = item.nome;
+      document.getElementById('linhaItem').value = item.codigo + ' - ' + item.nome;
+      const preco = document.getElementById('linhaPreco');
+      const custo = Number(item.ultimo_custo || item.custo_medio || item.preco_custo || 0);
+      if (!preco.value && custo > 0) preco.value = custo;
+      atualizarTipoItem(item.nome);
+      document.getElementById('sugestoesItem').classList.add('oculto');
+    }
+
+    function nomeNormalizado(s) {
+      return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    // Antes de cadastrar um item NOVO pelo boleto, confere se já existe um
+    // item com o mesmo nome no catálogo. Sem isso dava para criar um item
+    // duplicado sem perceber (mesmo nome, código diferente), partindo o
+    // estoque entre dois cadastros — com risco de vender pelo preço errado.
+    // É um aviso, não um bloqueio: pode haver caso legítimo de nome igual.
+    async function confirmarItemNovoSemDuplicata(nome) {
+      let iguais = [];
+      try {
+        const resp = await fetch('/api/itens?q=' + encodeURIComponent(nome) + '&inicio=0&limite=20');
+        const dados = await resp.json();
+        const alvo = nomeNormalizado(nome);
+        iguais = (dados.itens || []).filter(i => nomeNormalizado(i.nome) === alvo);
+      } catch (e) {
+        return true; // se a checagem falhar, não trava o lançamento
+      }
+      if (iguais.length === 0) return true;
+      const lista = iguais.slice(0, 3)
+        .map(i => '- ' + i.codigo + '  (estoque atual: ' + i.estoque + ')')
+        .join('\n');
+      return confirm(
+        'Já existe item cadastrado com esse nome:\n\n' + lista + '\n\n' +
+        'OK = cadastrar assim mesmo, como um item NOVO e separado. Atenção: o estoque ' +
+        'fica dividido entre os dois cadastros.\n\n' +
+        'Cancelar = voltar e escolher o item existente na busca (o correto na maioria dos casos).'
+      );
+    }
+
+    async function salvarLinha() {
+      const nome = document.getElementById('linhaItem').value.trim();
+      const quantidade = Number(document.getElementById('linhaQtd').value);
+      const precoUnitario = Number(document.getElementById('linhaPreco').value);
+      if (!nome) {
+        mostrarMensagem('Informe o item (existente ou novo).', 'erro');
+        return;
+      }
+      if (!Number.isInteger(quantidade) || quantidade < 1) {
+        mostrarMensagem('Informe a quantidade.', 'erro');
+        return;
+      }
+      if (!Number.isFinite(precoUnitario) || precoUnitario < 0) {
+        mostrarMensagem('Informe o preço unitário.', 'erro');
+        return;
+      }
+
+      // Só vale para item NOVO: se foi escolhido um item da busca, já existe
+      // vínculo por ID e não há risco de duplicar.
+      if (!linhaSel.itemId && !(await confirmarItemNovoSemDuplicata(nome))) {
+        document.getElementById('linhaItem').focus();
+        return;
+      }
+
+      const dados = {
+        item_id: linhaSel.itemId,
+        nome_novo: linhaSel.itemId ? null : nome,
+        quantidade,
+        preco_unitario: precoUnitario,
+      };
+
+      try {
+        if (linhaEditando) {
+          const l = linhaEditando;
+          const atualizado = await lerJson(await fetch('/api/boletos/itens/' + l.lineId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados),
+          }));
+          boletoAtual = atualizado;
+          mostrarMensagem('Item atualizado.', 'ok');
+        } else if (boletoAtual && boletoAtual.status === 'pendente') {
+          const atualizado = await lerJson(await fetch('/api/boletos/' + boletoAtual.id + '/itens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados),
+          }));
+          boletoAtual = atualizado;
+          mostrarMensagem('Item adicionado ao boleto.', 'ok');
+        }
+        document.getElementById('dialogLinha').close();
+        renderDetalheBoleto();
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function darEntradaLinha(lineId) {
+      const linha = boletoAtual && boletoAtual.itens.find(l => String(l.lineId) === String(lineId));
+      if (linha && linha.entrada === 'feita') {
+        mostrarMensagem('Este item já entrou no estoque.', 'erro');
+        return;
+      }
+      if (linha && !linha.conferenteId) {
+        abrirDialogConferente(lineId);
+        return;
+      }
+      try {
+        const atualizado = await lerJson(await fetch('/api/boletos/itens/' + lineId + '/entrada', { method: 'POST' }));
+        boletoAtual = atualizado;
+        mostrarMensagem('Entrada registrada — estoque atualizado.', 'ok');
+        renderDetalheBoleto();
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    let pendenteEntradaLinha = null;
+
+    function abrirDialogConferente(lineId) {
+      pendenteEntradaLinha = lineId;
+      preencherFuncs(document.getElementById('confFuncId'));
+      document.getElementById('confFuncId').value = '';
+      document.getElementById('dialogConferente').showModal();
+    }
+
+    async function confirmarEntradaConferente() {
+      const valor = document.getElementById('confFuncId').value;
+      if (!valor) {
+        mostrarMensagem('Selecione o conferente.', 'erro');
+        return;
+      }
+      const botao = document.getElementById('btnConfirmarConferente');
+      botao.disabled = true;
+      try {
+        const atualizado = await lerJson(await fetch('/api/boletos/itens/' + pendenteEntradaLinha + '/entrada', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conferente_id: Number(valor) }),
+        }));
+        botao.disabled = false;
+        document.getElementById('dialogConferente').close();
+        pendenteEntradaLinha = null;
+        boletoAtual = atualizado;
+        mostrarMensagem('Entrada registrada — estoque atualizado.', 'ok');
+        renderDetalheBoleto();
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        botao.disabled = false;
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function removerLinha(lineId) {
+      try {
+        const atualizado = await lerJson(await fetch('/api/boletos/itens/' + lineId, { method: 'DELETE' }));
+        boletoAtual = atualizado;
+        mostrarMensagem('Item removido do boleto.', 'ok');
+        renderDetalheBoleto();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // =====================================================
+    // Pagamento do boleto
+    // =====================================================
+    function abrirDialogPagar(b) {
+      boletoPagar = b;
+      document.getElementById('pagarCodigo').textContent = b.codigo;
+      document.getElementById('pagarInfo').textContent = formatarMoeda(b.valorTotal);
+      document.getElementById('pagarForma').value = '';
+      document.getElementById('pagarAnexo').value = '';
+      document.getElementById('dialogPagar').showModal();
+    }
+
+    async function confirmarPagamento() {
+      if (!boletoPagar) return;
+      const forma = document.getElementById('pagarForma').value;
+      if (!forma) {
+        mostrarMensagem('Escolha a forma de pagamento.', 'erro');
+        return;
+      }
+      const dados = new FormData();
+      dados.append('forma_pagamento', forma);
+      const anexo = document.getElementById('pagarAnexo').files[0];
+      if (anexo) dados.append('comprovante', anexo);
+
+      try {
+        const atualizado = await lerJson(await fetch('/api/boletos/' + boletoPagar.id + '/pagar', {
+          method: 'POST',
+          body: dados,
+        }));
+        boletoPagar = null;
+        document.getElementById('dialogPagar').close();
+        boletoAtual = atualizado;
+        mostrarMensagem('Pagamento registrado. O boleto aparece no Caixa do dia como despesa.', 'ok');
+        renderDetalheBoleto();
+        await usuarioTrocouMes();
+        buscarBoletos(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    // =====================================================
+    // Despesas manuais
+    // =====================================================
+    async function buscarManuais(reset) {
+      const tbody = document.getElementById('corpoTabelaM');
+      const contador = document.getElementById('contadorM');
+      const q = [document.getElementById('mBusca').value, document.getElementById('mBusca2').value, document.getElementById('mBusca3').value]
+        .map(v => v.trim()).filter(Boolean).join(' ');
+
+      if (reset) {
+        paginaManual = 0;
+        cacheManuais = [];
+        tbody.innerHTML = '';
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      const data = document.getElementById('manDataFiltro').value;
+      if (data) params.append('data', data);
+      params.append('inicio', paginaManual * TAM_PAGINA);
+      params.append('limite', TAM_PAGINA);
+
+      let dados;
+      try {
+        dados = await lerJson(await fetch('/api/despesas-manuais?' + params.toString()));
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+        return;
+      }
+
+      totalManuais = dados.total;
+      cacheManuais = cacheManuais.concat(dados.despesas);
+      if (dados.despesas.length === 0 && paginaManual === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="sem-resultados">Nenhuma despesa manual encontrada.</div></td></tr>';
+      } else {
+        tbody.insertAdjacentHTML('beforeend', dados.despesas.map(montarLinhaManual).join(''));
+      }
+      contador.textContent = cacheManuais.length === 0 ? '' : 'Mostrando ' + cacheManuais.length + ' de ' + totalManuais + ' despesas.';
+      document.getElementById('btnCarregarMaisM').classList.toggle('oculto', cacheManuais.length >= totalManuais);
+    }
+
+    function montarLinhaManual(d) {
+      return `
+        <tr>
+          <td>${escapeHtml(formatarDataDia(d.data))}</td>
+          <td class="rolavel" title="${escapeHtml(d.descricao)}${d.observacoes ? ' — ' + escapeHtml(d.observacoes) : ''}">${escapeHtml(d.descricao)}</td>
+          <td>${escapeHtml(d.formaPagamento || '—')}</td>
+          <td>${formatarMoeda(d.valor)}</td>
+          <td><div class="acoes-celula">
+            <button type="button" class="btn-mini azul" data-editar-man="${d.id}">Editar</button>
+            <button type="button" class="btn-mini secundario" data-excluir-man="${d.id}">Excluir</button>
+          </div></td>
+        </tr>`;
+    }
+
+    function abrirDialogManual(despesa) {
+      despesaEditando = despesa || null;
+      document.getElementById('tituloDialogManual').textContent = despesa ? 'Editar despesa manual' : 'Nova despesa manual';
+      document.getElementById('manDescricao').value = despesa ? (despesa.descricao || '') : '';
+      document.getElementById('manValor').value = despesa ? despesa.valor : '';
+      document.getElementById('manData').value = despesa ? (despesa.data || hojeISO()) : hojeISO();
+      document.getElementById('manForma').value = despesa ? (despesa.formaPagamento || '') : '';
+      document.getElementById('manObs').value = despesa ? (despesa.observacoes || '') : '';
+      document.getElementById('dialogManual').showModal();
+    }
+
+    async function salvarDespesaManual() {
+      const descricao = document.getElementById('manDescricao').value.trim();
+      const valor = Number(document.getElementById('manValor').value);
+      const data = document.getElementById('manData').value;
+      const forma_pagamento = document.getElementById('manForma').value;
+      const observacoes = document.getElementById('manObs').value.trim();
+
+      if (!descricao) {
+        mostrarMensagem('Informe a descrição da despesa.', 'erro');
+        return;
+      }
+      if (!Number.isFinite(valor) || valor < 0) {
+        mostrarMensagem('Informe um valor válido.', 'erro');
+        return;
+      }
+      if (!data) {
+        mostrarMensagem('Informe a data da despesa.', 'erro');
+        return;
+      }
+
+      const corpo = { descricao, valor, data, forma_pagamento, observacoes };
+      try {
+        if (despesaEditando) {
+          await lerJson(await fetch('/api/despesas-manuais/' + despesaEditando.id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo),
+          }));
+          mostrarMensagem('Despesa atualizada.', 'ok');
+        } else {
+          await lerJson(await fetch('/api/despesas-manuais', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo),
+          }));
+          mostrarMensagem('Despesa criada.', 'ok');
+        }
+        document.getElementById('dialogManual').close();
+        buscarManuais(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function excluirDespesaManual(id) {
+      if (!confirm('Excluir esta despesa manual?\nNão dá para desfazer.')) return;
+      try {
+        await lerJson(await fetch('/api/despesas-manuais/' + id, { method: 'DELETE' }));
+        mostrarMensagem('Despesa manual excluída.', 'ok');
+        buscarManuais(true);
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    async function usuarioTrocouMes() {
+      await carregarAgendaMes();
+      renderCalendario();
+      // Toda ação que recarrega a agenda (salvar, pagar, dar entrada...)
+      // também atualiza o painel de pendências ao lado.
+      carregarPendencias();
+    }
+
+    // Painel ao lado do calendário: boletos pendentes que vencem hoje e os
+    // atrasados (mais antigo primeiro). Clicar abre o boleto logo abaixo.
+    async function carregarPendencias() {
+      const elHoje = document.getElementById('listaVenceHoje');
+      const elAtraso = document.getElementById('listaAtrasados');
+      let dados;
+      try {
+        dados = await lerJson(await fetch('/api/boletos/pendencias'));
+      } catch (e) {
+        elHoje.innerHTML = elAtraso.innerHTML = '<p class="aviso-vazio">Não foi possível carregar.</p>';
+        return;
+      }
+      const item = (b, atrasado) =>
+        '<li><button type="button" class="lateral-link" data-abrir-boleto="' + b.id + '">' +
+          '<span class="lateral-topo">' +
+            '<strong>Boleto nº ' + escapeHtml(b.codigo) + rotuloParcela(b) + '</strong>' +
+            '<span class="lateral-valor">' + formatarMoeda(b.valorTotal) + '</span>' +
+          '</span>' +
+          '<span class="lateral-sub">' + escapeHtml(b.clienteNome || 'Sem fornecedor') +
+            (atrasado
+              ? ' · <span class="lateral-atraso">venceu ' + escapeHtml(formatarDataDia(b.dataVencimento)) +
+                ' (' + b.diasAtraso + (b.diasAtraso === 1 ? ' dia' : ' dias') + ')</span>'
+              : '') +
+          '</span>' +
+        '</button></li>';
+      elHoje.innerHTML = dados.hoje.length
+        ? '<ul class="lista-lateral">' + dados.hoje.map(b => item(b, false)).join('') + '</ul>' +
+          '<p class="lateral-total">Total de hoje: <strong>' + formatarMoeda(dados.totalHoje) + '</strong></p>'
+        : '<p class="aviso-vazio">Nenhum boleto vence hoje.</p>';
+      elAtraso.innerHTML = dados.atrasados.length
+        ? '<ul class="lista-lateral">' + dados.atrasados.map(b => item(b, true)).join('') + '</ul>' +
+          '<p class="lateral-total lateral-total-atraso">Total atrasado: <strong>' + formatarMoeda(dados.totalAtrasados) + '</strong></p>'
+        : '<p class="aviso-vazio">Nenhum boleto atrasado.</p>';
+    }
+
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-abrir-boleto]');
+      if (b) abrirBoleto(Number(b.dataset.abrirBoleto));
+    });
+
+    // =====================================================
+    // Eventos
+    // =====================================================
+    document.getElementById('abaBoletos').addEventListener('click', () => ativarAba('boletos'));
+    document.getElementById('abaManuais').addEventListener('click', () => ativarAba('manuais'));
+
+    document.getElementById('btnNovoBoleto').addEventListener('click', () => abrirEditorBoleto(null));
+    document.getElementById('btnCancelarBoleto').addEventListener('click', fecharEditorBoleto);
+    document.getElementById('btnSalvarBoleto').addEventListener('click', salvarBoleto);
+
+    document.getElementById('btnSalvarLinha').addEventListener('click', salvarLinha);
+    document.getElementById('btnFecharLinha').addEventListener('click', () => document.getElementById('dialogLinha').close());
+    document.getElementById('btnConfirmarConferente').addEventListener('click', confirmarEntradaConferente);
+    document.getElementById('btnFecharConferente').addEventListener('click', () => document.getElementById('dialogConferente').close());
+
+    document.getElementById('btnBuscar').addEventListener('click', () => buscarBoletos(true));
+    ['busca', 'busca2', 'busca3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') buscarBoletos(true); });
+    });
+    document.getElementById('filtroStatus').addEventListener('change', () => buscarBoletos(true));
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      document.getElementById('busca2').value = '';
+      document.getElementById('busca3').value = '';
+      document.getElementById('filtroStatus').value = '';
+      buscarBoletos(true);
+    });
+    document.getElementById('btnCarregarMais').addEventListener('click', () => { paginaAtual += 1; buscarBoletos(false); });
+    document.querySelector('#tabelaBoletos thead').addEventListener('click', e => {
+      const th = e.target.closest('th.ordenavel');
+      if (th) alternarOrdenacao(th.dataset.ordem);
+    });
+
+    document.getElementById('calAnt').addEventListener('click', async () => {
+      mesAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 1);
+      diaSelecionado = null;
+      await usuarioTrocouMes();
+    });
+    document.getElementById('calProx').addEventListener('click', async () => {
+      mesAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1);
+      diaSelecionado = null;
+      await usuarioTrocouMes();
+    });
+
+    document.getElementById('btnConfirmarPagar').addEventListener('click', confirmarPagamento);
+    document.getElementById('btnFecharPagar').addEventListener('click', () => document.getElementById('dialogPagar').close());
+
+    document.getElementById('btnNovaManual').addEventListener('click', () => abrirDialogManual(null));
+    document.getElementById('btnSalvarManual').addEventListener('click', salvarDespesaManual);
+    document.getElementById('btnFecharManual').addEventListener('click', () => document.getElementById('dialogManual').close());
+    document.getElementById('btnBuscarM').addEventListener('click', () => buscarManuais(true));
+    ['mBusca', 'mBusca2', 'mBusca3'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') buscarManuais(true); });
+    });
+    document.getElementById('manDataFiltro').addEventListener('change', () => buscarManuais(true));
+    document.getElementById('btnLimparM').addEventListener('click', () => {
+      document.getElementById('mBusca').value = '';
+      document.getElementById('mBusca2').value = '';
+      document.getElementById('mBusca3').value = '';
+      document.getElementById('manDataFiltro').value = '';
+      buscarManuais(true);
+    });
+    document.getElementById('btnCarregarMaisM').addEventListener('click', () => { paginaManual += 1; buscarManuais(false); });
+
+    document.getElementById('detalheBoleto').addEventListener('click', e => {
+      const abrirBol = e.target.closest('button[data-abrir-bol]');
+      if (abrirBol) { abrirBoleto(abrirBol.dataset.abrirBol); return; }
+      const pagarBol = e.target.closest('button[data-pagar-bol]');
+      if (pagarBol) {
+        buscarBoletos(true);
+        const linha = cache.find(x => String(x.id) === String(pagarBol.dataset.pagarBol));
+        if (linha) abrirBoleto(linha.id).then(() => {
+          if (boletoAtual) abrirDialogPagar(boletoAtual);
+        });
+        return;
+      }
+      const entrada = e.target.closest('button[data-entrada]');
+      if (entrada) { darEntradaLinha(entrada.dataset.entrada); return; }
+      const editar = e.target.closest('button[data-editar-linha]');
+      if (editar) {
+        const linha = boletoAtual.itens.find(l => String(l.lineId) === String(editar.dataset.editarLinha));
+        if (linha) abrirDialogLinha('editar', linha);
+        return;
+      }
+      const remover = e.target.closest('button[data-remover-linha]');
+      if (remover) {
+        if (confirm('Remover este item do boleto?')) removerLinha(remover.dataset.removerLinha);
+        return;
+      }
+    });
+
+    document.getElementById('agendaDia').addEventListener('click', e => {
+      const abrir = e.target.closest('button[data-abrir-bol]');
+      if (abrir) { abrirBoleto(abrir.dataset.abrirBol); return; }
+      const pagar = e.target.closest('button[data-pagar-bol]');
+      if (pagar) {
+        abrirBoleto(pagar.dataset.pagarBol).then(() => {
+          if (boletoAtual) abrirDialogPagar(boletoAtual);
+        });
+      }
+    });
+
+    document.getElementById('corpoTabela').addEventListener('click', e => {
+      const abrir = e.target.closest('button[data-abrir-bol]');
+      if (abrir) { abrirBoleto(abrir.dataset.abrirBol); return; }
+      const pagar = e.target.closest('button[data-pagar-bol]');
+      if (pagar) {
+        abrirBoleto(pagar.dataset.pagarBol).then(() => {
+          if (boletoAtual) abrirDialogPagar(boletoAtual);
+        });
+      }
+      const comp = e.target.closest('button[data-comprovante-bol]');
+      if (comp) {
+        const linha = cache.find(x => String(x.id) === String(comp.dataset.comprovanteBol));
+        if (linha && linha.comprovante) window.open('/uploads/' + encodeURIComponent(linha.comprovante), '_blank');
+      }
+    });
+
+    document.getElementById('corpoTabelaM').addEventListener('click', e => {
+      const editar = e.target.closest('button[data-editar-man]');
+      if (editar) {
+        const despesa = cacheManuais.find(d => String(d.id) === String(editar.dataset.editarMan));
+        if (despesa) abrirDialogManual(despesa);
+        return;
+      }
+      const excluir = e.target.closest('button[data-excluir-man]');
+      if (excluir) excluirDespesaManual(excluir.dataset.excluirMan);
+    });
+
+    let timerItem = null;
+    let ultimasSugestoes = [];
+    document.getElementById('linhaItem').addEventListener('input', () => {
+      clearTimeout(timerItem);
+      linhaSel.itemId = null;
+      const termo = document.getElementById('linhaItem').value.trim();
+      atualizarTipoItem(termo);
+      const caixa = document.getElementById('sugestoesItem');
+      if (termo.length < 2) {
+        caixa.classList.add('oculto');
+        return;
+      }
+      timerItem = setTimeout(async () => {
+        const itens = await buscarItensParaLinha(termo);
+        if (String(document.getElementById('linhaItem').value).trim() !== termo) return;
+        if (itens.length === 0) {
+          caixa.innerHTML = '<div style="cursor:default;color:var(--texto-suave)">Nenhum item encontrado — será novo.</div>';
+        } else {
+          ultimasSugestoes = itens;
+          caixa.innerHTML = itens.map(item =>
+            '<div class="sugestao-item" data-id="' + item.id + '">' +
+            '<strong>#' + escapeHtml(item.codigo) + '</strong> ' + escapeHtml(item.nome) +
+            '<span style="display:block;font-size:12px;color:var(--texto-suave)">' +
+            (item.marca ? escapeHtml(item.marca) + ' · ' : '') + formatarMoeda(item.preco) +
+            ' · estoque ' + item.estoque + '</span></div>').join('');
+        }
+        caixa.classList.remove('oculto');
+      }, 250);
+    });
+    document.getElementById('linhaItem').addEventListener('focus', () => {
+      const termo = document.getElementById('linhaItem').value.trim();
+      if (termo.length >= 2) document.getElementById('sugestoesItem').classList.remove('oculto');
+    });
+    document.addEventListener('click', e => {
+      const sugestao = e.target.closest('.sugestao-item');
+      if (sugestao) {
+        const item = ultimasSugestoes.find(s => String(s.id) === String(sugestao.dataset.id));
+        if (item) escolherItemLinha(item);
+        return;
+      }
+      if (!e.target.closest('#dialogLinha')) {
+        document.getElementById('sugestoesItem').classList.add('oculto');
+      }
+    });
+
+    window.escolherItemLinha = escolherItemLinha;
+
+    (async function iniciar() {
+      await carregarBases();
+      preencherSelects();
+      document.getElementById('boletoVencimento').value = hojeISO();
+      await usuarioTrocouMes();
+      buscarBoletos(true);
+      buscarManuais(true);
+
+      // Link direto para uma nota, ex.: /despesas.html?boleto=12. É o que faz
+      // o "Histórico de notas" do item levar à nota certa, já aberta, em vez
+      // de só abrir esta página no topo.
+      const alvo = Number(new URLSearchParams(location.search).get('boleto'));
+      if (Number.isInteger(alvo) && alvo > 0) {
+        ativarAba('boletos');
+        await abrirBoleto(alvo);
+      }
+
+      // Atalho "+ Boleto" da barra vermelha: abre direto o editor de boleto
+      // novo, na aba Boletos.
+      if (window.abertoPorAtalho && window.abertoPorAtalho('novo_boleto')) {
+        ativarAba('boletos');
+        abrirEditorBoleto(null);
+      }
+    })();
+  </script>
+</body>
+</html>

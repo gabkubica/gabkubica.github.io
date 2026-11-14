@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluxo de mercadorias - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>FLUXO DE MERCADORIAS</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main class="os-main fx-main">
+    <div style="margin-bottom:10px">
+      <a href="/" class="btn-voltar">← Painel</a>
+    </div>
+
+    <div class="os-secao">
+      <h2 class="fx-titulo">Como a peça chega no estoque</h2>
+      <p class="fx-lead">A regra é uma só: <strong>a peça só entra no estoque quando o balconista confere e dá a entrada.</strong>
+        Lançar o boleto não mexe no estoque.</p>
+
+      <ol class="fx-passos">
+        <li class="fx-passo">
+          <span class="fx-num">1</span>
+          <div>
+            <h3>Lançar o boleto</h3>
+            <p>Chegou a nota do fornecedor: lance o boleto em <a href="/despesas.html">Despesas</a> com as peças, quantidades e preços.</p>
+            <p class="fx-efeito">O estoque <strong>não muda</strong>. As peças vão para a lista da <a href="/entrada-estoque.html">Entrada de estoque</a>, e na tabela de <a href="/itens.html">Itens</a> aparece um <span class="a-caminho-exemplo">+2</span> ao lado do saldo.</p>
+          </div>
+        </li>
+        <li class="fx-passo">
+          <span class="fx-num">2</span>
+          <div>
+            <h3>Dar entrada</h3>
+            <p>Na <a href="/entrada-estoque.html">Entrada de estoque</a> as peças aparecem separadas por boleto. Dá para <strong>imprimir</strong> (tudo ou um boleto só), conferir no papel à caneta e depois lançar.</p>
+            <p>Para lançar, o balconista escolhe o nome dele, acha a peça (procura ou bipa a etiqueta) e aperta <strong>Dar entrada</strong>. Ali ele diz <strong>quantas chegaram</strong> e, se contou a prateleira, já <strong>atualiza o saldo geral</strong>.</p>
+            <p class="fx-efeito">Agora sim a peça entra no estoque. Se ele atualizou o saldo, a “última conferência” fica com a data de hoje e o nome dele.</p>
+          </div>
+        </li>
+        <li class="fx-passo">
+          <span class="fx-num">3</span>
+          <div>
+            <h3>Vender ou usar</h3>
+            <p>A peça sai do estoque quando entra numa OS, numa venda de balcão ou num serviço externo. Em <strong>modo orçamento</strong> ela não sai.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="fx-grade">
+      <div class="os-secao">
+        <h3>Chegou só uma parte?</h3>
+        <p>Em “Quantas chegaram”, coloque quantas vieram. O resto continua na lista, esperando.</p>
+      </div>
+      <div class="os-secao">
+        <h3>Peça nova?</h3>
+        <p>Se a peça ainda não tem cadastro, ela é cadastrada na hora da entrada e o sistema oferece imprimir a etiqueta.</p>
+      </div>
+      <div class="os-secao">
+        <h3>Atalho do gerente</h3>
+        <p>No modo gerenciador, o boleto tem <strong>Entrada direto</strong>: a peça entra no estoque sem passar pela lista.</p>
+      </div>
+      <div class="os-secao">
+        <h3>E o pagamento?</h3>
+        <p>Pagar o boleto é outra coisa (financeiro). Pode pagar antes ou depois da mercadoria chegar.</p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

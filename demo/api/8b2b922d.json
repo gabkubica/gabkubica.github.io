@@ -1,0 +1,1 @@
+{"boletos":[{"id":10,"codigo":"10","dataVencimento":"2026-10-21","valorTotal":461,"status":"pago","clienteNome":"Distribuidora Vidro Sul Ltda","parcela":null,"parcelas":null},{"id":9,"codigo":"9","dataVencimento":"2026-10-29","valorTotal":2088,"status":"pago","clienteNome":"Fanavid Vidros Automotivos","parcela":null,"parcelas":null}]}

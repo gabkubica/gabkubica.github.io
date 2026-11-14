@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ponte Londrisoft - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>PONTE LONDRISOFT</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Ponte Londrisoft (meia-pronta, em demonstração). Ver src/londrisoft.js. -->
+  <main class="os-main">
+    <div style="margin-bottom:10px">
+      <a href="/" class="btn-voltar">← Painel</a>
+    </div>
+    <div id="mensagens"></div>
+
+    <div class="os-secao">
+      <div class="ponte-topo">
+        <h2>Situação da ponte</h2>
+        <button type="button" class="azul" id="btnTestar">Testar conexão</button>
+      </div>
+      <div id="status" class="an-tiles"><p class="aviso-vazio">Carregando...</p></div>
+      <p class="aviso-vazio">O nosso sistema continua sendo onde a oficina trabalha. Na hora da nota, a OS (ou venda) é mandada para o
+        Londrisoft como <strong>pré-venda</strong>; lá ela vira venda e a nota sai com as regras de imposto que o contador já configurou.
+        O quadro <strong>“Nota fiscal · Londrisoft”</strong> aparece no fim de cada OS, venda e externo (no modo gerenciador).</p>
+    </div>
+
+    <div class="os-secao">
+      <h2>O que falta para ligar de verdade</h2>
+      <ol class="ponte-passos">
+        <li>Confirmar com a Londrisoft se o nosso plano tem a <strong>API Bime Plataform</strong> e pedir o <strong>token</strong> (e se existe ambiente de testes).</li>
+        <li>Perguntar se faturar a pré-venda e emitir a nota (NFC-e/NF-e) pela API está liberado — ou se esse passo continua no Gestor.</li>
+        <li>Preencher o <strong>código no Londrisoft</strong> de cada peça (abaixo). Sem ele a peça não vai.</li>
+        <li>Definir com o contador a nota da mão de obra (serviço) e qual sistema manda no estoque.</li>
+        <li>Testar no ambiente de testes antes de valer.</li>
+      </ol>
+    </div>
+
+    <div class="os-secao">
+      <div class="ponte-topo">
+        <h2>Código das peças no Londrisoft</h2>
+        <label class="filtro-estoque"><input type="checkbox" id="soFaltando" checked> Só as que faltam</label>
+      </div>
+      <div class="busca-linha">
+        <input type="text" id="busca" class="busca" placeholder="Procurar peça (nome, código, nº)" autocomplete="off">
+        <button type="button" id="btnBuscar">Procurar</button>
+      </div>
+      <p class="aviso-vazio">Digite o código que a peça tem no Londrisoft e aperte Enter (ou saia do campo) para salvar.</p>
+      <div id="tabelaItens"></div>
+    </div>
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    function escapeHtml(t) {
+      if (t === null || t === undefined) return '';
+      return String(t).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function msg(texto, tipo) {
+      mensagens.innerHTML = '<div class="' + tipo + '">' + escapeHtml(texto) + '</div>';
+      if (tipo !== 'erro') setTimeout(() => mensagens.replaceChildren(), 4000);
+    }
+    function tile(rotulo, valor, detalhe) {
+      return '<div class="card-resumo an-tile"><div class="rotulo">' + escapeHtml(rotulo) + '</div><div class="valor">' + valor +
+        '</div>' + (detalhe ? '<div class="an-detalhe">' + detalhe + '</div>' : '') + '</div>';
+    }
+
+    async function carregarStatus() {
+      try {
+        const r = await fetch('/api/londrisoft/status', { cache: 'no-store' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro.');
+        document.getElementById('status').innerHTML =
+          tile('Ponte', d.configurado ? 'Ligada' : 'Demonstração', d.configurado ? 'CNPJ ' + escapeHtml(d.cnpj) : 'sem token: mostra, mas não envia') +
+          tile('Peças com código', d.itens_com_codigo + ' de ' + d.itens_total, 'código no Londrisoft preenchido') +
+          tile('Consumidor final', d.consumidor_configurado ? 'Configurado' : 'Falta', 'para OS sem cliente cadastrado');
+      } catch (e) {
+        document.getElementById('status').innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    document.getElementById('btnTestar').addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/londrisoft/testar', { method: 'POST' });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Falhou.');
+        msg(d.mensagem, 'ok');
+      } catch (e) {
+        msg(e.message, 'erro');
+      }
+    });
+
+    async function buscar() {
+      const q = document.getElementById('busca').value.trim();
+      const falt = document.getElementById('soFaltando').checked ? '1' : '0';
+      const el = document.getElementById('tabelaItens');
+      try {
+        const lista = await fetch('/api/londrisoft/itens?faltando=' + falt + '&q=' + encodeURIComponent(q)).then(r => r.json());
+        if (!lista.length) { el.innerHTML = '<p class="aviso-vazio">Nenhuma peça.</p>'; return; }
+        el.innerHTML = '<div class="tabela-envolve"><table><thead><tr><th style="width:80px">Nº</th><th>Peça</th><th style="width:180px">Código no Londrisoft</th></tr></thead><tbody>' +
+          lista.map(i => '<tr><td class="er-num">' + String(i.numero_interno).padStart(6, '0') + '</td><td><strong>' + escapeHtml(i.nome) +
+            '</strong><div class="er-sub">' + escapeHtml(i.codigo) + '</div></td><td><input type="text" data-id="' + i.id + '" value="' +
+            escapeHtml(i.codigo_londrisoft || '') + '" maxlength="40" placeholder="—" aria-label="Código no Londrisoft"></td></tr>').join('') +
+          '</tbody></table></div>' + (lista.length === 50 ? '<p class="aviso-vazio">Mostrando as 50 primeiras. Procure para achar outras.</p>' : '');
+      } catch (e) {
+        el.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+    async function salvar(inp) {
+      if (inp.dataset.salvo === inp.value) return;
+      try {
+        const r = await fetch('/api/londrisoft/itens/' + inp.dataset.id, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: inp.value }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao salvar.');
+        inp.dataset.salvo = inp.value;
+        inp.classList.add('ponte-salvo');
+        setTimeout(() => inp.classList.remove('ponte-salvo'), 900);
+        carregarStatus();
+      } catch (e) {
+        msg(e.message, 'erro');
+      }
+    }
+    const tabela = document.getElementById('tabelaItens');
+    tabela.addEventListener('focusin', (e) => { if (e.target.dataset.id) e.target.dataset.salvo = e.target.value; });
+    tabela.addEventListener('change', (e) => { if (e.target.dataset.id) salvar(e.target); });
+    tabela.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset.id) { e.preventDefault(); salvar(e.target); } });
+    document.getElementById('btnBuscar').addEventListener('click', buscar);
+    document.getElementById('busca').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar(); });
+    document.getElementById('soFaltando').addEventListener('change', buscar);
+
+    carregarStatus();
+    buscar();
+  </script>
+</body>
+</html>

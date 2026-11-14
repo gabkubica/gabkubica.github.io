@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuários - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <style>
+    .tabela-usuarios td, .tabela-usuarios th { vertical-align: middle; }
+    .tabela-usuarios .acoes-usuario { display: flex; gap: 6px; flex-wrap: wrap; }
+    .selo-voce {
+      display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; background: var(--vermelho-claro); color: var(--vermelho);
+    }
+    [data-tema="escuro"] .selo-voce { background: #5b1d1d; color: #fca5a5; }
+    .suave { color: var(--texto-suave); font-size: 13px; }
+    #formNovoUsuario .form-grid { margin-bottom: 8px; }
+    .dica-usuario { font-size: 13px; color: var(--texto-suave); margin: 0 0 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CADASTRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas">
+      <a class="aba" href="/clientes.html">Clientes</a>
+      <a class="aba" href="/carros.html">Carros</a>
+      <a class="aba" href="/funcionarios.html">Funcionários</a>
+      <a class="aba ativa" href="/usuarios.html">Usuários</a>
+    </div>
+
+    <div id="mensagens"></div>
+
+    <div class="card">
+      <h2>Usuários gerenciadores</h2>
+      <p class="dica-usuario">
+        Cada gerente entra no Modo Gerenciador com o próprio usuário e senha. Quem sai da empresa
+        é <strong>desativado</strong> (não apagado): o histórico continua sabendo quem fez o quê.
+      </p>
+      <div class="tabela-envolve">
+        <table class="tabela-usuarios">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Usuário</th>
+              <th>Situação</th>
+              <th>Cadastrado</th>
+              <th>Último acesso</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="corpoUsuarios"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="formNovoUsuario">
+      <h2>Cadastrar novo gerente</h2>
+      <form id="formUsuario" autocomplete="off">
+        <div class="form-grid">
+          <div>
+            <label for="novoNome">Nome</label>
+            <input type="text" id="novoNome" maxlength="80" autocomplete="off" placeholder="Ex.: Maria Souza">
+          </div>
+          <div>
+            <label for="novoLogin">Usuário (para entrar; sem espaço)</label>
+            <input type="text" id="novoLogin" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ex.: maria">
+          </div>
+          <div>
+            <label for="novaSenha">Senha (mínimo 4 caracteres)</label>
+            <input type="password" id="novaSenha" maxlength="100" autocomplete="new-password">
+          </div>
+          <div>
+            <label for="novaSenha2">Repita a senha</label>
+            <input type="password" id="novaSenha2" maxlength="100" autocomplete="new-password">
+          </div>
+        </div>
+        <button type="submit" class="sucesso">Cadastrar gerente</button>
+      </form>
+    </div>
+  </main>
+
+  <dialog id="dialogUsuario" class="dialog-gerente">
+    <form id="formDialogUsuario" class="form-gerente" method="dialog">
+      <h3 id="dialogUsuarioTitulo"></h3>
+      <p class="explica-gerente" id="dialogUsuarioTexto"></p>
+      <div id="dialogUsuarioCampos"></div>
+      <p class="erro-gerente" id="dialogUsuarioErro" role="alert"></p>
+      <div class="dialog-acoes">
+        <button type="submit" class="sucesso" id="dialogUsuarioOk">Salvar</button>
+        <button type="button" class="secundario" id="dialogUsuarioCancelar">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    let usuariosCache = [];
+    let euId = null;
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function dataHora(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    async function carregar() {
+      let dados;
+      try {
+        dados = await lerJson(await fetch('/api/usuarios'));
+      } catch (e) {
+        // Fora do Modo Gerenciador o servidor recusa; a página já mostra o
+        // aviso de "área do gerente" no lugar do conteúdo.
+        return;
+      }
+      usuariosCache = dados.usuarios;
+      euId = dados.euId;
+      render();
+    }
+
+    function render() {
+      const corpo = document.getElementById('corpoUsuarios');
+      if (!usuariosCache.length) {
+        corpo.innerHTML = '<tr><td colspan="6"><div class="sem-resultados">Nenhum usuário.</div></td></tr>';
+        return;
+      }
+      corpo.innerHTML = usuariosCache.map(u => {
+        const souEu = u.id === euId;
+        const situacao = u.ativo
+          ? '<span class="status-ativo">Ativo</span>'
+          : '<span class="status-inativo">Desativado</span>';
+        let acoes = '<button type="button" class="btn-mini" data-acao="renomear" data-id="' + u.id + '">Renomear</button>';
+        if (souEu) {
+          acoes += '<button type="button" class="btn-mini secundario" data-acao="minha-senha">Trocar minha senha</button>';
+        } else {
+          acoes += '<button type="button" class="btn-mini secundario" data-acao="senha" data-id="' + u.id + '">Redefinir senha</button>';
+          acoes += u.ativo
+            ? '<button type="button" class="btn-mini perigo" data-acao="desativar" data-id="' + u.id + '">Desativar</button>'
+            : '<button type="button" class="btn-mini sucesso" data-acao="reativar" data-id="' + u.id + '">Reativar</button>';
+        }
+        return '<tr>' +
+          '<td><strong>' + escapeHtml(u.nome) + '</strong>' + (souEu ? '<span class="selo-voce">você</span>' : '') + '</td>' +
+          '<td>' + escapeHtml(u.login) + '</td>' +
+          '<td>' + situacao + '</td>' +
+          '<td>' + dataHora(u.criado_em) + (u.criado_por_nome ? '<div class="suave">por ' + escapeHtml(u.criado_por_nome) + '</div>' : '') + '</td>' +
+          '<td>' + dataHora(u.ultimo_acesso) + '</td>' +
+          '<td><div class="acoes-usuario">' + acoes + '</div></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // ---------- janela reaproveitada (renomear / redefinir senha) ----------
+    let aoConfirmarDialog = null;
+    function abrirDialog(titulo, texto, camposHtml, textoBotao, aoConfirmar) {
+      document.getElementById('dialogUsuarioTitulo').textContent = titulo;
+      document.getElementById('dialogUsuarioTexto').textContent = texto;
+      document.getElementById('dialogUsuarioCampos').innerHTML = camposHtml;
+      document.getElementById('dialogUsuarioErro').textContent = '';
+      document.getElementById('dialogUsuarioOk').textContent = textoBotao;
+      aoConfirmarDialog = aoConfirmar;
+      const d = document.getElementById('dialogUsuario');
+      d.showModal();
+      const primeiro = d.querySelector('#dialogUsuarioCampos input');
+      if (primeiro) primeiro.focus();
+    }
+    document.getElementById('dialogUsuarioCancelar').addEventListener('click', () => {
+      document.getElementById('dialogUsuario').close();
+    });
+    document.getElementById('formDialogUsuario').addEventListener('submit', async e => {
+      e.preventDefault();
+      const erroEl = document.getElementById('dialogUsuarioErro');
+      erroEl.textContent = '';
+      const botao = document.getElementById('dialogUsuarioOk');
+      botao.disabled = true;
+      try {
+        await aoConfirmarDialog();
+        document.getElementById('dialogUsuario').close();
+      } catch (err) {
+        erroEl.textContent = err.message;
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    function acharUsuario(id) {
+      return usuariosCache.find(u => String(u.id) === String(id));
+    }
+
+    async function postarUsuario(url, corpo) {
+      return lerJson(await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo || {}),
+      }));
+    }
+
+    document.getElementById('corpoUsuarios').addEventListener('click', async e => {
+      const b = e.target.closest('button[data-acao]');
+      if (!b) return;
+      const acao = b.dataset.acao;
+      const u = acharUsuario(b.dataset.id);
+
+      if (acao === 'minha-senha') {
+        // Mesma janela do botão "Trocar senha" da faixa amarela.
+        const faixa = document.querySelector('.barra-gerente [data-faixa="senha"]');
+        if (faixa) faixa.click();
+        return;
+      }
+      if (!u) return;
+
+      if (acao === 'renomear') {
+        abrirDialog('Renomear usuário',
+          'O nome aparece na faixa do Modo Gerenciador. O usuário de entrar (' + u.login + ') não muda.',
+          '<label>Nome<input type="text" id="dlgNome" maxlength="80" value="' + escapeHtml(u.nome) + '"></label>',
+          'Salvar',
+          async () => {
+            const nome = document.getElementById('dlgNome').value;
+            const r = await lerJson(await fetch('/api/usuarios/' + u.id, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nome }),
+            }));
+            Object.assign(u, r);
+            render();
+            mostrarMensagem('Nome atualizado.', 'ok');
+            if (u.id === euId && window.Gerente) Gerente.atualizar();
+          });
+      } else if (acao === 'senha') {
+        abrirDialog('Redefinir senha de ' + u.nome,
+          'Use quando a pessoa esqueceu a senha. Ela sai do Modo Gerenciador em todos os computadores e entra de novo com a senha nova.',
+          '<label>Nova senha (mínimo 4 caracteres)<input type="password" id="dlgSenha" maxlength="100" autocomplete="new-password"></label>' +
+          '<label>Repita a nova senha<input type="password" id="dlgSenha2" maxlength="100" autocomplete="new-password"></label>',
+          'Redefinir senha',
+          async () => {
+            const s1 = document.getElementById('dlgSenha').value;
+            const s2 = document.getElementById('dlgSenha2').value;
+            if (s1 !== s2) throw new Error('As duas senhas não são iguais.');
+            await postarUsuario('/api/usuarios/' + u.id + '/redefinir-senha', { senha: s1 });
+            mostrarMensagem('Senha de ' + u.nome + ' redefinida.', 'ok');
+          });
+      } else if (acao === 'desativar') {
+        if (!confirm('Desativar ' + u.nome + '? Ele não vai mais conseguir entrar no Modo Gerenciador (sai na hora, em todos os computadores).')) return;
+        try {
+          Object.assign(u, await postarUsuario('/api/usuarios/' + u.id + '/desativar'));
+          render();
+          mostrarMensagem(u.nome + ' foi desativado.', 'ok');
+        } catch (err) {
+          mostrarMensagem(err.message, 'erro');
+        }
+      } else if (acao === 'reativar') {
+        try {
+          Object.assign(u, await postarUsuario('/api/usuarios/' + u.id + '/reativar'));
+          render();
+          mostrarMensagem(u.nome + ' foi reativado.', 'ok');
+        } catch (err) {
+          mostrarMensagem(err.message, 'erro');
+        }
+      }
+    });
+
+    document.getElementById('formUsuario').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nome = document.getElementById('novoNome').value;
+      const login = document.getElementById('novoLogin').value;
+      const senha = document.getElementById('novaSenha').value;
+      const senha2 = document.getElementById('novaSenha2').value;
+      if (senha !== senha2) {
+        mostrarMensagem('As duas senhas não são iguais.', 'erro');
+        return;
+      }
+      try {
+        const novo = await postarUsuario('/api/usuarios', { nome, login, senha });
+        usuariosCache.push(novo);
+        render();
+        e.target.reset();
+        mostrarMensagem('Gerente ' + novo.nome + ' cadastrado. Ele entra com o usuário "' + novo.login + '".', 'ok');
+      } catch (err) {
+        mostrarMensagem(err.message, 'erro');
+      }
+    });
+
+    carregar();
+  </script>
+</body>
+</html>

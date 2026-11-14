@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análises - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ANÁLISES</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div style="margin-bottom:10px">
+      <a href="/" class="btn-voltar">← Painel</a>
+    </div>
+    <div id="mensagens"></div>
+
+    <!-- ===== Estoque (hoje) ===== -->
+    <div class="card">
+      <h2>Patrimônio em estoque <span class="an-sub">hoje</span></h2>
+      <div id="estoqueResumo" class="an-tiles"><p class="aviso-vazio">Carregando...</p></div>
+      <div id="estoqueNotas"></div>
+      <div class="an-grade">
+        <section>
+          <h3 class="an-titulo">Onde está o dinheiro <span class="an-sub">itens com mais valor em estoque</span></h3>
+          <div id="estoqueMaiores"></div>
+        </section>
+        <section>
+          <h3 class="an-titulo">Dinheiro parado <span class="an-sub" id="paradoSub"></span></h3>
+          <div id="estoqueParados"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== Vendas (período) ===== -->
+    <div class="card">
+      <h2>Vendas</h2>
+      <div class="an-filtros">
+        <div class="abas" id="abasPeriodo" role="group" aria-label="Período">
+          <button type="button" class="aba" data-p="7">7 dias</button>
+          <button type="button" class="aba ativa" data-p="30">30 dias</button>
+          <button type="button" class="aba" data-p="90">90 dias</button>
+          <button type="button" class="aba" data-p="mes">Este mês</button>
+          <button type="button" class="aba" data-p="ano">Este ano</button>
+        </div>
+        <div class="an-datas">
+          <label>De <input type="date" id="dataInicio"></label>
+          <label>até <input type="date" id="dataFim"></label>
+          <button type="button" id="btnAplicarDatas" class="secundario">Ver</button>
+        </div>
+      </div>
+      <div id="vendasResumo" class="an-tiles"></div>
+      <div id="vendasNotas"></div>
+
+      <div class="an-grade">
+        <section>
+          <h3 class="an-titulo">De onde veio o faturamento</h3>
+          <div id="vendasTipo"></div>
+        </section>
+        <section>
+          <h3 class="an-titulo">Peças × mão de obra</h3>
+          <div id="vendasComposicao"></div>
+        </section>
+        <section>
+          <h3 class="an-titulo">Formas de pagamento</h3>
+          <div id="vendasFormas"></div>
+        </section>
+      </div>
+
+      <section style="margin-top:22px">
+        <div class="an-titulo-linha">
+          <h3 class="an-titulo">Peças que mais venderam</h3>
+          <div class="abas an-ordem" id="abasOrdem" role="group" aria-label="Ordenar por">
+            <button type="button" class="aba ativa" data-o="receita">Por valor</button>
+            <button type="button" class="aba" data-o="quantidade">Por quantidade</button>
+            <button type="button" class="aba" data-o="lucro">Por lucro</button>
+          </div>
+        </div>
+        <div id="vendasAbc"></div>
+        <div id="vendasItens"></div>
+      </section>
+
+      <div class="an-grade" style="margin-top:22px">
+        <section>
+          <h3 class="an-titulo">Serviços mais feitos</h3>
+          <div id="vendasServicos"></div>
+        </section>
+        <section>
+          <h3 class="an-titulo">Melhores clientes</h3>
+          <div id="vendasClientes"></div>
+        </section>
+      </div>
+
+      <section style="margin-top:22px">
+        <h3 class="an-titulo">Dias mais fortes <span class="an-sub">faturamento médio por dia da semana</span></h3>
+        <div id="vendasSemana"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+    let vendas = null;
+    let ordemItens = 'receita';
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+    function moeda(v) {
+      return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    function moedaCurta(v) {
+      const n = Number(v || 0);
+      if (Math.abs(n) >= 100000) return 'R$ ' + (n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' mil';
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    }
+    function pct(v) { return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%'; }
+    function dataBR(iso) {
+      if (!iso) return '';
+      const [a, m, d] = String(iso).slice(0, 10).split('-');
+      return d + '/' + m + '/' + a;
+    }
+    function isoLocal(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function mostrarErro(texto) {
+      mensagens.innerHTML = '<div class="erro">' + escapeHtml(texto) + '</div>';
+    }
+
+    // Quadro de número grande.
+    function tile(rotulo, valor, detalhe, classe) {
+      return `<div class="card-resumo an-tile ${classe || ''}">
+        <div class="rotulo">${escapeHtml(rotulo)}</div>
+        <div class="valor">${valor}</div>
+        ${detalhe ? `<div class="an-detalhe">${detalhe}</div>` : ''}
+      </div>`;
+    }
+
+    // Lista de barras horizontais (uma cor só: o tamanho é que conta).
+    // linhas: [{ rotulo, sub, valor, texto, extra }]
+    function barras(linhas, vazio) {
+      if (!linhas.length) return `<p class="aviso-vazio">${escapeHtml(vazio || 'Nada no período.')}</p>`;
+      const max = Math.max(...linhas.map(l => Math.max(0, l.valor))) || 1;
+      return `<div class="an-barras">${linhas.map(l => {
+        const w = Math.max(0, l.valor) / max * 100;
+        return `<div class="an-linha" title="${escapeHtml(l.rotulo + ': ' + l.texto + (l.extra ? ' · ' + l.extra : ''))}">
+          <div class="an-rotulo">${escapeHtml(l.rotulo)}${l.sub ? `<span class="an-sub">${escapeHtml(l.sub)}</span>` : ''}</div>
+          <div class="an-trilho"><span class="an-barra" style="width:${w.toFixed(1)}%"></span></div>
+          <div class="an-valor">${escapeHtml(l.texto)}${l.extra ? `<span class="an-extra">${escapeHtml(l.extra)}</span>` : ''}</div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    // Rosca (pizza com furo): partes de um todo. Cada nome tem SEMPRE a mesma
+    // cor (Pix é sempre azul, mesmo que mude de posição). A legenda ao lado
+    // traz o valor e a porcentagem, então a cor nunca é a única pista.
+    const COR_FIXA = {
+      'Ordens de serviço': 1, 'Vendas no balcão': 2, 'Serviços externos': 3,
+      'Peças': 1, 'Mão de obra': 2,
+      'Pix': 1, 'Crédito': 2, 'Débito': 3, 'Dinheiro': 4, 'Transferência': 5, 'Boleto': 6,
+    };
+    function rosca(partes, centroTitulo) {
+      const total = partes.reduce((s, p) => s + Math.max(0, p.valor), 0);
+      if (!total) return '<p class="aviso-vazio">Nada no período.</p>';
+      const R = 42, C = 2 * Math.PI * R;
+      const GAP = partes.filter(p => p.valor > 0).length > 1 ? 1.6 : 0;
+      let acumulado = 0;
+      const arcos = partes.filter(p => p.valor > 0).map(p => {
+        const tam = (p.valor / total) * C;
+        const desenho = Math.max(0.01, tam - GAP);
+        const slot = COR_FIXA[p.nome];
+        const cor = slot ? 'var(--serie-' + slot + ')' : 'var(--serie-outro)';
+        const arco = '<circle class="an-fatia" r="' + R + '" cx="50" cy="50" fill="none" stroke="' + cor + '" stroke-width="14"' +
+          ' stroke-dasharray="' + desenho.toFixed(2) + ' ' + (C - desenho).toFixed(2) + '"' +
+          ' stroke-dashoffset="' + (-acumulado).toFixed(2) + '" data-nome="' + escapeHtml(p.nome) + '">' +
+          '<title>' + escapeHtml(p.nome + ': ' + moeda(p.valor) + ' (' + pct(p.valor / total * 100) + ')') + '</title></circle>';
+        acumulado += tam;
+        return arco;
+      }).join('');
+      const legenda = partes.map(p => {
+        const slot = COR_FIXA[p.nome];
+        const cor = slot ? 'var(--serie-' + slot + ')' : 'var(--serie-outro)';
+        return '<li data-nome="' + escapeHtml(p.nome) + '"><span class="an-marca" style="background:' + cor + '"></span>' +
+          '<span class="an-leg-nome">' + escapeHtml(p.nome) + (p.sub ? '<span class="an-extra">' + escapeHtml(p.sub) + '</span>' : '') + '</span>' +
+          '<span class="an-leg-valor">' + moeda(p.valor) + '<span class="an-extra">' + pct(p.valor / total * 100) + '</span></span></li>';
+      }).join('');
+      return '<div class="an-rosca">' +
+        '<svg viewBox="0 0 100 100" role="img" aria-label="' + escapeHtml(centroTitulo) + '">' +
+        '<g transform="rotate(-90 50 50)">' + arcos + '</g>' +
+        '<text x="50" y="47" text-anchor="middle" class="an-centro-rot">' + escapeHtml(centroTitulo) + '</text>' +
+        '<text x="50" y="59" text-anchor="middle" class="an-centro-val">' + escapeHtml(moedaCurta(total)) + '</text>' +
+        '</svg><ul class="an-legenda">' + legenda + '</ul></div>';
+    }
+    // Passar o mouse numa fatia destaca a linha da legenda (e vice-versa).
+    document.addEventListener('mouseover', (ev) => {
+      const alvo = ev.target.closest('.an-fatia, .an-legenda li');
+      document.querySelectorAll('.an-rosca .ativo').forEach(x => x.classList.remove('ativo'));
+      if (!alvo) return;
+      const caixa = alvo.closest('.an-rosca');
+      const nome = alvo.dataset.nome;
+      caixa.querySelectorAll('[data-nome]').forEach(x => { if (x.dataset.nome === nome) x.classList.add('ativo'); });
+      caixa.classList.add('com-foco');
+    });
+    document.addEventListener('mouseout', (ev) => {
+      const caixa = ev.target.closest && ev.target.closest('.an-rosca');
+      if (caixa && !caixa.contains(ev.relatedTarget)) {
+        caixa.classList.remove('com-foco');
+        caixa.querySelectorAll('.ativo').forEach(x => x.classList.remove('ativo'));
+      }
+    });
+
+    // ---------- estoque ----------
+    async function carregarEstoque() {
+      try {
+        const r = await fetch('/api/analises/estoque', { cache: 'no-store' });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao carregar o estoque.');
+        document.getElementById('estoqueResumo').innerHTML =
+          tile('Pelo custo', moedaCurta(d.valor_custo), 'o que foi pago pelas ' + d.unidades.toLocaleString('pt-BR') + ' peças') +
+          tile('Pelo preço de levar', moedaCurta(d.valor_venda), 'se vender tudo sem instalação') +
+          tile('Com instalação', moedaCurta(d.valor_instalado), 'se vender tudo instalado') +
+          tile('Lucro guardado', moedaCurta(d.lucro_potencial),
+            d.margem_potencial === null ? 'sem custo cadastrado' : 'preço de levar − custo · margem ' + pct(d.margem_potencial));
+        const notas = [];
+        if (d.sem_custo) notas.push(`<strong>${d.sem_custo} ${d.sem_custo === 1 ? 'item' : 'itens'}</strong> sem custo cadastrado (${d.unidades_sem_custo} peças) ficaram fora do valor pelo custo e do lucro.`);
+        if (d.negativos) notas.push(`<strong>${d.negativos} ${d.negativos === 1 ? 'item' : 'itens'}</strong> com estoque negativo não entram na conta. <a href="/itens.html?estoque_negativo=1">Ver</a>`);
+        document.getElementById('estoqueNotas').innerHTML = notas.length ? `<div class="aviso">${notas.join('<br>')}</div>` : '';
+
+        document.getElementById('estoqueMaiores').innerHTML = barras(d.maiores.map(m => ({
+          rotulo: m.nome,
+          sub: m.codigo + (m.localizacao ? ' · Local ' + m.localizacao : ''),
+          valor: m.valor,
+          texto: moeda(m.valor) + (m.pelo_preco ? '*' : ''),
+          extra: m.estoque + ' un.',
+        })), 'Nenhum item com estoque.');
+
+        document.getElementById('paradoSub').textContent = 'sem sair numa OS ou venda há ' + d.dias_parado + ' dias';
+        const p = d.parados;
+        document.getElementById('estoqueParados').innerHTML = p.quantidade === 0
+          ? '<p class="aviso-vazio">Nenhum item parado. Tudo o que tem estoque vendeu nos últimos ' + d.dias_parado + ' dias.</p>'
+          : `<p class="an-frase"><strong>${p.quantidade} ${p.quantidade === 1 ? 'item' : 'itens'}</strong> somando <strong>${moeda(p.valor)}</strong>${p.quantidade > p.itens.length ? ' (os ' + p.itens.length + ' maiores abaixo)' : ''}.</p>` +
+            barras(p.itens.map(x => ({
+              rotulo: x.nome,
+              sub: (x.localizacao ? 'Local ' + x.localizacao + ' · ' : '') + (x.ultima_saida ? 'última saída ' + dataBR(x.ultima_saida) : 'nunca saiu'),
+              valor: x.valor,
+              texto: moeda(x.valor) + (x.pelo_preco ? '*' : ''),
+              extra: x.estoque + ' un.',
+            })));
+        if (d.maiores.some(m => m.pelo_preco) || p.itens.some(x => x.pelo_preco)) {
+          document.getElementById('estoqueParados').insertAdjacentHTML('beforeend',
+            '<p class="aviso-vazio">* item sem custo: valor calculado pelo preço de venda.</p>');
+        }
+      } catch (e) {
+        mostrarErro(e.message);
+      }
+    }
+
+    // ---------- vendas ----------
+    const campoInicio = document.getElementById('dataInicio');
+    const campoFim = document.getElementById('dataFim');
+
+    function definirPeriodo(p) {
+      const hoje = new Date();
+      let ini = new Date(hoje);
+      if (p === 'mes') ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      else if (p === 'ano') ini = new Date(hoje.getFullYear(), 0, 1);
+      else ini.setDate(hoje.getDate() - (Number(p) - 1));
+      campoInicio.value = isoLocal(ini);
+      campoFim.value = isoLocal(hoje);
+    }
+
+    async function carregarVendas() {
+      const ini = campoInicio.value, fim = campoFim.value;
+      if (!ini || !fim) return mostrarErro('Escolha as duas datas.');
+      try {
+        const r = await fetch('/api/analises/vendas?inicio=' + ini + '&fim=' + fim, { cache: 'no-store' });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao carregar as vendas.');
+        mensagens.replaceChildren();
+        vendas = d;
+        desenharVendas();
+      } catch (e) {
+        mostrarErro(e.message);
+      }
+    }
+
+    function desenharVendas() {
+      const d = vendas;
+      document.getElementById('vendasResumo').innerHTML =
+        tile('Faturamento', moedaCurta(d.faturamento), dataBR(d.inicio) + ' a ' + dataBR(d.fim)) +
+        tile('Atendimentos', d.documentos.toLocaleString('pt-BR'), 'OS, vendas e externos concluídos') +
+        tile('Ticket médio', moedaCurta(d.ticket_medio), 'por atendimento') +
+        tile('Lucro nas peças', moedaCurta(d.lucro_pecas),
+          d.margem_pecas === null ? 'sem custo cadastrado' : 'estimado · margem ' + pct(d.margem_pecas));
+      document.getElementById('vendasNotas').innerHTML =
+        `<p class="aviso-vazio">O lucro das peças é uma estimativa: usa o custo médio de hoje de cada peça${d.pecas_sem_custo ? ' (' + d.pecas_sem_custo + ' peças vendidas sem custo cadastrado ficaram de fora)' : ''}. Mão de obra não entra no lucro.</p>`;
+
+      document.getElementById('vendasTipo').innerHTML = rosca(
+        d.por_tipo.filter(t => t.quantidade > 0).map(t => ({
+          nome: t.tipo, valor: t.valor,
+          sub: t.quantidade + (t.quantidade === 1 ? ' atendimento' : ' atendimentos'),
+        })), 'Faturamento');
+      document.getElementById('vendasComposicao').innerHTML = rosca([
+        { nome: 'Peças', valor: d.receita_pecas },
+        { nome: 'Mão de obra', valor: d.receita_servicos },
+      ], 'Peças + serviço');
+      document.getElementById('vendasFormas').innerHTML = rosca(d.formas.map(f => ({
+        nome: f.forma, valor: f.valor,
+        sub: f.quantidade + (f.quantidade === 1 ? ' pagamento' : ' pagamentos'),
+      })), 'Recebido');
+
+      desenharItens();
+
+      document.getElementById('vendasServicos').innerHTML = barras(d.servicos.map(s => ({
+        rotulo: s.nome, valor: s.receita, texto: moeda(s.receita),
+        extra: s.quantidade + (s.quantidade === 1 ? ' vez' : ' vezes'),
+      })));
+      document.getElementById('vendasClientes').innerHTML = barras(d.clientes.map(c => ({
+        rotulo: c.nome, sub: c.cliente_id ? '' : 'sem cadastro', valor: c.valor, texto: moeda(c.valor),
+        extra: c.documentos + (c.documentos === 1 ? ' atendimento' : ' atendimentos'),
+      })));
+      document.getElementById('vendasSemana').innerHTML = d.documentos ? barras(d.dias_semana.map(s => ({
+        rotulo: s.dia, valor: s.media, texto: moeda(s.media),
+        extra: s.documentos + (s.documentos === 1 ? ' atendimento' : ' atendimentos') + ' no período',
+      }))) : '<p class="aviso-vazio">Nada no período.</p>';
+    }
+
+    function desenharItens() {
+      const d = vendas;
+      const lista = [...d.itens].sort((a, b) => {
+        if (ordemItens === 'lucro') return (b.lucro ?? -Infinity) - (a.lucro ?? -Infinity);
+        return b[ordemItens] - a[ordemItens];
+      }).slice(0, 15);
+      document.getElementById('vendasAbc').innerHTML = d.itens_vendidos
+        ? `<p class="an-frase"><strong>${d.unidades_vendidas} peças</strong> de <strong>${d.itens_vendidos} itens diferentes</strong> vendidas.
+           ${d.curva_a ? ` Só <strong>${d.curva_a} ${d.curva_a === 1 ? 'item faz' : 'itens fazem'}</strong> 80% do valor vendido em peças — são os que não podem faltar.` : ''}</p>`
+        : '';
+      document.getElementById('vendasItens').innerHTML = barras(lista.map(i => {
+        const val = ordemItens === 'quantidade' ? i.quantidade : ordemItens === 'lucro' ? (i.lucro ?? 0) : i.receita;
+        const texto = ordemItens === 'quantidade' ? i.quantidade + ' un.' : ordemItens === 'lucro' ? (i.lucro === null ? 'sem custo' : moeda(i.lucro)) : moeda(i.receita);
+        const extra = ordemItens === 'quantidade' ? moeda(i.receita)
+          : ordemItens === 'lucro' ? (i.lucro !== null && i.receita > 0 ? 'margem ' + pct(i.lucro / (i.receita - i.lucro) * 100) : '')
+          : i.quantidade + ' un.';
+        return { rotulo: i.nome, sub: i.codigo, valor: val, texto, extra };
+      }), 'Nenhuma peça vendida no período.');
+    }
+
+    document.getElementById('abasPeriodo').addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-p]');
+      if (!b) return;
+      document.querySelectorAll('#abasPeriodo .aba').forEach(x => x.classList.toggle('ativa', x === b));
+      definirPeriodo(b.dataset.p);
+      carregarVendas();
+    });
+    document.getElementById('btnAplicarDatas').addEventListener('click', () => {
+      document.querySelectorAll('#abasPeriodo .aba').forEach(x => x.classList.remove('ativa'));
+      carregarVendas();
+    });
+    document.getElementById('abasOrdem').addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-o]');
+      if (!b || !vendas) return;
+      document.querySelectorAll('#abasOrdem .aba').forEach(x => x.classList.toggle('ativa', x === b));
+      ordemItens = b.dataset.o;
+      desenharItens();
+    });
+
+    // Fora do Modo Gerenciador o gerente.js cobre a página com o aviso (e
+    // recarrega sozinho quando o gerente entra).
+    definirPeriodo('30');
+    carregarEstoque();
+    carregarVendas();
+  </script>
+</body>
+</html>

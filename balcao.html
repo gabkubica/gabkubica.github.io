@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendas no balcão - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>ORDEM DE SERVIÇO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div style="margin-bottom:10px">
+      <a href="/" class="btn-voltar">← Painel</a>
+    </div>
+
+
+    <div class="card">
+      <div class="barra-titulo">
+        <h1>Vendas no balcão</h1>
+        <button id="btnNovaVenda" class="sucesso" type="button">Nova venda</button>
+      </div>
+      <p style="margin-top:8px;color:var(--texto-suave);font-size:14px">
+        Venda de peças para levar, sem ordem de serviço. O cliente é opcional (pode ser só o nome).
+        O recibo sai no balcão e o pagamento é confirmado no caixa.
+      </p>
+
+      <div class="busca-acoes" style="margin-top:14px">
+        <input type="text" id="busca" class="busca" placeholder="Buscar por número ou cliente" autocomplete="off" style="min-width:280px">
+        <select id="filtroStatus">
+          <option value="">Todos os status</option>
+          <option value="aguardando_pagamento">Aguardando pagamento</option>
+          <option value="concluida">Pagas</option>
+          <option value="cancelada">Canceladas</option>
+        </select>
+        <button id="btnBuscar" type="button">Buscar</button>
+        <button id="btnLimpar" class="secundario" type="button">Limpar</button>
+      </div>
+
+      <div class="tabela-envolve" style="margin-top:14px">
+        <table class="tabela-linhas">
+          <thead>
+            <tr>
+              <th style="width:90px">Nº</th>
+              <th>Cliente</th>
+              <th style="width:180px">Status</th>
+              <th style="width:150px">Aberta em</th>
+              <th style="width:130px">Pagamento</th>
+              <th style="width:130px">Total</th>
+              <th style="width:90px"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoVendas"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+
+    const ROTULO_STATUS = {
+      aguardando_pagamento: 'Aguardando pagamento',
+      concluida: 'Paga',
+      cancelada: 'Cancelada',
+    };
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function formatarMoeda(v) {
+      if (v === null || v === undefined || v === '') return 'R$ 0,00';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarData(v) {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function statusBadge(status) {
+      return '<span class="status-venda ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>';
+    }
+
+    async function carregarVendas() {
+      const q = document.getElementById('busca').value.trim();
+      const status = document.getElementById('filtroStatus').value;
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (status) params.set('status', status);
+
+      const tbody = document.getElementById('corpoVendas');
+      try {
+        const resp = await fetch('/api/vendas-balcao?' + params.toString());
+        const dados = await resp.json();
+        if (!resp.ok) throw new Error(dados.erro || 'Erro ao carregar.');
+        if (dados.vendas.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7"><div class="aviso-vazio">Nenhuma venda encontrada.</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = dados.vendas.map(v => `
+          <tr>
+            <td>${escapeHtml(v.codigo)}</td>
+            <td class="rolavel" title="${escapeHtml(v.cliente_nome || '')}">${v.cliente_id ? '<a href="/clientes.html?id=' + v.cliente_id + '">' + escapeHtml(v.cliente_nome) + '</a>' : (escapeHtml(v.cliente_nome) || '(sem cliente)')}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td>${formatarData(v.data_abertura)}</td>
+            <td>${escapeHtml(v.forma_pagamento) || '—'}</td>
+            <td class="subtotal">${formatarMoeda(v.valor_total)}</td>
+            <td><button type="button" class="btn-mini" data-acao="abrir-venda" data-id="${v.id}">Abrir</button></td>
+          </tr>`).join('') +
+          // O servidor manda no máximo as 200 mais recentes: avisa em vez de
+          // deixar parecer que não existem vendas mais antigas.
+          (dados.vendas.length >= 200
+            ? '<tr><td colspan="7"><div class="aviso-vazio">Mostrando as 200 vendas mais recentes. Para achar uma mais antiga, busque pelo número ou pelo nome do cliente.</div></td></tr>'
+            : '');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="erro">' + escapeHtml(e.message) + '</div></td></tr>';
+      }
+    }
+
+    function novaVenda() {
+      location.href = '/venda.html';
+    }
+
+    document.addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acao="abrir-venda"]');
+      if (botao) location.href = '/venda.html?id=' + encodeURIComponent(botao.dataset.id);
+    });
+
+    document.getElementById('btnNovaVenda').addEventListener('click', novaVenda);
+    document.getElementById('btnBuscar').addEventListener('click', carregarVendas);
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      document.getElementById('filtroStatus').value = '';
+      carregarVendas();
+    });
+    document.getElementById('busca').addEventListener('keydown', e => { if (e.key === 'Enter') carregarVendas(); });
+    document.getElementById('filtroStatus').addEventListener('change', carregarVendas);
+
+    carregarVendas();
+  </script>
+</body>
+</html>

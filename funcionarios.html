@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funcionários - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CADASTRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="abas">
+      <a class="aba" href="/clientes.html">Clientes</a>
+      <a class="aba" href="/carros.html">Carros</a>
+      <a class="aba ativa" href="/funcionarios.html">Funcionários</a>
+      <a class="aba" href="/usuarios.html">Usuários</a>
+    </div>
+
+    <div class="card">
+      <h2>Funcionários</h2>
+      <div class="busca-linha">
+        <input type="text" id="busca" class="busca" placeholder="Buscar por nome ou cargo...">
+        <button id="btnBuscar">Buscar</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnNovo" class="sucesso">Novo funcionário</button>
+      </div>
+      <div id="mensagens"></div>
+      <table id="tabelaFuncionarios">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Cargo</th>
+            <th>Status</th>
+            <th style="width:190px">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+    </div>
+
+    <div class="card oculto" id="cardFormulario">
+      <h2 id="tituloFormulario">Novo funcionário</h2>
+      <div class="form-grid">
+        <div>
+          <label for="nome">Nome *</label>
+          <input type="text" id="nome" autocomplete="off">
+        </div>
+        <div>
+          <label for="cargo">Cargo</label>
+          <select id="cargo">
+            <option value="">Selecione o cargo...</option>
+          </select>
+          <button id="btnGerenciarCargos" class="secundario" type="button" style="margin-top:8px">Gerenciar cargos</button>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;margin-bottom:14px">
+        <input type="checkbox" id="ativo" checked style="width:18px;height:18px"> Funcionário ativo
+      </label>
+      <button id="btnSalvar" class="sucesso" style="margin-right:8px">Salvar</button>
+      <button id="btnCancelar" class="secundario">Cancelar</button>
+      <button id="btnExcluirFuncionario" class="perigo oculto" style="margin-left:8px">Excluir funcionário</button>
+    </div>
+  </main>
+
+  <dialog id="dialogCargos" class="dialog-tipos">
+    <h3>Cargos dos funcionários</h3>
+    <p style="color:var(--texto-suave);font-size:13px;margin:-6px 0 14px">Cargos iniciais: Atendente, Balconista, Mecânico e Eletricista. Adicione novos sempre que precisar.</p>
+    <div id="listaCargos" class="lista-tipos"></div>
+    <div class="tipo-novo">
+      <input type="text" id="novoCargoNome" placeholder="Nome do novo cargo" autocomplete="off">
+      <button id="btnAdicionarCargo" class="sucesso" type="button">Adicionar</button>
+    </div>
+    <div class="dialog-acoes">
+      <button id="btnFecharCargos" class="secundario" type="button">Fechar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const tbody = document.getElementById('corpoTabela');
+    const mensagens = document.getElementById('mensagens');
+    const cardFormulario = document.getElementById('cardFormulario');
+    const tituloFormulario = document.getElementById('tituloFormulario');
+
+    let editandoId = null;
+    let ultimosFuncionarios = [];
+    let cargosCache = [];
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    async function carregarFuncionarios(q) {
+      let url = '/api/funcionarios';
+      if (q) {
+        url += '?q=' + encodeURIComponent(q);
+      }
+      const resp = await fetch(url);
+      const dados = await resp.json();
+      ultimosFuncionarios = dados;
+      renderizar(dados);
+    }
+
+    function botoesAcao(f) {
+      const texto = f.ativo ? 'Desativar' : 'Reativar';
+      const classe = f.ativo ? 'secundario' : 'sucesso';
+      return '<button onclick="editar(' + f.id + ')">Editar</button> ' +
+        '<button class="' + classe + '" onclick="alternarAtivo(' + f.id + ')">' + texto + '</button>';
+    }
+
+    // Fica escondido na listagem — só aparece dentro do formulário de edição
+    // (botão "Excluir funcionário"), porque é usado raramente (só em erro de
+    // cadastro); o dia a dia é desativar, não excluir.
+    async function excluirFuncionario(id) {
+      const func = ultimosFuncionarios.find(f => f.id === id);
+      if (!func) return;
+      if (!confirm(
+        'Excluir "' + func.nome + '"? Só é possível excluir um funcionário que nunca apareceu em ' +
+        'nenhuma ordem de serviço, venda ou pagamento. Se ele já tem histórico, o sistema vai recusar ' +
+        'e você deve usar "Desativar" em vez de excluir — assim o histórico das OS antigas dele fica intacto.'
+      )) return;
+      let resp;
+      try {
+        resp = await fetch('/api/funcionarios/' + id, { method: 'DELETE' });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao excluir.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir.', 'erro');
+        return;
+      }
+      mostrarMensagem('Funcionário excluído.', 'ok');
+      fecharFormulario();
+      carregarFuncionarios(document.getElementById('busca').value.trim() || null);
+    }
+
+    function renderizar(funcionarios) {
+      if (funcionarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4"><div class="sem-resultados">Nenhum funcionário encontrado.</div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = funcionarios.map(f => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(f.nome)}</strong>
+          </td>
+          <td>${escapeHtml(f.cargo || '')}</td>
+          <td>${f.ativo ? '<span class="status-ativo">Ativo</span>' : '<span class="status-inativo">Inativo</span>'}</td>
+          <td class="acoes">${botoesAcao(f)}</td>
+        </tr>`).join('');
+    }
+
+    function alternarAtivo(id) {
+      const func = ultimosFuncionarios.find(f => f.id === id);
+      if (!func) return;
+      const acao = func.ativo ? 'desativar' : 'reativar';
+      if (!confirm('Quer ' + acao + ' "' + func.nome + '"?')) return;
+      enviarAtivo(id, !func.ativo);
+    }
+
+    async function enviarAtivo(id, novoAtivo) {
+      const func = ultimosFuncionarios.find(f => f.id === id);
+      const resp = await fetch('/api/funcionarios/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: func.nome,
+          cargo: func.cargo || '',
+          ativo: novoAtivo,
+        }),
+      });
+      const resultado = await resp.json();
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao atualizar.', 'erro');
+        return;
+      }
+      mostrarMensagem(novoAtivo ? 'Funcionário reativado.' : 'Funcionário desativado.', 'ok');
+      carregarFuncionarios(document.getElementById('busca').value.trim() || null);
+    }
+
+    function setarCargo(valor) {
+      const select = document.getElementById('cargo');
+      select.value = valor || '';
+      if (valor && select.value !== valor) {
+        const opt = document.createElement('option');
+        opt.value = valor;
+        opt.textContent = valor;
+        select.appendChild(opt);
+        select.value = valor;
+      }
+    }
+
+    async function carregarCargos() {
+      let resp;
+      try {
+        resp = await fetch('/api/cargos');
+      } catch (e) {
+        return;
+      }
+      if (!resp.ok) return;
+      cargosCache = await resp.json();
+      const select = document.getElementById('cargo');
+      const atual = select.value;
+      select.innerHTML = '<option value="">Selecione o cargo...</option>' + cargosCache.map(c =>
+        '<option value="' + escapeHtml(c.nome) + '">' + escapeHtml(c.nome) + '</option>').join('');
+      if (atual && cargosCache.some(c => String(c.nome) === String(atual))) {
+        select.value = atual;
+      }
+      renderizarCargos();
+    }
+
+    function renderizarCargos() {
+      const lista = document.getElementById('listaCargos');
+      if (cargosCache.length === 0) {
+        lista.innerHTML = '<p style="color:var(--texto-suave)">Nenhum cargo cadastrado.</p>';
+        return;
+      }
+      lista.innerHTML = cargosCache.map(c => `
+        <div class="cargo-linha" data-id="${c.id}">
+          <span class="cargo-nome">${escapeHtml(c.nome)}</span>
+          <span class="tipo-uso">${c.em_uso} funcionário(s)</span>
+          <button class="btn-mini perigo" data-acao="excluir" type="button">Excluir</button>
+        </div>`).join('');
+    }
+
+    async function adicionarCargo() {
+      const nome = document.getElementById('novoCargoNome').value.trim();
+      if (!nome) {
+        mostrarMensagem('Informe o nome do cargo.', 'erro');
+        return;
+      }
+      let resp;
+      try {
+        resp = await fetch('/api/cargos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome }),
+        });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao adicionar cargo.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao adicionar cargo.', 'erro');
+        return;
+      }
+      document.getElementById('novoCargoNome').value = '';
+      mostrarMensagem('Cargo adicionado.', 'ok');
+      await carregarCargos();
+    }
+
+    async function excluirCargo(id) {
+      const cargo = cargosCache.find(c => String(c.id) === String(id));
+      if (!cargo) return;
+      const aviso = cargo.em_uso > 0
+        ? 'O cargo ' + cargo.nome + ' está em uso por ' + cargo.em_uso +
+          ' funcionário(s). Reatribua esses funcionários antes de excluir. Continuar?'
+        : 'Excluir o cargo ' + cargo.nome + '?';
+      if (!confirm(aviso)) return;
+      let resp;
+      try {
+        resp = await fetch('/api/cargos/' + id, { method: 'DELETE' });
+      } catch (e) {
+        mostrarMensagem('Falha de conexão ao excluir cargo.', 'erro');
+        return;
+      }
+      const resultado = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao excluir cargo.', 'erro');
+        return;
+      }
+      mostrarMensagem('Cargo excluído.', 'ok');
+      await carregarCargos();
+    }
+
+    function abrirFormulario(funcionario) {
+      editandoId = funcionario ? funcionario.id : null;
+      tituloFormulario.textContent = funcionario ? 'Editar funcionário' : 'Novo funcionário';
+      document.getElementById('nome').value = funcionario ? funcionario.nome : '';
+      setarCargo(funcionario ? funcionario.cargo : '');
+      document.getElementById('ativo').checked = funcionario ? funcionario.ativo : true;
+      document.getElementById('btnExcluirFuncionario').classList.toggle('oculto', !funcionario);
+      cardFormulario.classList.remove('oculto');
+      document.getElementById('nome').focus();
+    }
+
+    function fecharFormulario() {
+      cardFormulario.classList.add('oculto');
+      editandoId = null;
+      document.getElementById('btnExcluirFuncionario').classList.add('oculto');
+    }
+
+    async function editar(id) {
+      const resp = await fetch('/api/funcionarios/' + id);
+      if (resp.ok) {
+        abrirFormulario(await resp.json());
+      }
+    }
+
+    async function salvar() {
+      const dados = {
+        nome: document.getElementById('nome').value,
+        cargo: document.getElementById('cargo').value,
+        ativo: document.getElementById('ativo').checked,
+      };
+
+      if (!dados.nome.trim()) {
+        mostrarMensagem('Informe o nome do funcionário.', 'erro');
+        return;
+      }
+
+      const url = editandoId ? '/api/funcionarios/' + editandoId : '/api/funcionarios';
+      const metodo = editandoId ? 'PUT' : 'POST';
+
+      const resp = await fetch(url, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+
+      const resultado = await resp.json();
+
+      if (!resp.ok) {
+        mostrarMensagem(resultado.erro || 'Erro ao salvar.', 'erro');
+        return;
+      }
+
+      mostrarMensagem(editandoId ? 'Funcionário atualizado.' : 'Funcionário cadastrado.', 'ok');
+      fecharFormulario();
+      carregarFuncionarios(document.getElementById('busca').value.trim() || null);
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', () => {
+      carregarFuncionarios(document.getElementById('busca').value.trim() || null);
+    });
+    document.getElementById('busca').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        carregarFuncionarios(document.getElementById('busca').value.trim() || null);
+      }
+    });
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      document.getElementById('busca').value = '';
+      carregarFuncionarios();
+    });
+    document.getElementById('btnNovo').addEventListener('click', () => abrirFormulario(null));
+    document.getElementById('btnSalvar').addEventListener('click', salvar);
+    document.getElementById('btnCancelar').addEventListener('click', fecharFormulario);
+    document.getElementById('btnExcluirFuncionario').addEventListener('click', () => excluirFuncionario(editandoId));
+    document.getElementById('btnGerenciarCargos').addEventListener('click', async () => {
+      await carregarCargos();
+      document.getElementById('dialogCargos').showModal();
+    });
+    document.getElementById('btnFecharCargos').addEventListener('click', () => {
+      document.getElementById('dialogCargos').close();
+    });
+    document.getElementById('btnAdicionarCargo').addEventListener('click', adicionarCargo);
+    document.getElementById('novoCargoNome').addEventListener('keydown', e => {
+      if (e.key === 'Enter') adicionarCargo();
+    });
+    document.getElementById('listaCargos').addEventListener('click', e => {
+      const botao = e.target.closest('button[data-acao]');
+      if (!botao) return;
+      const linha = e.target.closest('.cargo-linha');
+      if (!linha) return;
+      if (botao.dataset.acao === 'excluir') {
+        excluirCargo(linha.dataset.id);
+      }
+    });
+
+    carregarCargos();
+    carregarFuncionarios();
+  </script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pátio - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>PÁTIO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Pátio: organização do fim do dia. Os carros que ainda estão na
+       oficina (OS aberta com placa), se o cliente já foi avisado e se vem
+       buscar o carro. -->
+  <main class="os-main">
+    <div style="margin-bottom:10px">
+      <a href="/" class="btn-voltar">← Painel</a>
+    </div>
+    <div id="mensagens"></div>
+
+    <div class="os-secao">
+      <div class="patio-topo">
+        <h2>Pátio — carros ainda não liberados</h2>
+        <button id="btnAtualizarPatio" class="secundario" type="button">Atualizar</button>
+      </div>
+      <div id="patioResumo" class="patio-resumo"></div>
+    </div>
+    <div id="patioLista"></div>
+  </main>
+
+  <script>
+    const mensagens = document.getElementById('mensagens');
+
+    const ROTULO_STATUS = {
+      recepcao: 'Aberta',
+      orcamento: 'Orçamento',
+      execucao: 'Execução',
+      concluida: 'Concluída',
+      cancelada: 'Cancelada',
+    };
+
+    function escapeHtml(texto) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function statusBadge(status) {
+      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>';
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      mensagens.replaceChildren();
+      const div = document.createElement('div');
+      div.className = tipo;
+      div.textContent = texto;
+      mensagens.appendChild(div);
+      setTimeout(() => mensagens.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+
+    async function lerJson(resp) {
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(dados.erro || 'Erro na operação.');
+      return dados;
+    }
+
+    let patioCarros = [];
+    let patioHoje = null; // data do servidor (AAAA-MM-DD): o "hoje" da oficina
+
+    function diaLocal(v) {
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // "hoje 17:20" / "ontem 17:20" / "23/09 17:20"
+    function quandoCurto(v) {
+      if (!v) return '';
+      const d = new Date(v);
+      const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const dia = diaLocal(v);
+      if (dia === patioHoje) return 'hoje ' + hora;
+      const ontem = new Date(patioHoje + 'T12:00:00');
+      ontem.setDate(ontem.getDate() - 1);
+      if (dia === diaLocal(ontem)) return 'ontem ' + hora;
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + hora;
+    }
+
+    function tempoNoPatio(abertura) {
+      const dias = Math.round((new Date(patioHoje + 'T12:00:00') - new Date(diaLocal(abertura) + 'T12:00:00')) / 86400000);
+      if (dias <= 0) return 'desde hoje';
+      if (dias === 1) return 'desde ontem';
+      return 'há ' + dias + ' dias';
+    }
+
+    async function carregarPatio() {
+      const lista = document.getElementById('patioLista');
+      if (!patioCarros.length) lista.innerHTML = '<div class="os-secao"><div class="aviso-vazio">Carregando...</div></div>';
+      try {
+        const dados = await lerJson(await fetch('/api/ordens-servico/patio', { cache: 'no-store' }));
+        patioCarros = dados.carros;
+        patioHoje = dados.hoje;
+        renderPatio();
+      } catch (e) {
+        lista.innerHTML = '<div class="os-secao"><p class="aviso-vazio">' + escapeHtml(e.message) + '</p></div>';
+      }
+    }
+
+    function ontemDe(dia) {
+      const d = new Date(dia + 'T12:00:00');
+      d.setDate(d.getDate() - 1);
+      return diaLocal(d);
+    }
+
+    // Onde o carro aparece:
+    //   'amanha' -> respondeu HOJE que não vem: vai para a tabela de amanhã;
+    //   'ficou'  -> tinha dito (ontem ou antes) que não vinha: agora é hoje,
+    //               volta para a lista do dia, no topo;
+    //   'hoje'   -> o resto.
+    function grupoDo(c) {
+      if (c.retirada !== 'nao_vem') return 'hoje';
+      return diaLocal(c.retirada_em) === patioHoje ? 'amanha' : 'ficou';
+    }
+
+    // Link do WhatsApp a partir do telefone do cadastro (DDD + número).
+    function linkWhats(tel) {
+      let d = String(tel || '').replace(/\D/g, '');
+      if (d.length === 10 || d.length === 11) d = '55' + d;
+      if (!/^55\d{10,11}$/.test(d)) return null;
+      return 'https://wa.me/' + d;
+    }
+
+    function contato(nome, id, tel, email, doc) {
+      const nomeHtml = id
+        ? '<a href="/clientes.html?id=' + encodeURIComponent(id) + '" title="Abrir o cadastro">' + escapeHtml(nome) + '</a>'
+        : escapeHtml(nome || '—') + (nome ? ' <span class="patio-sem-cadastro">sem cadastro</span>' : '');
+      const whats = linkWhats(tel);
+      const partes = [];
+      if (tel) {
+        partes.push('<a class="patio-fone" href="tel:' + escapeHtml(String(tel).replace(/[^\d+]/g, '')) + '">' + escapeHtml(tel) + '</a>' +
+          (whats ? ' <a class="patio-whats" href="' + whats + '" target="_blank" rel="noopener">WhatsApp</a>' : ''));
+      } else if (id) {
+        partes.push('<span class="patio-sem-fone">sem telefone no cadastro</span>');
+      }
+      if (email) partes.push(escapeHtml(email));
+      if (doc) partes.push(escapeHtml(doc));
+      return nomeHtml + partes.map(p => '<div class="patio-tel">' + p + '</div>').join('');
+    }
+
+    function linhaCarro(c) {
+      const grupo = grupoDo(c);
+      const avisado = !!c.cliente_avisado_em;
+      const deHoje = c.retirada && diaLocal(c.retirada_em) === patioHoje;
+      let quando = '';
+      if (deHoje) {
+        quando = '<div class="patio-quando">' + escapeHtml(quandoCurto(c.retirada_em)) +
+          (grupo === 'amanha' ? ' — fica para amanhã' : '') + '</div>';
+      } else if (grupo === 'ficou') {
+        const dia = diaLocal(c.retirada_em) === ontemDe(patioHoje) ? 'ontem' : quandoCurto(c.retirada_em).split(' ')[0];
+        quando = '<div class="patio-quando ficou">Ficou de ' + escapeHtml(dia) + ': cliente disse que viria hoje</div>';
+      } else if (c.retirada === 'vem_buscar') {
+        quando = '<div class="patio-quando velha">' + escapeHtml(quandoCurto(c.retirada_em)) +
+          ' disse que vinha e não veio — perguntar de novo</div>';
+      }
+      const botaoRetirada = (valor, rotulo, classe) => {
+        const marcado = c.retirada === valor && deHoje;
+        return '<button type="button" class="btn-mini ' + (marcado ? classe : 'secundario') + '"' +
+          ' data-patio-retirada="' + valor + '" data-id="' + c.id + '"' +
+          ' title="' + (marcado ? 'Clique de novo para apagar a resposta' : '') + '">' +
+          (marcado ? '✓ ' : '') + rotulo + '</button>';
+      };
+      // Dono do carro diferente do cliente da OS (ex.: oficina parceira).
+      const dono = c.carro_cliente_id && c.carro_cliente_id !== c.cliente_id
+        ? '<div class="patio-dono"><span>Dono do carro:</span> ' +
+            contato(c.carro_cliente_nome, c.carro_cliente_id, c.carro_cliente_telefone) + '</div>'
+        : '';
+      return `
+        <tr class="${grupo === 'ficou' ? 'patio-linha-ficou' : ''}">
+          <td><strong class="patio-placa">${escapeHtml(c.placa)}</strong></td>
+          <td>${escapeHtml([c.marca, c.modelo].filter(Boolean).join(' ')) || '—'}${c.ano ? ' ' + escapeHtml(c.ano) : ''}</td>
+          <td class="patio-contato">${contato(c.cliente_nome, c.cliente_id, c.cliente_telefone, c.cliente_email, c.cliente_cpf_cnpj)}${dono}</td>
+          <td><strong>${escapeHtml(c.codigo)}</strong><div class="patio-tel">${escapeHtml(tempoNoPatio(c.data_abertura))}</div></td>
+          <td>${statusBadge(c.status)}</td>
+          <td>
+            <button type="button" class="btn-mini ${avisado ? 'sucesso' : 'secundario'}" data-patio-avisado="${c.id}"
+              title="${avisado ? 'Clique para desmarcar' : 'Clique para marcar'}">${avisado ? '✓ ' : ''}Cliente avisado</button>
+            ${avisado ? '<div class="patio-quando">' + escapeHtml(quandoCurto(c.cliente_avisado_em)) + '</div>' : ''}
+          </td>
+          <td>
+            <div class="acoes-celula">
+              ${botaoRetirada('vem_buscar', 'Vem buscar', 'sucesso')}
+              ${botaoRetirada('nao_vem', 'Não vem hoje', 'perigo')}
+            </div>
+            ${quando}
+          </td>
+          <td><button type="button" class="btn-mini azul" data-acao="abrir" data-id="${c.id}">Abrir OS</button></td>
+        </tr>`;
+    }
+
+    function tabelaCarros(titulo, dica, carros, vazio) {
+      return `
+        <div class="os-secao patio-bloco" style="padding:0;overflow:hidden">
+          <div class="patio-bloco-titulo">
+            <h2>${titulo} <span class="patio-contagem">${carros.length}</span></h2>
+            ${dica ? '<p>' + dica + '</p>' : ''}
+          </div>
+          ${carros.length === 0 ? '<div class="aviso-vazio" style="padding:0 16px 16px">' + vazio + '</div>' : `
+          <div style="overflow:auto">
+            <table class="planilha-tabela patio-tabela">
+              <thead>
+                <tr>
+                  <th style="width:100px">Placa</th>
+                  <th style="width:140px">Veículo</th>
+                  <th>Cliente (contato)</th>
+                  <th style="width:110px">OS</th>
+                  <th style="width:120px">Status</th>
+                  <th style="width:150px">Aviso</th>
+                  <th style="width:230px">Cliente vem buscar?</th>
+                  <th style="width:95px"></th>
+                </tr>
+              </thead>
+              <tbody>${carros.map(linhaCarro).join('')}</tbody>
+            </table>
+          </div>`}
+        </div>`;
+    }
+
+    function renderPatio() {
+      const lista = document.getElementById('patioLista');
+      const amanha = patioCarros.filter(c => grupoDo(c) === 'amanha');
+      // Hoje: primeiro os que ficaram de ontem (combinados para hoje).
+      const ficou = patioCarros.filter(c => grupoDo(c) === 'ficou');
+      const hoje = ficou.concat(patioCarros.filter(c => grupoDo(c) === 'hoje'));
+      const respondeuHoje = c => c.retirada && diaLocal(c.retirada_em) === patioHoje;
+      const n = patioCarros.length;
+      const avisados = patioCarros.filter(c => c.cliente_avisado_em).length;
+      const vem = hoje.filter(c => respondeuHoje(c) && c.retirada === 'vem_buscar').length;
+      const semResposta = hoje.filter(c => !respondeuHoje(c)).length;
+      document.getElementById('patioResumo').innerHTML = n === 0 ? '' :
+        '<span><strong>' + n + '</strong> carro(s) no pátio</span>' +
+        '<span>Avisados: <strong>' + avisados + '</strong></span>' +
+        '<span class="patio-vem">Vêm buscar hoje: <strong>' + vem + '</strong></span>' +
+        (ficou.length ? '<span class="patio-ficou">Ficaram de ontem: <strong>' + ficou.length + '</strong></span>' : '') +
+        '<span>Sem resposta hoje: <strong>' + semResposta + '</strong></span>' +
+        '<span class="patio-nao-vem">Para amanhã: <strong>' + amanha.length + '</strong></span>';
+
+      if (n === 0) {
+        lista.innerHTML = '<div class="os-secao"><div class="aviso-vazio">Nenhum carro no pátio: todas as OS com placa estão concluídas ou canceladas.</div></div>';
+        return;
+      }
+      lista.innerHTML =
+        tabelaCarros('Hoje', ficou.length ? 'Em cima, os que ficaram de ontem: o cliente disse que viria hoje.' : '',
+          hoje, 'Nenhum carro para hoje: todos ficaram para amanhã.') +
+        tabelaCarros('Para amanhã', 'Clientes que disseram que não vêm hoje. Amanhã eles voltam sozinhos para a lista do dia, no topo.',
+          amanha, 'Ninguém ficou para amanhã.');
+    }
+
+    // Troca só a linha que mudou (sem recarregar a lista inteira).
+    function atualizarNoPatio(os) {
+      const i = patioCarros.findIndex(c => c.id === os.id);
+      if (i >= 0) patioCarros[i] = os;
+      renderPatio();
+    }
+
+    document.getElementById('patioLista').addEventListener('click', async e => {
+      const avisado = e.target.closest('button[data-patio-avisado]');
+      const retirada = e.target.closest('button[data-patio-retirada]');
+      if (!avisado && !retirada) return;
+      const botao = avisado || retirada;
+      const id = Number(botao.dataset.patioAvisado || botao.dataset.id);
+      const carro = patioCarros.find(c => c.id === id);
+      if (!carro) return;
+      botao.disabled = true;
+      try {
+        let os;
+        if (avisado) {
+          os = await lerJson(await fetch('/api/ordens-servico/' + id + '/marcacoes', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cliente_avisado: !carro.cliente_avisado_em }),
+          }));
+        } else {
+          // Clicar na resposta que já está marcada apaga a resposta.
+          const valor = carro.retirada === botao.dataset.patioRetirada && diaLocal(carro.retirada_em) === patioHoje
+            ? null : botao.dataset.patioRetirada;
+          os = await lerJson(await fetch('/api/ordens-servico/' + id + '/retirada', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ retirada: valor }),
+          }));
+        }
+        atualizarNoPatio(os);
+      } catch (err) {
+        mostrarMensagem(err.message, 'erro');
+        botao.disabled = false;
+      }
+    });
+    document.getElementById('btnAtualizarPatio').addEventListener('click', carregarPatio);
+
+    // "Abrir OS"
+    document.getElementById('patioLista').addEventListener('click', e => {
+      const b = e.target.closest('button[data-acao="abrir"]');
+      if (b) location.href = '/os.html?id=' + encodeURIComponent(b.dataset.id);
+    });
+
+    // Voltou para a aba depois de um tempo (ex.: estava na OS): atualiza.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) carregarPatio(); });
+
+    carregarPatio();
+  </script>
+</body>
+</html>

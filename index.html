@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>PAINEL</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Visão geral</h2>
+      <div class="resumos">
+        <div class="card-resumo">
+          <div class="rotulo">OS abertas</div>
+          <div class="valor" id="resumoOs">-</div>
+        </div>
+        <div class="card-resumo">
+          <div class="rotulo">Carros no pátio</div>
+          <a class="valor valor-link" id="resumoPatio" href="/patio.html">-</a>
+        </div>
+        <div class="card-resumo">
+          <div class="rotulo">Peças aguardando entrada</div>
+          <a class="valor valor-link" id="resumoEntrada" href="/entrada-estoque.html">-</a>
+        </div>
+        <div class="card-resumo">
+          <div class="rotulo">Funcionários ativos</div>
+          <div class="valor" id="resumoFunc">-</div>
+        </div>
+        <div class="card-resumo">
+          <div class="rotulo">Itens abaixo do mínimo</div>
+          <a class="valor valor-link" id="resumoItens" href="/itens.html?estoque_baixo=1">-</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Acessar</h2>
+
+      <div class="setor">
+        <h3>Cadastro</h3>
+        <div class="modulos">
+          <a class="modulo" href="/clientes.html">Clientes</a>
+          <a class="modulo" href="/carros.html">Carros</a>
+          <a class="modulo" href="/funcionarios.html">Funcionários</a>
+          <a class="modulo" href="/usuarios.html">Usuários</a>
+        </div>
+      </div>
+
+      <div class="setor">
+        <h3>Tabela</h3>
+        <div class="modulos">
+          <a class="modulo" href="/itens.html">Itens</a>
+          <a class="modulo" href="/servicos.html">Serviços</a>
+          <a class="modulo" href="/entrada-estoque.html">Entrada de estoque</a>
+        </div>
+      </div>
+
+      <div class="setor">
+        <h3>Ordem de Serviço</h3>
+        <div class="modulos">
+          <a class="modulo" href="/ordens-servico.html">Ordens de Serviço</a>
+          <a class="modulo" href="/balcao.html">Vendas no balcão</a>
+          <a class="modulo" href="/externos.html">Serviços externos</a>
+          <a class="modulo" href="/patio.html">Pátio</a>
+        </div>
+      </div>
+
+      <div class="setor">
+        <h3>Financeiro</h3>
+        <div class="modulos">
+          <a class="modulo" href="/caixa.html">Caixa do dia</a>
+          <a class="modulo" href="/faturamento.html">Faturamento</a>
+          <a class="modulo" href="/despesas.html">Despesas</a>
+        </div>
+      </div>
+
+      <div class="setor">
+        <h3>Relatórios</h3>
+        <div class="modulos">
+          <a class="modulo" href="/produtividade.html">Produtividade</a>
+          <a class="modulo" href="/analises.html">Análises</a>
+          <a class="modulo modulo-londrisoft" href="/londrisoft.html">Ponte Londrisoft</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function carregarResumo() {
+      try {
+        const resp = await fetch('/api/dashboard');
+        const dados = await resp.json();
+        document.getElementById('resumoOs').textContent = dados.os_abertas;
+        document.getElementById('resumoPatio').textContent = dados.carros_patio;
+        document.getElementById('resumoEntrada').textContent = dados.aguardando_entrada;
+        document.getElementById('resumoFunc').textContent = dados.funcionarios;
+        document.getElementById('resumoItens').textContent = dados.itens_baixo_estoque;
+      } catch (e) {
+        document.getElementById('resumoOs').textContent = 'erro';
+      }
+    }
+    carregarResumo();
+  </script>
+</body>
+</html>
