@@ -32,6 +32,8 @@
     '/londrisoft.html',
     '/funcionarios.html',
     '/usuarios.html',
+    '/comissoes.html', // comissões dos funcionários
+    '/pedidos.html', // pedido de compra (usa a agenda de contatos)
     '/contatos.html', // agenda escondida: só se chega pela faixa do gerente
   ];
   const AVISO_TRAVA = 'Editável no modo gerenciador';

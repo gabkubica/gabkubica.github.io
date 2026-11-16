@@ -188,7 +188,7 @@
       <div class="nu-kpis" id="kEquipe"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
-          <h3>Quanto cada um lançou</h3>
+          <div class="nu-cartao-topo"><h3>Quanto cada um lançou</h3><a href="/comissoes.html">Comissões →</a></div>
           <p class="nu-explica">Peças e serviços em OS concluídas no período, por responsável.</p>
           <div id="gEquipe"></div>
         </div>
@@ -302,7 +302,9 @@
         kpi('Saiu (despesas)', moeda(p.despesas), variacao(p.despesas, a.despesas, true)) +
         kpi('Resultado', '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>', variacao(p.resultado, a.resultado)) +
         kpi('Boletos atrasados', moeda(b.atrasados.valor), b.atrasados.quantidade ? b.atrasados.quantidade + ' boleto(s) vencido(s) sem pagar' : 'nenhum atrasado',
-          { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' });
+          { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' }) +
+        kpi('A receber de seguradoras', moeda(n.seguradoras.aReceber), n.seguradoras.os ? n.seguradoras.os + ' OS' + (n.seguradoras.atrasadas ? ' · ' + n.seguradoras.atrasadas + ' há mais de 30 dias' : '') : 'nada pendente',
+          { alerta: n.seguradoras.atrasadas > 0, href: '/seguradoras.html' });
       const meses = mesesUteis(n.mensal, ['faturamento', 'despesas']);
       G.barras($('gEntraSai'), {
         rotulos: meses.map((m) => m.rotulo),
@@ -486,6 +488,7 @@
           ['Faturamento (R$)', p.faturamento], ['Atendimentos', p.documentos], ['Ticket médio (R$)', v.ticket_medio],
           ['Lucro nas peças (R$)', v.lucro_pecas], ['Despesas (R$)', p.despesas], ['Resultado (R$)', p.resultado],
           ['Faturamento do período anterior (R$)', n.anterior.faturamento], ['Boletos atrasados (R$)', b.atrasados.valor],
+          ['A receber de seguradoras (R$)', n.seguradoras.aReceber],
           ['OS em aberto', o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros], ['OS concluídas', o.concluidas],
           ['Tempo médio até concluir (dias)', o.tempo_medio_dias],
         ] },

@@ -60,6 +60,8 @@
         </div>
         <!-- Vínculo carro -> cliente (js/os-cliente-carro.js) -->
         <div id="vinculoCarro"></div>
+        <!-- Garantias de peças já trocadas neste carro (ou cliente) -->
+        <div id="boxGarantias"></div>
         <div class="os-grid" style="margin-top:12px">
           <div>
             <label>Atendente</label>
@@ -84,6 +86,26 @@
             <button id="btnNaoVem" class="secundario" type="button">Não vem hoje</button>
             <span id="dataRetirada" class="marcacao-data"></span>
           </span>
+        </div>
+      </div>
+
+      <!-- Seguro: a seguradora (um cliente marcado como seguradora) e o nº do
+           sinistro. Ao concluir com a forma "Seguradora", a OS fica a receber
+           (Clientes > Seguradoras). -->
+      <div class="os-secao oculto" id="secaoSeguro">
+        <h2>Seguro</h2>
+        <label class="sg-liga"><input type="checkbox" id="sgLigado"> Serviço pago por <strong>seguradora</strong></label>
+        <div id="sgCampos" class="oculto">
+          <div class="os-grid" style="margin-top:10px">
+            <div>
+              <label>Seguradora *</label>
+              <div class="sg-linha"><select id="sgSeguradora"></select><button type="button" class="btn-mini" id="btnNovaSeguradora">+ Nova</button></div>
+            </div>
+            <div><label>Nº do sinistro</label><input type="text" id="sgSinistro" maxlength="60" autocomplete="off"></div>
+          </div>
+          <div id="sgStatus"></div>
+          <div class="os-acoes"><button type="button" class="secundario" id="btnSalvarSeguro">Salvar seguro</button>
+            <a href="/seguradoras.html" class="sg-link">O que as seguradoras devem →</a></div>
         </div>
       </div>
 
@@ -180,6 +202,7 @@
           <option>Crédito</option>
           <option>Transferência</option>
           <option>Boleto</option>
+          <option>Seguradora</option>
         </select>
       </div>
       <div id="campoAnexo" class="oculto">
@@ -332,6 +355,7 @@
     }
 
     async function carregarFuncionarios() {
+      carregarSeguradoras();
       try {
         const resp = await fetch('/api/funcionarios');
         if (resp.ok) funcCache = (await resp.json()).filter(f => f.ativo);
@@ -462,7 +486,7 @@
       tbody.innerHTML = osAtual.pecas.map(p => `
         <tr data-id="${p.id}">
           <td data-label="Código">${escapeHtml(p.codigo || '')}</td>
-          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</td>
+          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${p.garantia_meses ? '<small class="gar-peca">garantia ' + (Number(p.garantia_meses) === 12 ? '1 ano' : p.garantia_meses + ' meses') + '</small>' : ''}</td>
           <td class="col-qtd" data-label="Qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
           <td class="col-preco" data-label="Preço unit. (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
           <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.funcionario_id, '— não informado —')}</select></td>
@@ -490,8 +514,125 @@
         </tr>`).join('');
     }
 
+    // ---------- Seguro ----------
+    // Seguradoras = clientes marcados como seguradora (cadastro em Clientes).
+    let seguradorasCache = [];
+    async function carregarSeguradoras() {
+      try {
+        const r = await fetch('/api/clientes?seguradoras=1');
+        if (r.ok) seguradorasCache = await r.json();
+      } catch (e) { /* sem lista: o campo fica vazio */ }
+    }
+    function opcoesSeguradoras(sel) {
+      return '<option value="">— escolha —</option>' + seguradorasCache
+        .map(s => '<option value="' + s.id + '"' + (String(s.id) === String(sel || '') ? ' selected' : '') + '>' + escapeHtml(s.nome_razao_social) + '</option>').join('');
+    }
+    function dataBr(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+    function renderSeguro() {
+      const sec = document.getElementById('secaoSeguro');
+      // Venda no balcão e OS ainda não criada: sem seguro.
+      const mostrar = !!osAtual.id && !osAtual.venda_balcao_id;
+      sec.classList.toggle('oculto', !mostrar);
+      if (!mostrar) return;
+      const ligado = !!osAtual.seguradora_id;
+      document.getElementById('sgLigado').checked = ligado;
+      document.getElementById('sgCampos').classList.toggle('oculto', !ligado);
+      document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(osAtual.seguradora_id);
+      document.getElementById('sgSinistro').value = osAtual.seg_sinistro || '';
+      const st = document.getElementById('sgStatus');
+      if (ligado && osAtual.status === 'concluida' && osAtual.paga_pela_seguradora) {
+        st.innerHTML = osAtual.seg_recebido_em
+          ? '<div class="aviso-bloco sg-ok">✓ A seguradora pagou <strong>' + formatarMoeda(osAtual.seg_recebido_valor) + '</strong> em ' + dataBr(osAtual.seg_recebido_em) +
+            (osAtual.seg_recebido_forma ? ' (' + escapeHtml(osAtual.seg_recebido_forma) + ')' : '') + '.</div>'
+          : '<div class="aviso-bloco sg-pendente">A receber da seguradora: <strong>' + formatarMoeda(osAtual.valor_total) +
+            '</strong>. Quando pagar, marque em <a href="/seguradoras.html">Clientes › Seguradoras</a>.</div>';
+      } else {
+        st.innerHTML = '';
+      }
+    }
+    async function salvarSeguro(silencioso) {
+      const ligado = document.getElementById('sgLigado').checked;
+      const corpo = ligado
+        ? { seguradora_id: document.getElementById('sgSeguradora').value || null, sinistro: document.getElementById('sgSinistro').value }
+        : { seguradora_id: null };
+      if (ligado && !corpo.seguradora_id) {
+        mostrarMensagem('Escolha a seguradora (ou desmarque "pago por seguradora").', 'erro');
+        return false;
+      }
+      try {
+        osAtual = await lerJson(await fetch('/api/ordens-servico/' + osId + '/seguro', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+        }));
+        if (!silencioso) mostrarMensagem(ligado ? 'Seguro salvo.' : 'Seguro retirado desta OS.', 'ok');
+        render();
+        return true;
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+        return false;
+      }
+    }
+    document.getElementById('sgLigado').addEventListener('change', async (e) => {
+      if (e.target.checked) {
+        document.getElementById('sgCampos').classList.remove('oculto');
+        if (!seguradorasCache.length) await carregarSeguradoras();
+        document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(document.getElementById('sgSeguradora').value);
+      } else if (osAtual.seguradora_id) {
+        if (!confirm('Tirar a seguradora desta OS?')) { e.target.checked = true; return; }
+        await salvarSeguro();
+      } else {
+        document.getElementById('sgCampos').classList.add('oculto');
+      }
+    });
+    document.getElementById('btnSalvarSeguro').addEventListener('click', () => salvarSeguro());
+    // "+ Nova": cadastra a seguradora como cliente (marcado como seguradora).
+    document.getElementById('btnNovaSeguradora').addEventListener('click', async () => {
+      const nome = prompt('Nome da seguradora:');
+      if (!nome || !nome.trim()) return;
+      try {
+        const nova = await lerJson(await fetch('/api/clientes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome_razao_social: nome, seguradora: true }),
+        }));
+        await carregarSeguradoras();
+        document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(nova.id);
+        mostrarMensagem('Seguradora cadastrada em Clientes: ' + nova.nome_razao_social + '.', 'ok');
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    });
+
+    // Garantias: peças de OS/vendas anteriores deste carro (ou do cliente, sem placa).
+    let garantiasDe = null;
+    async function carregarGarantias() {
+      const box = document.getElementById('boxGarantias');
+      const chave = osAtual.id + '|' + (osAtual.placa || '') + '|' + (osAtual.cliente_id || '');
+      if (!osAtual.id || (!osAtual.placa && !osAtual.cliente_id)) { box.innerHTML = ''; garantiasDe = null; return; }
+      if (chave === garantiasDe) return;
+      garantiasDe = chave;
+      try {
+        const d = await lerJson(await fetch('/api/ordens-servico/' + osAtual.id + '/garantias'));
+        if (!d.garantias.length) { box.innerHTML = ''; return; }
+        const validas = d.garantias.filter(g => g.valida);
+        const dt = (s) => s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+        box.innerHTML = '<div class="gar-box' + (validas.length ? ' gar-tem' : '') + '"><strong>' +
+          (validas.length ? '🛡 ' + validas.length + ' peça(s) na garantia ' : 'Garantias vencidas ') + (d.por === 'placa' ? 'neste carro' : 'deste cliente') + '</strong><ul>' +
+          d.garantias.map(g => '<li class="' + (g.valida ? 'gar-ok' : 'gar-vencida') + '">' + escapeHtml(g.nome) +
+            ' · <a href="/' + (g.vendaBalcaoId ? 'venda.html?id=' + g.vendaBalcaoId : (g.tipo === 'externo' ? 'externa' : 'os') + '.html?id=' + g.osId) + '">' + escapeHtml(g.codigo) + '</a>' +
+            ' de ' + formatarData(g.dataConclusao).slice(0, 10) + ' · ' + (g.valida ? 'garantia até <b>' + dt(g.ate) + '</b>' : 'venceu em ' + dt(g.ate)) + '</li>').join('') +
+          '</ul></div>';
+      } catch (e) { box.innerHTML = ''; }
+    }
+
     function renderPagamento() {
+      renderSeguro();
+      carregarGarantias();
       const el = document.getElementById('infoPagamento');
+      const pags = osAtual.pagamentos || [];
+      if (pags.length > 1) {
+        el.innerHTML = '<div class="aviso-bloco">Pago em ' + formatarData(pags[0].data) + ' — ' + pags.map(p =>
+          '<strong>' + escapeHtml(p.forma_pagamento) + '</strong> (' + formatarMoeda(p.valor) + (p.forma_pagamento === 'Seguradora' ? (osAtual.seg_recebido_em ? ', recebido' : ', a receber') : '') + ')' +
+          (p.arquivo ? ' · <a href="/' + escapeHtml(p.arquivo) + '" target="_blank">ver anexo</a>' : '')).join(' + ') + '</div>';
+        return;
+      }
       if (osAtual.pagamento) {
         let extra = '';
         if (osAtual.pagamento.arquivo) {
@@ -808,7 +949,10 @@
     }
 
     // ---------- Concluir ----------
-    function abrirDialogoConcluir() {
+    async function abrirDialogoConcluir() {
+      if (document.getElementById('sgLigado').checked || osAtual.seguradora_id) {
+        if (!(await salvarSeguro(true))) return;
+      }
       if (osAtual.pecas.length === 0 && osAtual.servicos.length === 0) {
         mostrarMensagem('Adicione ao menos uma peça ou serviço antes de concluir.', 'erro');
         return;
@@ -819,7 +963,8 @@
         return;
       }
       document.getElementById('totalConcluir').textContent = formatarMoeda(osAtual.valor_total);
-      document.getElementById('formaPagamento').value = '';
+      // OS de seguradora: já vem com a forma "Seguradora" (dá para trocar).
+      document.getElementById('formaPagamento').value = osAtual.seguradora_id ? 'Seguradora' : '';
       document.getElementById('campoAnexo').classList.add('oculto');
       document.getElementById('anexoBoleto').value = '';
       document.getElementById('dialogConcluir').showModal();
@@ -827,6 +972,10 @@
 
     async function confirmarConclusao() {
       const forma = document.getElementById('formaPagamento').value;
+      if (forma === 'Seguradora' && !osAtual.seguradora_id) {
+        mostrarMensagem('Para pagar pela seguradora, escolha a seguradora no quadro "Seguro" da OS (e aperte Salvar seguro).', 'erro');
+        return;
+      }
       if (!forma) {
         mostrarMensagem('Escolha a forma de pagamento.', 'erro');
         return;

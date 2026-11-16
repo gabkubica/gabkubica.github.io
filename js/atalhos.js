@@ -17,6 +17,8 @@
     { texto: 'OS (oficina)', href: '/ordens-servico.html?nova=1' },
     { texto: 'Venda balcão', href: '/venda.html' },
     { texto: 'Serviço externo', href: '/externa.html' },
+    // Ficha de OS física (papel), para preencher à caneta. Abre o PDF.
+    { texto: 'Imprimir ficha de OS', href: '/api/fichas/branco.pdf', novaAba: true, separado: true },
   ];
 
   // "+" desenhado em vez de digitado: o caractere "+" de texto fica sentado um
@@ -82,6 +84,8 @@
     OPCOES_OS.forEach((op) => {
       const a = criar('a', '', op.texto);
       a.href = op.href;
+      if (op.novaAba) a.target = '_blank';
+      if (op.separado) a.classList.add('atalho-separado');
       a.setAttribute('role', 'menuitem');
       menu.appendChild(a);
     });

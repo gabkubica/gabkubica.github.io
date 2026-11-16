@@ -1,0 +1,1 @@
+{"funcionario":{"id":2,"nome":"Daiane Rocha","percentuais":{"balcao":3,"pecas":1,"servicos":0}},"documentos":[{"id":53,"codigo":"VB-0053","tipo":"Venda balcão","vendaBalcaoId":9,"dataConclusao":"2026-10-24T20:13:00.000Z","cliente":"Wagner Mendes","placa":null,"pecas":38,"servicos":0,"comissao":1.14}]}

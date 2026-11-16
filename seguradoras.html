@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seguradoras - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/graficos.js"></script>
+  <script src="/js/exportar.js"></script>
+  <style>
+    .sgp-filtros { display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+    .sgp-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    .sgp-sit { display: inline-flex; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; background: var(--card-bg); }
+    .sgp-sit button { border: 0; border-radius: 0; background: transparent; color: var(--texto); padding: 7px 14px; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .sgp-sit button + button { border-left: 1px solid var(--borda); }
+    .sgp-sit button.ativo { background: var(--vermelho); color: #fff; }
+    .sgp-grupo { margin-bottom: 14px; break-inside: avoid; }
+    .sgp-grupo-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 2px 8px; border-bottom: 2px solid var(--borda); }
+    .sgp-grupo-cab h3 { margin: 0; font-size: 16px; }
+    .sgp-tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sgp-tab th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
+    .sgp-tab td { padding: 7px 6px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+    .sgp-tab .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .sgp-tab small { color: var(--texto-suave); display: block; }
+    .sgp-st { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+    .sgp-st.aberto { background: #fdf3e0; color: #8a5a12; }
+    .sgp-st.antigo { background: #fdecea; color: #8a1d12; }
+    .sgp-st.recebido { background: #e9f7ee; color: #14532d; }
+    [data-tema="escuro"] .sgp-st.aberto { background: #3a2f1a; color: #e0c07a; }
+    [data-tema="escuro"] .sgp-st.antigo { background: #3a2020; color: #e08a7a; }
+    [data-tema="escuro"] .sgp-st.recebido { background: #16301f; color: #7fd6a1; }
+    .sgp-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 10px; }
+    .sgp-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    .sgp-form .largo { grid-column: 1 / -1; }
+    @media (max-width: 760px) { .sgp-form { grid-template-columns: 1fr; } }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      .sgp-tab a { color: inherit; text-decoration: none; }
+      .abas, .sgp-filtros { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>CADASTRO</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Seguradoras (aba de Clientes): o que cada seguradora ainda deve.
+       A seguradora é um cliente marcado como seguradora; a OS fica a receber
+       quando é concluída com a forma "Seguradora". Servidor: src/routes/seguradoras.js. -->
+  <main>
+    <div class="abas">
+      <a class="aba" href="/clientes.html">Clientes</a>
+      <a class="aba" href="/carros.html">Carros</a>
+      <a class="aba" href="/funcionarios.html">Funcionários</a>
+      <a class="aba" href="/usuarios.html">Usuários</a>
+      <a class="aba ativa" href="/seguradoras.html">Seguradoras</a>
+    </div>
+    <div class="so-imp nu-cab-imp"><strong>Auto Vidros Sport · Seguradoras</strong><span id="cabImp"></span></div>
+    <div id="mensagens" class="sem-imp"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0">O que as seguradoras devem</h2>
+        <span class="sem-imp" style="display:flex;gap:6px">
+          <button type="button" class="secundario" id="btnPdf">PDF</button>
+          <button type="button" class="secundario" id="btnPlanilha">Planilha</button>
+        </span>
+      </div>
+      <p class="aviso-vazio sem-imp" style="margin:6px 0 12px;font-size:13px">
+        Na OS, marque <strong>"Serviço pago por seguradora"</strong> e escolha a seguradora. Ao concluir com a forma <strong>"Seguradora"</strong>,
+        a OS aparece aqui. Quando a seguradora pagar, aperte <strong>Recebido</strong>. Para cadastrar uma seguradora:
+        <a href="/clientes.html">Clientes</a> › Novo cliente › "É seguradora".
+      </p>
+
+      <div class="nu-kpis" id="kpis"></div>
+
+      <div class="sgp-filtros sem-imp">
+        <div class="sgp-sit" id="situacao">
+          <button type="button" data-s="receber" class="ativo">A receber</button>
+          <button type="button" data-s="recebidas">Recebidas</button>
+          <button type="button" data-s="todas">Todas</button>
+        </div>
+        <label>Seguradora <select id="fSeg"><option value="">Todas</option></select></label>
+        <label>Concluídas de <input type="date" id="fIni"></label>
+        <label>até <input type="date" id="fFim"></label>
+      </div>
+
+      <div id="lista"><p class="aviso-vazio">Carregando...</p></div>
+    </div>
+  </main>
+
+  <dialog id="dlgRecebido" class="dialog-tipos">
+    <h3>Seguradora pagou</h3>
+    <p id="recInfo" style="margin-top:4px"></p>
+    <div class="sgp-form">
+      <label>Data do pagamento <input type="date" id="recData"></label>
+      <label>Valor recebido (R$) <input type="number" id="recValor" min="0" step="0.01" inputmode="decimal"></label>
+      <label>Forma <select id="recForma"><option>Transferência</option><option>Pix</option><option>Boleto</option><option>Depósito</option><option>Outra</option></select></label>
+      <label class="largo">Observação <input type="text" id="recObs" maxlength="500" placeholder="Ex.: veio sem a franquia, nº do lote..."></label>
+    </div>
+    <p id="recDif" class="aviso-vazio" style="margin:8px 0 0"></p>
+    <div class="dialog-acoes">
+      <button type="button" class="sucesso" id="btnRecOk">Confirmar recebimento</button>
+      <button type="button" class="secundario" id="btnRecFechar">Voltar</button>
+    </div>
+  </dialog>
+
+  <script>
+    const moeda = Graficos.moeda;
+    const $ = (id) => document.getElementById(id);
+    const iso = (d) => d.toLocaleDateString('en-CA');
+    const br = (s) => s ? String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) : '';
+    const brDt = (v) => v ? new Date(v).toLocaleDateString('pt-BR') : '';
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.replaceChildren();
+      if (!texto) return;
+      const d = document.createElement('div');
+      d.className = tipo;
+      d.textContent = texto;
+      m.appendChild(d);
+      setTimeout(() => m.replaceChildren(), tipo === 'erro' ? 10000 : 4000);
+    }
+    async function api(metodo, url, corpo) {
+      const r = await fetch(url, { method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || 'Erro na operação.');
+      return d;
+    }
+
+    let situacao = 'receber';
+    let seguradoras = [];
+    let dados = null;
+
+    async function carregarSeguradoras() {
+      seguradoras = (await api('GET', '/api/seguradoras')).seguradoras;
+      const sel = $('fSeg');
+      const antes = sel.value;
+      sel.innerHTML = '<option value="">Todas</option>' + seguradoras.map((s) => '<option value="' + s.id + '">' + esc(s.nome) + '</option>').join('');
+      sel.value = antes;
+    }
+
+    async function carregarLista() {
+      const q = new URLSearchParams({ situacao });
+      if ($('fSeg').value) q.set('seguradora', $('fSeg').value);
+      if ($('fIni').value) q.set('inicio', $('fIni').value);
+      if ($('fFim').value) q.set('fim', $('fFim').value);
+      try {
+        dados = await api('GET', '/api/seguradoras/receber?' + q);
+      } catch (e) { mostrarMensagem(e.message, 'erro'); return; }
+      const r = dados.resumo;
+      const kpi = (rot, val, sub, alerta) => '<div class="nu-kpi' + (alerta ? ' nu-alerta' : '') + '"><div class="nu-kpi-rot">' + rot + '</div><div class="nu-kpi-val">' + val + '</div><div class="nu-kpi-sub">' + sub + '</div></div>';
+      $('kpis').innerHTML =
+        kpi('A receber', moeda(r.aReceber), r.osAReceber + ' OS esperando a seguradora pagar') +
+        kpi('Há mais de 30 dias', moeda(r.maisDe30), r.osMaisDe30 ? r.osMaisDe30 + ' OS concluída(s) há mais de 30 dias' : 'nenhuma OS antiga', r.osMaisDe30 > 0) +
+        kpi('Recebido este mês', moeda(r.recebidoMes), r.osRecebidasMes + ' OS paga(s) pelas seguradoras');
+      $('cabImp').textContent = { receber: 'A receber', recebidas: 'Recebidas', todas: 'Todas' }[situacao] +
+        ($('fSeg').value ? ' · ' + $('fSeg').selectedOptions[0].textContent : '') + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      desenharLista();
+    }
+
+    function situacaoHtml(o) {
+      if (o.recebidoEm) return '<span class="sgp-st recebido">Recebido ' + br(o.recebidoEm) + '</span>' + (o.recebidoValor !== o.valor ? '<small>' + moeda(o.recebidoValor) + '</small>' : '');
+      return o.dias > 30 ? '<span class="sgp-st antigo">A receber</span>' : '<span class="sgp-st aberto">A receber</span>';
+    }
+
+    function desenharLista() {
+      const lista = dados.os;
+      if (!lista.length) {
+        $('lista').innerHTML = '<div class="gr-vazio">' + (situacao === 'receber' ? 'Nenhuma OS esperando pagamento de seguradora.' : 'Nenhuma OS encontrada.') + '</div>';
+        return;
+      }
+      const grupos = new Map();
+      for (const o of lista) {
+        if (!grupos.has(o.seguradora)) grupos.set(o.seguradora, []);
+        grupos.get(o.seguradora).push(o);
+      }
+      $('lista').innerHTML = [...grupos.entries()].map(([nome, os]) => {
+        const soma = os.reduce((t, o) => t + (o.recebidoEm ? (o.recebidoValor || 0) : o.valor), 0);
+        const segId = os[0].seguradoraId;
+        return '<div class="sgp-grupo"><div class="sgp-grupo-cab"><h3>' + (segId ? '<a href="/clientes.html?historico=' + segId + '" title="Histórico da seguradora">' + esc(nome) + '</a>' : esc(nome)) + '</h3><span>' + os.length + ' OS · <strong>' + moeda(soma) + '</strong></span></div>' +
+          '<div style="overflow-x:auto"><table class="sgp-tab"><thead><tr><th>OS</th><th>Concluída</th><th>Cliente / carro</th><th>Sinistro</th><th class="num">Valor</th><th>Situação</th><th class="sem-imp"></th></tr></thead><tbody>' +
+          os.map((o) => '<tr><td><a href="/' + (o.tipo === 'externo' ? 'externa' : 'os') + '.html?id=' + o.id + '"><strong>' + esc(o.codigo) + '</strong></a></td>' +
+            '<td>' + brDt(o.dataConclusao) + '<small>há ' + o.dias + ' dia(s)</small></td>' +
+            '<td>' + esc(o.cliente || '—') + '<small>' + esc([o.placa, o.veiculo].filter(Boolean).join(' · ')) + '</small></td>' +
+            '<td>' + esc(o.sinistro || '—') + '</td>' +
+            '<td class="num"><strong>' + moeda(o.valor) + '</strong></td><td>' + situacaoHtml(o) + '</td>' +
+            '<td class="sem-imp num">' + (o.recebidoEm
+              ? '<button type="button" class="btn-mini" data-desfazer="' + o.id + '">Desfazer</button>'
+              : '<button type="button" class="btn-mini sucesso" data-receber="' + o.id + '">Recebido</button>') + '</td></tr>').join('') +
+          '</tbody></table></div></div>';
+      }).join('');
+    }
+
+    let osRec = null;
+    $('lista').addEventListener('click', async (e) => {
+      const rec = e.target.closest('[data-receber]');
+      const desf = e.target.closest('[data-desfazer]');
+      if (rec) {
+        osRec = dados.os.find((o) => o.id === Number(rec.dataset.receber));
+        $('recInfo').innerHTML = 'OS <strong>' + esc(osRec.codigo) + '</strong> · ' + esc(osRec.seguradora) + ' · <strong>' + moeda(osRec.valor) + '</strong>';
+        $('recData').value = iso(new Date());
+        $('recValor').value = osRec.valor.toFixed(2);
+        $('recObs').value = '';
+        $('recDif').textContent = '';
+        $('dlgRecebido').showModal();
+      }
+      if (desf) {
+        const o = dados.os.find((x) => x.id === Number(desf.dataset.desfazer));
+        if (!confirm('Desfazer o recebimento da OS ' + o.codigo + '? Ela volta para "a receber".')) return;
+        try {
+          await api('DELETE', '/api/seguradoras/os/' + o.id + '/recebido');
+          mostrarMensagem('Recebimento desfeito.', 'ok');
+          recarregar();
+        } catch (err) { mostrarMensagem(err.message, 'erro'); }
+      }
+    });
+    $('recValor').addEventListener('input', () => {
+      const dif = Math.round((Number($('recValor').value || 0) - osRec.valor) * 100) / 100;
+      $('recDif').textContent = dif ? (dif < 0 ? 'Veio ' + moeda(-dif) + ' a menos que o valor da OS (franquia?).' : 'Veio ' + moeda(dif) + ' a mais.') : '';
+    });
+    $('btnRecFechar').addEventListener('click', () => $('dlgRecebido').close());
+    $('btnRecOk').addEventListener('click', async () => {
+      try {
+        await api('POST', '/api/seguradoras/os/' + osRec.id + '/recebido', {
+          data: $('recData').value, valor: $('recValor').value, forma: $('recForma').value, obs: $('recObs').value || null,
+        });
+        $('dlgRecebido').close();
+        mostrarMensagem('Recebimento da OS ' + osRec.codigo + ' registrado.', 'ok');
+        recarregar();
+      } catch (err) { mostrarMensagem(err.message, 'erro'); }
+    });
+
+    $('situacao').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-s]');
+      if (!b) return;
+      situacao = b.dataset.s;
+      document.querySelectorAll('#situacao button').forEach((x) => x.classList.toggle('ativo', x === b));
+      carregarLista();
+    });
+    ['fSeg', 'fIni', 'fFim'].forEach((id) => $(id).addEventListener('change', carregarLista));
+    $('btnPdf').addEventListener('click', () => Exportar.pdf('Seguradoras ' + iso(new Date())));
+    $('btnPlanilha').addEventListener('click', () => {
+      if (!dados) return;
+      Exportar.planilha('Seguradoras ' + iso(new Date()), [
+        { titulo: 'Seguradoras · ' + $('cabImp').textContent },
+        { titulo: 'OS', colunas: ['Seguradora', 'OS', 'Concluída', 'Cliente', 'Placa', 'Sinistro', 'Valor (R$)', 'Recebido em', 'Valor recebido (R$)', 'Forma'],
+          linhas: dados.os.map((o) => [o.seguradora, o.codigo, brDt(o.dataConclusao), o.cliente || '', o.placa || '', o.sinistro || '', o.valor,
+            br(o.recebidoEm), o.recebidoValor, o.recebidoForma || '']) },
+        { titulo: 'A receber por seguradora', colunas: ['Seguradora', 'OS', 'A receber (R$)'], linhas: seguradoras.map((s) => [s.nome, s.osAReceber, s.aReceber]) },
+      ]);
+    });
+
+    async function recarregar() {
+      try { await carregarSeguradoras(); } catch (e) { mostrarMensagem(e.message, 'erro'); }
+      await carregarLista();
+    }
+    recarregar();
+  </script>
+</body>
+</html>

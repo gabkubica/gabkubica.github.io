@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedido de compra - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <style>
+    .pc-topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .pc-topo h2 { margin: 0; font-size: 22px; }
+    .pc-lista { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .pc-lista th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); }
+    .pc-lista td { padding: 8px 6px; border-bottom: 1px solid var(--borda); }
+    .pc-lista tr.pc-linha { cursor: pointer; }
+    .pc-lista tr.pc-linha:hover td { background: var(--tabela-hover); }
+    .pc-lista tr.pc-atual td { background: var(--ct-sel, #e3ebf5); }
+    .pc-st { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+    .pc-st.rascunho { background: #fdf3e0; color: #8a5a12; }
+    .pc-st.enviado { background: #e9f7ee; color: #14532d; }
+    [data-tema="escuro"] .pc-st.rascunho { background: #3a2f1a; color: #e0c07a; }
+    [data-tema="escuro"] .pc-st.enviado { background: #16301f; color: #7fd6a1; }
+    .pc-grade { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; }
+    .pc-grade label, .pc-bloco label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    .pc-bloco { margin-top: 14px; padding: 12px; border: 1px dashed var(--input-borda); border-radius: 10px; }
+    .pc-linha-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .pc-busca { position: relative; flex: 1 1 260px; }
+    .pc-sug { position: absolute; left: 0; right: 0; z-index: 10; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.15); max-height: 280px; overflow: auto; }
+    .pc-sug button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--texto); padding: 7px 10px; cursor: pointer; font-size: 13px; }
+    .pc-sug button:hover { background: var(--tabela-hover); }
+    .pc-sug small { color: var(--texto-suave); }
+    .pc-itens { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    .pc-itens th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
+    .pc-itens td { padding: 6px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+    .pc-itens input { width: 100%; font-size: 13px; padding: 5px 6px; }
+    .pc-itens .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pc-itens small { color: var(--texto-suave); display: block; }
+    .pc-itens .pc-qtd { width: 70px; }
+    .pc-itens .pc-custo { width: 100px; }
+    .pc-rodape { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+    .pc-rodape .pc-espaco { flex: 1; }
+    .pc-total { font-size: 14px; margin-top: 8px; text-align: right; }
+    .pc-vazio { padding: 18px; text-align: center; color: var(--texto-suave); }
+    @media (max-width: 760px) { .pc-grade { grid-template-columns: minmax(0, 1fr); } .pc-col-est { display: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>PEDIDO DE COMPRA</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Pedido de compra: puxa as peças abaixo do mínimo (por marca), deixa
+       mexer na lista e manda para o vendedor (PDF + e-mail pronto).
+       Servidor: src/routes/pedidos.js. Só gerente. -->
+  <main class="os-main" style="max-width:1150px">
+    <div class="pc-topo">
+      <a href="/itens.html" class="btn-voltar">← Itens</a>
+      <h2>Pedido de compra</h2>
+      <span style="flex:1"></span>
+      <button type="button" class="sucesso" id="btnNovo">+ Novo pedido</button>
+    </div>
+    <div id="mensagens"></div>
+
+    <div class="os-secao" id="secEditor" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0" id="edTitulo">Novo pedido</h2>
+        <span id="edStatus"></span>
+      </div>
+
+      <div class="pc-grade" style="margin-top:12px">
+        <label>Vendedor (da agenda de Contatos)
+          <select id="edContato"><option value="">— escolher —</option></select>
+        </label>
+        <label>Fornecedor (como sai no pedido)
+          <input type="text" id="edFornecedor" maxlength="160" placeholder="Ex.: Saint-Gobain Sekurit">
+        </label>
+        <label>E-mail do vendedor
+          <input type="email" id="edEmail" maxlength="160" placeholder="vendedor@empresa.com.br">
+        </label>
+      </div>
+
+      <div class="pc-bloco">
+        <div class="pc-linha-acoes">
+          <label style="flex:1 1 240px">Puxar o que está abaixo do mínimo
+            <select id="edMarca"><option value="">Todas as marcas</option></select>
+          </label>
+          <button type="button" class="secundario" id="btnPuxar">Puxar para a lista</button>
+          <div class="pc-busca">
+            <label>Ou adicionar uma peça
+              <input type="text" id="edBusca" autocomplete="off" spellcheck="false" placeholder="Nome, código ou nº da etiqueta">
+            </label>
+            <div class="pc-sug" id="edSug" hidden></div>
+          </div>
+          <button type="button" class="secundario" id="btnLivre" title="Peça que ainda não está cadastrada">+ Linha livre</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="pc-itens">
+          <thead><tr><th>Código</th><th>Peça</th><th class="pc-col-est">Estoque</th><th>Qtd</th><th>Ref. un. (R$)</th><th class="num">Subtotal</th><th></th></tr></thead>
+          <tbody id="edItens"></tbody>
+        </table>
+      </div>
+      <div class="pc-total" id="edTotal"></div>
+
+      <div class="pc-bloco" style="border-style:solid">
+        <label>Observações (vão no pedido e no e-mail)
+          <textarea id="edObs" maxlength="3000" style="min-height:60px" placeholder="Ex.: entregar até sexta; faturar em 3x"></textarea>
+        </label>
+        <label style="flex-direction:row;align-items:center;gap:8px;font-weight:400;margin-top:8px">
+          <input type="checkbox" id="edPrecos"> Mostrar os valores de referência no PDF (último custo)
+        </label>
+      </div>
+
+      <div class="pc-rodape">
+        <button type="button" class="sucesso" id="btnSalvar">Salvar</button>
+        <button type="button" class="secundario" id="btnPdf">Ver PDF</button>
+        <button type="button" class="azul" id="btnEml" title="Baixa um e-mail pronto (para, assunto, texto e PDF anexo). Abra o arquivo: o Outlook/e-mail do Windows mostra o rascunho; é só Enviar.">E-mail com PDF anexo</button>
+        <button type="button" class="secundario" id="btnGmail" title="Abre o Gmail com o texto pronto e baixa o PDF para você anexar">Abrir no Gmail</button>
+        <span class="pc-espaco"></span>
+        <button type="button" class="secundario" id="btnRascunho" hidden>Voltar para rascunho</button>
+        <button type="button" class="perigo" id="btnExcluir">Excluir</button>
+      </div>
+      <p class="aviso-vazio" style="margin:10px 0 0;font-size:13px">
+        <strong>E-mail com PDF anexo:</strong> baixa um arquivo de e-mail; abra ele (dois cliques) e o Outlook mostra o e-mail pronto, com o PDF anexado. É só conferir e Enviar.
+        <strong>Abrir no Gmail:</strong> abre o Gmail com o texto pronto e baixa o PDF; arraste o PDF para o e-mail.
+      </p>
+    </div>
+
+    <div class="os-secao">
+      <h2>Pedidos</h2>
+      <div style="overflow-x:auto">
+        <table class="pc-lista">
+          <thead><tr><th>Nº</th><th>Fornecedor</th><th>Peças</th><th>Situação</th><th>Atualizado</th></tr></thead>
+          <tbody id="lista"><tr><td colspan="5" class="pc-vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    const moeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.replaceChildren();
+      if (!texto) return;
+      const d = document.createElement('div');
+      d.className = tipo;
+      d.textContent = texto;
+      m.appendChild(d);
+      setTimeout(() => m.replaceChildren(), tipo === 'erro' ? 10000 : 5000);
+    }
+    async function api(metodo, url, corpo) {
+      const r = await fetch(url, { method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || 'Erro na operação.');
+      return d;
+    }
+    function baixar(url) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    let contatos = [];
+    let pedido = null;   // o que está aberto
+    let linhas = [];     // itens na tela
+    let mudou = false;
+
+    // ---------- lista de pedidos ----------
+    async function carregarLista() {
+      const d = await api('GET', '/api/pedidos');
+      $('lista').innerHTML = d.pedidos.length ? d.pedidos.map((p) =>
+        '<tr class="pc-linha' + (pedido && pedido.id === p.id ? ' pc-atual' : '') + '" data-id="' + p.id + '"><td><strong>' + p.id + '</strong></td>' +
+        '<td>' + esc(p.fornecedor || '—') + (p.email ? '<br><small style="color:var(--texto-suave)">' + esc(p.email) + '</small>' : '') + '</td>' +
+        '<td>' + p.itens + ' peça(s) · ' + p.unidades + ' un.</td>' +
+        '<td><span class="pc-st ' + p.status + '">' + (p.status === 'enviado' ? 'Enviado' : 'Rascunho') + '</span></td>' +
+        '<td>' + new Date(p.enviadoEm || p.atualizadoEm).toLocaleDateString('pt-BR') + '</td></tr>').join('')
+        : '<tr><td colspan="5" class="pc-vazio">Nenhum pedido ainda. Aperte "+ Novo pedido".</td></tr>';
+    }
+    $('lista').addEventListener('click', async (e) => {
+      const tr = e.target.closest('[data-id]');
+      if (!tr) return;
+      if (mudou && !confirm('Há mudanças não salvas neste pedido. Abrir outro mesmo assim?')) return;
+      abrir(await api('GET', '/api/pedidos/' + tr.dataset.id));
+    });
+
+    // ---------- editor ----------
+    function abrir(p) {
+      pedido = p;
+      linhas = p ? p.itens.map((i) => ({ ...i })) : [];
+      mudou = false;
+      $('secEditor').hidden = false;
+      $('edTitulo').textContent = p ? 'Pedido nº ' + p.id : 'Novo pedido';
+      $('edStatus').innerHTML = p ? '<span class="pc-st ' + p.status + '">' + (p.status === 'enviado' ? 'Enviado em ' + new Date(p.enviadoEm).toLocaleDateString('pt-BR') : 'Rascunho') + '</span>' : '';
+      $('edContato').value = p && p.contatoId ? String(p.contatoId) : '';
+      $('edFornecedor').value = p ? (p.fornecedor || '') : '';
+      $('edEmail').value = p ? (p.email || '') : '';
+      $('edObs').value = p ? (p.observacoes || '') : '';
+      $('edPrecos').checked = p ? p.mostrarPrecos : false;
+      $('btnExcluir').hidden = !p;
+      $('btnRascunho').hidden = !(p && p.status === 'enviado');
+      desenharItens();
+      carregarLista();
+      $('secEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function desenharItens() {
+      $('edItens').innerHTML = linhas.length ? linhas.map((l, i) =>
+        '<tr data-i="' + i + '"><td>' + (l.itemId ? esc(l.codigo || '') : '<input type="text" data-campo="codigo" value="' + esc(l.codigo || '') + '" placeholder="código" style="width:90px">') + '</td>' +
+        '<td>' + (l.itemId ? esc(l.nome) : '<input type="text" data-campo="nome" value="' + esc(l.nome) + '" placeholder="Descreva a peça">') +
+          (l.marca ? '<small>' + esc(l.marca) + '</small>' : '') + '</td>' +
+        '<td class="pc-col-est">' + (l.estoque !== null && l.estoque !== undefined ? l.estoque + ' <small>mín. ' + l.minimo + (l.aCaminho ? ' · +' + l.aCaminho + ' a caminho' : '') + '</small>' : '<small>não cadastrada</small>') + '</td>' +
+        '<td><input type="number" class="pc-qtd" data-campo="quantidade" min="1" step="1" value="' + l.quantidade + '"></td>' +
+        '<td><input type="number" class="pc-custo" data-campo="custo" min="0" step="0.01" value="' + (l.custo !== null && l.custo !== undefined ? l.custo : '') + '"></td>' +
+        '<td class="num">' + (l.custo ? moeda(l.custo * l.quantidade) : '—') + '</td>' +
+        '<td><button type="button" class="btn-mini perigo" data-tirar="' + i + '" title="Tirar da lista">✕</button></td></tr>').join('')
+        : '<tr><td colspan="7" class="pc-vazio">Lista vazia. Puxe as peças abaixo do mínimo ou adicione uma peça.</td></tr>';
+      const total = linhas.reduce((t, l) => t + (Number(l.custo) || 0) * l.quantidade, 0);
+      const un = linhas.reduce((t, l) => t + l.quantidade, 0);
+      $('edTotal').innerHTML = linhas.length ? linhas.length + ' peça(s) · ' + un + ' unidade(s)' + (total ? ' · referência <strong>' + moeda(total) + '</strong>' : '') : '';
+    }
+    $('edItens').addEventListener('input', (e) => {
+      const tr = e.target.closest('[data-i]');
+      if (!tr || !e.target.dataset.campo) return;
+      const l = linhas[Number(tr.dataset.i)];
+      const c = e.target.dataset.campo;
+      if (c === 'quantidade') l.quantidade = Math.max(1, parseInt(e.target.value, 10) || 1);
+      else if (c === 'custo') l.custo = e.target.value === '' ? null : Number(e.target.value);
+      else l[c] = e.target.value;
+      mudou = true;
+      const sub = tr.querySelector('.num');
+      if (sub) sub.textContent = l.custo ? moeda(l.custo * l.quantidade) : '—';
+      const total = linhas.reduce((t, x) => t + (Number(x.custo) || 0) * x.quantidade, 0);
+      $('edTotal').innerHTML = linhas.length + ' peça(s) · ' + linhas.reduce((t, x) => t + x.quantidade, 0) + ' unidade(s)' + (total ? ' · referência <strong>' + moeda(total) + '</strong>' : '');
+    });
+    $('edItens').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tirar]');
+      if (!b) return;
+      linhas.splice(Number(b.dataset.tirar), 1);
+      mudou = true;
+      desenharItens();
+    });
+    ['edFornecedor', 'edEmail', 'edObs', 'edPrecos'].forEach((id) => $(id).addEventListener('input', () => { mudou = true; }));
+    $('edContato').addEventListener('change', () => {
+      const c = contatos.find((x) => String(x.id) === $('edContato').value);
+      if (c) {
+        $('edFornecedor').value = c.empresa ? c.empresa + (c.nome !== c.empresa ? ' (' + c.nome + ')' : '') : c.nome;
+        if (c.email) $('edEmail').value = c.email;
+        else mostrarMensagem(c.nome + ' não tem e-mail na agenda. Digite o e-mail aqui (ou cadastre em Contatos).', 'aviso');
+        mudou = true;
+      }
+    });
+
+    // Puxar abaixo do mínimo (sem repetir peça que já está na lista)
+    $('btnPuxar').addEventListener('click', async () => {
+      try {
+        const d = await api('GET', '/api/pedidos/sugestao' + ($('edMarca').value ? '?marca=' + encodeURIComponent($('edMarca').value) : ''));
+        let n = 0;
+        for (const s of d.itens) {
+          if (linhas.some((l) => l.itemId === s.itemId)) continue;
+          linhas.push({ itemId: s.itemId, codigo: s.codigo, nome: s.nome, marca: s.marca, quantidade: s.sugestao, custo: s.custo, estoque: s.estoque, minimo: s.minimo, aCaminho: s.aCaminho });
+          n++;
+        }
+        mudou = mudou || n > 0;
+        desenharItens();
+        mostrarMensagem(n ? n + ' peça(s) entraram na lista. A quantidade sugerida completa até o mínimo; mude à vontade.' : 'Nada novo para puxar' + ($('edMarca').value ? ' dessa marca.' : '.'), 'ok');
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+
+    // Adicionar peça pela busca
+    let timerBusca = null;
+    $('edBusca').addEventListener('input', () => {
+      clearTimeout(timerBusca);
+      const q = $('edBusca').value.trim();
+      if (q.length < 2) { $('edSug').hidden = true; return; }
+      timerBusca = setTimeout(async () => {
+        try {
+          const d = await api('GET', '/api/itens?limite=10&q=' + encodeURIComponent(q));
+          const box = $('edSug');
+          box.innerHTML = (d.itens || []).map((i, k) => '<button type="button" data-k="' + k + '"><strong>' + esc(i.nome) + '</strong> <small>' + esc([i.codigo, i.marca, 'estoque ' + i.estoque].filter(Boolean).join(' · ')) + '</small></button>').join('') ||
+            '<div class="pc-vazio" style="padding:8px">Nada encontrado. Use "+ Linha livre".</div>';
+          box._itens = d.itens || [];
+          box.hidden = false;
+        } catch (e) { /* sem sugestão */ }
+      }, 250);
+    });
+    $('edSug').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-k]');
+      if (!b) return;
+      const i = $('edSug')._itens[Number(b.dataset.k)];
+      const ja = linhas.find((l) => l.itemId === i.id);
+      if (ja) { ja.quantidade += 1; }
+      else linhas.push({ itemId: i.id, codigo: i.codigo, nome: i.nome, marca: i.marca, quantidade: 1, custo: i.ultimo_custo || i.custo_medio || i.preco_custo || null, estoque: i.estoque, minimo: i.estoque_minimo, aCaminho: i.a_caminho || 0 });
+      mudou = true;
+      $('edBusca').value = '';
+      $('edSug').hidden = true;
+      desenharItens();
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.pc-busca')) $('edSug').hidden = true; });
+    $('btnLivre').addEventListener('click', () => {
+      linhas.push({ itemId: null, codigo: '', nome: '', marca: null, quantidade: 1, custo: null, estoque: null });
+      mudou = true;
+      desenharItens();
+      const ins = $('edItens').querySelectorAll('input[data-campo="nome"]');
+      if (ins.length) ins[ins.length - 1].focus();
+    });
+
+    // ---------- salvar e enviar ----------
+    async function salvar(silencioso) {
+      const corpo = {
+        contato_id: $('edContato').value || null, fornecedor: $('edFornecedor').value, email: $('edEmail').value,
+        observacoes: $('edObs').value, mostrar_precos: $('edPrecos').checked,
+        itens: linhas.map((l) => ({ item_id: l.itemId, codigo: l.codigo, nome: l.nome, marca: l.marca, quantidade: l.quantidade, custo: l.custo })),
+      };
+      const salvo = await api(pedido ? 'PUT' : 'POST', '/api/pedidos' + (pedido ? '/' + pedido.id : ''), corpo);
+      const id = salvo.id;
+      pedido = salvo;
+      mudou = false;
+      if (!silencioso) mostrarMensagem('Pedido nº ' + id + ' salvo.', 'ok');
+      abrir(salvo);
+      return salvo;
+    }
+    async function prontoParaEnviar() {
+      if (!linhas.length) { mostrarMensagem('A lista está vazia.', 'erro'); return null; }
+      const p = await salvar(true);
+      return p;
+    }
+    async function marcarEnviado() {
+      abrir(await api('POST', '/api/pedidos/' + pedido.id + '/enviado', { enviado: true }));
+    }
+    $('btnSalvar').addEventListener('click', async () => { try { await salvar(); } catch (e) { mostrarMensagem(e.message, 'erro'); } });
+    $('btnPdf').addEventListener('click', async () => {
+      try { const p = await prontoParaEnviar(); if (p) window.open('/api/pedidos/' + p.id + '/pdf', '_blank'); } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnEml').addEventListener('click', async () => {
+      try {
+        const p = await prontoParaEnviar();
+        if (!p) return;
+        if (!p.email && !confirm('O pedido está sem e-mail do vendedor. Baixar mesmo assim? (você digita o e-mail no Outlook)')) return;
+        baixar('/api/pedidos/' + p.id + '/email.eml');
+        await marcarEnviado();
+        mostrarMensagem('E-mail baixado. Abra o arquivo "Pedido-de-compra-' + p.id + '.eml" (na pasta Downloads): o Outlook mostra o e-mail pronto com o PDF. Confira e aperte Enviar.', 'ok');
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnGmail').addEventListener('click', async () => {
+      try {
+        const p = await prontoParaEnviar();
+        if (!p) return;
+        const t = await api('GET', '/api/pedidos/' + p.id + '/texto');
+        let corpo = t.corpo.replace(/\r\n/g, '\n');
+        if (corpo.length > 1800) corpo = corpo.slice(0, 1700) + '\n...\n(lista completa no PDF anexo)';
+        const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(p.email || '') + '&su=' + encodeURIComponent(t.assunto) + '&body=' + encodeURIComponent(corpo);
+        baixar('/api/pedidos/' + p.id + '/pdf?baixar=1');
+        window.open(url, '_blank');
+        await marcarEnviado();
+        mostrarMensagem('O PDF foi baixado: arraste "Pedido-de-compra-' + p.id + '.pdf" (pasta Downloads) para o e-mail do Gmail antes de enviar.', 'ok');
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnRascunho').addEventListener('click', async () => {
+      try { abrir(await api('POST', '/api/pedidos/' + pedido.id + '/enviado', { enviado: false })); } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnExcluir').addEventListener('click', async () => {
+      if (!pedido || !confirm('Excluir o pedido nº ' + pedido.id + '?')) return;
+      try {
+        await api('DELETE', '/api/pedidos/' + pedido.id);
+        pedido = null;
+        $('secEditor').hidden = true;
+        mostrarMensagem('Pedido excluído.', 'ok');
+        carregarLista();
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnNovo').addEventListener('click', () => {
+      if (mudou && !confirm('Há mudanças não salvas neste pedido. Começar outro mesmo assim?')) return;
+      abrir(null);
+    });
+    window.addEventListener('beforeunload', (e) => { if (mudou) { e.preventDefault(); e.returnValue = ''; } });
+
+    // ---------- início ----------
+    async function iniciar() {
+      try {
+        const [c, m] = await Promise.all([api('GET', '/api/contatos'), api('GET', '/api/pedidos/marcas')]);
+        contatos = c.contatos;
+        $('edContato').innerHTML = '<option value="">— escolher —</option>' + contatos
+          .sort((a, b) => (b.email ? 1 : 0) - (a.email ? 1 : 0) || a.nome.localeCompare(b.nome, 'pt-BR'))
+          .map((x) => '<option value="' + x.id + '">' + esc(x.nome) + (x.empresa && x.empresa !== x.nome ? ' · ' + esc(x.empresa) : '') + (x.email ? '' : ' (sem e-mail)') + '</option>').join('');
+        $('edMarca').innerHTML = '<option value="">Todas as marcas (' + m.marcas.reduce((t, x) => t + x.quantidade, 0) + ')</option>' +
+          m.marcas.map((x) => '<option value="' + esc(x.marca) + '">' + esc(x.marca) + ' (' + x.quantidade + ')</option>').join('');
+        await carregarLista();
+        const id = new URLSearchParams(location.search).get('id');
+        if (id) abrir(await api('GET', '/api/pedidos/' + id));
+        else {
+          const marca = new URLSearchParams(location.search).get('marca');
+          if (marca !== null) { abrir(null); $('edMarca').value = marca; $('btnPuxar').click(); }
+        }
+      } catch (e) {
+        // Fora do Modo Gerenciador o servidor recusa; a página mostra o aviso.
+      }
+    }
+    iniciar();
+  </script>
+</body>
+</html>

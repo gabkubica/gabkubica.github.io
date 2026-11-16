@@ -29,6 +29,7 @@
       <a class="aba" href="/carros.html">Carros</a>
       <a class="aba" href="/funcionarios.html">Funcionários</a>
       <a class="aba" href="/usuarios.html">Usuários</a>
+      <a class="aba" href="/seguradoras.html">Seguradoras</a>
     </div>
 
     <!-- Histórico do cliente: OS, vendas de balcão e serviços externos,
@@ -63,6 +64,7 @@
         <input type="text" id="busca" class="busca" placeholder="Buscar por nome, CPF/CNPJ ou telefone...">
         <button id="btnBuscar">Buscar</button>
         <button id="btnLimpar" class="secundario">Limpar</button>
+        <button id="btnSoSeguradoras" class="secundario" type="button" title="Mostrar só os clientes marcados como seguradora">Só seguradoras</button>
         <button id="btnNovo" class="sucesso">Novo cliente</button>
       </div>
       <div id="mensagens"></div>
@@ -99,6 +101,11 @@
         <div>
           <label for="email">E-mail</label>
           <input type="text" id="email" autocomplete="off">
+        </div>
+        <div style="grid-column: 1 / -1">
+          <label style="display:inline-flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
+            <input type="checkbox" id="ehSeguradora"> <span><strong>É seguradora</strong> (paga serviços por seguro; aparece para escolher na OS)</span>
+          </label>
         </div>
       </div>
       <div id="secaoCarros" style="margin:14px 0">
@@ -199,9 +206,12 @@
       return valor;
     }
 
+    let soSeguradoras = false;
     async function carregarClientes(q) {
       let url = '/api/clientes';
-      if (q) {
+      if (soSeguradoras) {
+        url += '?seguradoras=1';
+      } else if (q) {
         url += '?q=' + encodeURIComponent(q);
       }
       let resp;
@@ -234,7 +244,7 @@
       }
       tbody.innerHTML = clientes.map(c => `
         <tr>
-          <td>${escapeHtml(c.nome_razao_social)}</td>
+          <td>${escapeHtml(c.nome_razao_social)}${c.seguradora ? ' <span class="tag-seguradora">Seguradora</span>' : ''}</td>
           <td>${escapeHtml(formatarCpfCnpj(c.cpf_cnpj))}</td>
           <td>${escapeHtml(c.telefone || '')}</td>
           <td>${escapeHtml(c.email || '')}</td>
@@ -317,7 +327,7 @@
         return `
         <tr>
           <td><strong>${escapeHtml(d.codigo)}</strong></td>
-          <td>${t.nome}${d.so_nome ? ' <span class="tag-so-nome" title="Feito só com o nome digitado (' + escapeHtml(d.cliente_nome) + '), sem escolher o cadastro">só nome</span>' : ''}</td>
+          <td>${t.nome}${d.via_seguro ? ' <span class="tag-seguradora" title="OS de outro cliente, paga por esta seguradora">seguro</span>' : ''}${d.so_nome ? ' <span class="tag-so-nome" title="Feito só com o nome digitado (' + escapeHtml(d.cliente_nome) + '), sem escolher o cadastro">só nome</span>' : ''}</td>
           <td>${formatarData(d.data_abertura)}</td>
           <td>${escapeHtml(d.placa || '—')}</td>
           <td><span class="status-os ${escapeHtml(d.status)}">${escapeHtml(ROTULO_STATUS[d.status] || d.status)}</span></td>
@@ -365,6 +375,7 @@
       document.getElementById('cpfCnpj').value = cliente ? (cliente.cpf_cnpj || '') : '';
       document.getElementById('telefone').value = cliente ? (cliente.telefone || '') : '';
       document.getElementById('email').value = cliente ? (cliente.email || '') : '';
+      document.getElementById('ehSeguradora').checked = !!(cliente && cliente.seguradora);
       carrosPendentes = [];
       renderCarrosPendentes();
       document.getElementById('secaoCarros').classList.toggle('oculto', !!cliente);
@@ -397,6 +408,7 @@
         cpf_cnpj: document.getElementById('cpfCnpj').value,
         telefone: document.getElementById('telefone').value,
         email: document.getElementById('email').value,
+        seguradora: document.getElementById('ehSeguradora').checked,
       };
 
       if (!dados.nome_razao_social.trim()) {
@@ -456,6 +468,13 @@
       fecharFormulario();
       carregarClientes(document.getElementById('busca').value.trim() || null);
     }
+
+    document.getElementById('btnSoSeguradoras').addEventListener('click', (e) => {
+      soSeguradoras = !soSeguradoras;
+      e.currentTarget.classList.toggle('ativo-filtro', soSeguradoras);
+      e.currentTarget.textContent = soSeguradoras ? 'Mostrar todos' : 'Só seguradoras';
+      carregarClientes(document.getElementById('busca').value.trim());
+    });
 
     document.getElementById('btnBuscar').addEventListener('click', () => {
       carregarClientes(document.getElementById('busca').value.trim() || null);

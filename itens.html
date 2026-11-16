@@ -36,6 +36,7 @@
         <button id="btnColunas" class="secundario" type="button" title="Mostrar/ocultar colunas e ajustar larguras">Gerenciar visualização</button>
         <button id="btnNovo" class="sucesso">Novo Produto</button>
         <a href="/entrada-estoque.html" class="secundario" title="Peças dos boletos aguardando entrada no estoque">Entrada de estoque</a>
+        <a href="/pedidos.html" class="secundario" title="Pedir ao vendedor as peças abaixo do mínimo">Pedido de compra</a>
         <button id="btnEtiquetas" class="secundario" type="button" title="Lista de etiquetas com QR code para imprimir">Etiquetas QR<span id="contEtiquetas"></span></button>
         <label class="filtro-estoque">
           <input type="checkbox" id="chkEstoqueBaixo"> Abaixo do mínimo
@@ -188,6 +189,14 @@
       <div>
         <label for="estoqueMinimo">Estoque mínimo</label>
         <input type="number" id="estoqueMinimo" min="0" step="1">
+      </div>
+      <div>
+        <label for="garantia">Garantia</label>
+        <select id="garantia">
+          <option value="">— não definida —</option>
+          <option value="3">3 meses</option>
+          <option value="12">1 ano</option>
+        </select>
       </div>
       <div>
         <label for="conferente">Última conferência — funcionário</label>
@@ -574,6 +583,7 @@
       document.getElementById('precoComInstalacao').value = item ? item.preco_com_instalacao : '';
       document.getElementById('localizacao').value = item ? (item.localizacao || '') : '';
       document.getElementById('estoqueMinimo').value = item ? item.estoque_minimo : '';
+      document.getElementById('garantia').value = item && item.garantia_meses ? String(item.garantia_meses) : '';
       document.getElementById('conferente').value = item ? (item.conferente_id || '') : '';
       document.getElementById('dataConferencia').value = item ? paraDataInput(item.data_conferencia) : '';
       document.getElementById('precoCusto').value = item && item.preco_custo !== null && item.preco_custo !== undefined ? item.preco_custo : '';
@@ -1036,6 +1046,7 @@
         preco_com_instalacao: document.getElementById('precoComInstalacao').value,
         localizacao: document.getElementById('localizacao').value,
         estoque_minimo: document.getElementById('estoqueMinimo').value,
+        garantia_meses: document.getElementById('garantia').value,
         conferente_id: document.getElementById('conferente').value,
         data_conferencia: document.getElementById('dataConferencia').value,
         preco_custo: document.getElementById('precoCusto').value,

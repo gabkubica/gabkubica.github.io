@@ -3307,3 +3307,29 @@ a.a-caminho:hover { text-decoration: underline; }
   .nu-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
   .nu-kpi-val { font-size: 18px !important; }
 }
+
+/* Seguro na OS (os.html) */
+.sg-liga { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.sg-linha { display: flex; gap: 6px; }
+.sg-linha select { flex: 1; min-width: 0; }
+.sg-conta { margin-top: 10px; font-size: 14px; padding: 8px 10px; border-radius: 8px; background: var(--tabela-th); }
+.sg-link { font-size: 13px; align-self: center; }
+.aviso-bloco.sg-pendente { border-color: #f59e0b; }
+.aviso-bloco.sg-ok { border-color: #16a34a; }
+
+/* Garantia (os.html) */
+.gar-peca { display: block; font-size: 11px; color: var(--texto-suave); }
+.gar-box { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--borda); background: var(--tabela-th); font-size: 14px; }
+.gar-box.gar-tem { border-color: #16a34a; background: #ecfdf3; }
+[data-tema="escuro"] .gar-box.gar-tem { background: #16301f; border-color: #2c7a4b; }
+.gar-box ul { margin: 6px 0 0; padding-left: 18px; }
+.gar-box li { margin: 2px 0; }
+.gar-box .gar-vencida { color: var(--texto-suave); }
+
+/* Menu "+ Nova OS": a ficha de papel fica separada das opções de abrir OS */
+.atalho-menu a.atalho-separado { border-top: 1px solid var(--borda); }
+
+/* Seguradora (cliente marcado como seguradora) */
+.tag-seguradora { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #e0ecff; color: #1e40af; vertical-align: middle; }
+[data-tema="escuro"] .tag-seguradora { background: #1c2b44; color: #a8c8fb; }
+button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !important; color: #fff !important; }

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comissões - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <script src="/js/graficos.js"></script>
+  <script src="/js/exportar.js"></script>
+  <style>
+    .cm-tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cm-tab th { font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); white-space: nowrap; text-align: right; }
+    .cm-tab th.esq, .cm-tab td.esq { text-align: left; }
+    .cm-tab thead tr:first-child th { text-align: center; border-bottom: 0; color: var(--texto); font-size: 12px; }
+    .cm-tab td { padding: 7px 6px; border-bottom: 1px solid var(--borda); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: middle; }
+    .cm-tab td small { display: block; color: var(--texto-suave); font-size: 11px; }
+    .cm-tab .cm-grupo { border-left: 1px solid var(--borda); }
+    .cm-tab input { width: 62px; text-align: right; font-size: 13px; padding: 4px 6px; }
+    .cm-tab .cm-total { font-weight: 800; font-size: 14px; }
+    .cm-tab tfoot td { font-weight: 800; border-top: 2px solid var(--borda); border-bottom: 0; }
+    .cm-tab tr.cm-ativo td { background: var(--tabela-hover); }
+    .cm-salvo { font-size: 11px; color: #15803d; margin-left: 4px; }
+    .cm-det td, .cm-det th { text-align: left; }
+    .cm-det .num { text-align: right; }
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      .cm-tab input { border: 0; background: none; width: 40px; padding: 0; }
+      .cm-tab a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>COMISSÕES</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Comissões: % de cada funcionário sobre o que vendeu (balcão, peças em
+       OS, mão de obra), no que foi concluído no período.
+       Servidor: src/routes/comissoes.js. Só gerente. -->
+  <main class="os-main nu-main">
+    <div class="nu-topo">
+      <a href="/" class="btn-voltar">← Painel</a>
+      <h2>Comissões</h2>
+      <span class="nu-espaco"></span>
+      <div class="nu-periodo" id="periodo" role="group" aria-label="Período">
+        <button type="button" data-p="mes">Este mês</button>
+        <button type="button" data-p="passado">Mês passado</button>
+      </div>
+      <label class="nu-datas" style="display:inline-flex;gap:6px;align-items:center">de <input type="date" id="fIni"> até <input type="date" id="fFim"></label>
+      <span class="nu-exportar">
+        <button type="button" class="secundario" id="btnPdf">PDF</button>
+        <button type="button" class="secundario" id="btnPlanilha">Planilha</button>
+      </span>
+    </div>
+    <div class="so-imp nu-cab-imp"><strong>Auto Vidros Sport · Comissões</strong><span id="cabImp"></span></div>
+    <div id="mensagens" class="sem-imp"></div>
+
+    <div class="nu-kpis" id="kpis"></div>
+
+    <div class="nu-cartao">
+      <div class="nu-cartao-topo"><div><h3>Comissão de cada funcionário</h3>
+        <p class="nu-explica">Mude o <strong>%</strong> direto na tabela (salva sozinho). A base é o que foi <strong>concluído</strong> no período, pelo responsável de cada peça/serviço; assistente não entra.</p></div></div>
+      <div style="overflow-x:auto">
+        <table class="cm-tab">
+          <thead>
+            <tr><th class="esq"></th><th colspan="3" class="cm-grupo">Venda no balcão</th><th colspan="3" class="cm-grupo">Peças em OS</th><th colspan="3" class="cm-grupo">Mão de obra</th><th class="cm-grupo"></th><th class="sem-imp"></th></tr>
+            <tr><th class="esq">Funcionário</th>
+              <th class="cm-grupo">Vendido</th><th>%</th><th>Comissão</th>
+              <th class="cm-grupo">Vendido</th><th>%</th><th>Comissão</th>
+              <th class="cm-grupo">Feito</th><th>%</th><th>Comissão</th>
+              <th class="cm-grupo">Total</th><th class="sem-imp"></th></tr>
+          </thead>
+          <tbody id="corpo"><tr><td colspan="12" class="esq aviso-vazio">Carregando...</td></tr></tbody>
+          <tfoot id="rodape"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="nu-grade" style="margin-top:14px">
+      <div class="nu-cartao"><h3>Comissão por funcionário</h3><p class="nu-explica">De onde vem a comissão de cada um.</p><div id="gComissao"></div></div>
+      <div class="nu-cartao" id="cartaoDet"><h3 id="detTitulo">Detalhe</h3><p class="nu-explica" id="detExplica">Aperte "Ver" num funcionário para ver OS por OS (para conferir com ele).</p><div id="det"></div></div>
+    </div>
+  </main>
+
+  <script>
+    const G = Graficos;
+    const moeda = G.moeda;
+    const $ = (id) => document.getElementById(id);
+    const iso = (d) => d.toLocaleDateString('en-CA');
+    const br = (s) => s ? String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) : '';
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.replaceChildren();
+      if (!texto) return;
+      const d = document.createElement('div');
+      d.className = tipo;
+      d.textContent = texto;
+      m.appendChild(d);
+      setTimeout(() => m.replaceChildren(), 6000);
+    }
+    async function api(metodo, url, corpo) {
+      const r = await fetch(url, { method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || 'Erro na operação.');
+      return d;
+    }
+    const pct = (n) => String(Number(n || 0)).replace('.', ',');
+
+    let dados = null;
+    let detalheId = null;
+
+    function periodoAtalho(p) {
+      const h = new Date(), y = h.getFullYear(), m = h.getMonth();
+      return p === 'passado' ? [new Date(y, m - 1, 1), new Date(y, m, 0)] : [new Date(y, m, 1), h];
+    }
+    function marcarAtalho() {
+      document.querySelectorAll('#periodo button').forEach((b) => {
+        const [i, f] = periodoAtalho(b.dataset.p);
+        b.classList.toggle('ativo', iso(i) === $('fIni').value && iso(f) === $('fFim').value);
+      });
+    }
+
+    async function carregar() {
+      marcarAtalho();
+      try {
+        dados = await api('GET', '/api/comissoes?inicio=' + $('fIni').value + '&fim=' + $('fFim').value);
+      } catch (e) {
+        if (window.Gerente && !Gerente.ativo()) return;
+        mostrarMensagem(e.message, 'erro');
+        return;
+      }
+      const t = dados.totais;
+      $('cabImp').textContent = 'Período: ' + br(dados.inicio) + ' a ' + br(dados.fim) + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      const kpi = (rot, val, sub) => '<div class="nu-kpi"><div class="nu-kpi-rot">' + rot + '</div><div class="nu-kpi-val">' + val + '</div><div class="nu-kpi-sub">' + sub + '</div></div>';
+      $('kpis').innerHTML =
+        kpi('Total de comissões', moeda(t.comissao), 'a pagar no período') +
+        kpi('Vendido no balcão', moeda(t.balcao), 'peças das vendas no balcão') +
+        kpi('Peças em OS', moeda(t.pecas), 'OS e serviços externos') +
+        kpi('Mão de obra', moeda(t.servicos), 'serviços feitos');
+      desenharTabela();
+      G.empilhado($('gComissao'), {
+        series: [{ nome: 'Balcão', cor: 4 }, { nome: 'Peças em OS', cor: 1 }, { nome: 'Mão de obra', cor: 3 }],
+        itens: dados.funcionarios.filter((f) => f.totalComissao > 0).sort((a, b) => b.totalComissao - a.totalComissao)
+          .map((f) => ({ nome: f.nome, sub: f.cargo, partes: [f.comissao.balcao, f.comissao.pecas, f.comissao.servicos] })),
+        formato: 'moeda', vazio: 'Ninguém tem comissão no período (veja se os % estão preenchidos).',
+      });
+      if (detalheId) verDetalhe(detalheId);
+    }
+
+    function desenharTabela() {
+      const fs = dados.funcionarios;
+      const cel = (f, k, rotulo) =>
+        '<td class="cm-grupo">' + moeda(f.base[k]) + (k === 'balcao' && f.vendasBalcao ? '<small>' + f.vendasBalcao + ' venda(s)</small>' : '') + (k === 'servicos' && f.servicosFeitos ? '<small>' + f.servicosFeitos + ' serviço(s)</small>' : '') + '</td>' +
+        '<td><input type="number" min="0" max="100" step="0.5" data-f="' + f.id + '" data-k="' + k + '" value="' + f.percentuais[k] + '" aria-label="% ' + rotulo + ' de ' + esc(f.nome) + '"></td>' +
+        '<td>' + moeda(f.comissao[k]) + '</td>';
+      $('corpo').innerHTML = fs.length ? fs.map((f) =>
+        '<tr data-linha="' + f.id + '" class="' + (detalheId === f.id ? 'cm-ativo' : '') + '"><td class="esq"><strong>' + esc(f.nome) + '</strong><small>' + esc(f.cargo || '') + (f.ativo ? '' : ' · inativo') + '</small></td>' +
+        cel(f, 'balcao', 'balcão') + cel(f, 'pecas', 'peças em OS') + cel(f, 'servicos', 'mão de obra') +
+        '<td class="cm-grupo cm-total">' + moeda(f.totalComissao) + '</td>' +
+        '<td class="sem-imp"><button type="button" class="btn-mini" data-ver="' + f.id + '">Ver</button></td></tr>').join('')
+        : '<tr><td colspan="12" class="esq aviso-vazio">Nenhum funcionário.</td></tr>';
+      const t = dados.totais;
+      $('rodape').innerHTML = '<tr><td class="esq">Total</td><td class="cm-grupo">' + moeda(t.balcao) + '</td><td></td><td>' + moeda(fs.reduce((s, f) => s + f.comissao.balcao, 0)) +
+        '</td><td class="cm-grupo">' + moeda(t.pecas) + '</td><td></td><td>' + moeda(fs.reduce((s, f) => s + f.comissao.pecas, 0)) +
+        '</td><td class="cm-grupo">' + moeda(t.servicos) + '</td><td></td><td>' + moeda(fs.reduce((s, f) => s + f.comissao.servicos, 0)) +
+        '</td><td class="cm-grupo cm-total">' + moeda(t.comissao) + '</td><td class="sem-imp"></td></tr>';
+    }
+
+    // Mudou um %: salva os 3 % daquela pessoa e recalcula.
+    let timer = null;
+    $('corpo').addEventListener('input', (e) => {
+      const inp = e.target.closest('input[data-f]');
+      if (!inp) return;
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const id = inp.dataset.f;
+        const linha = $('corpo').querySelector('[data-linha="' + id + '"]');
+        const val = (k) => linha.querySelector('input[data-k="' + k + '"]').value;
+        try {
+          await api('PUT', '/api/comissoes/percentuais/' + id, { balcao: val('balcao'), pecas: val('pecas'), servicos: val('servicos') });
+          const foco = document.activeElement && document.activeElement.dataset ? [document.activeElement.dataset.f, document.activeElement.dataset.k] : null;
+          await carregar();
+          if (foco && foco[0]) {
+            const el = $('corpo').querySelector('input[data-f="' + foco[0] + '"][data-k="' + foco[1] + '"]');
+            if (el) { el.focus(); el.insertAdjacentHTML('afterend', '<span class="cm-salvo">salvo</span>'); }
+          }
+        } catch (err) { mostrarMensagem(err.message, 'erro'); }
+      }, 700);
+    });
+    $('corpo').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ver]');
+      if (b) verDetalhe(Number(b.dataset.ver));
+    });
+
+    async function verDetalhe(id) {
+      detalheId = id;
+      document.querySelectorAll('#corpo tr').forEach((tr) => tr.classList.toggle('cm-ativo', Number(tr.dataset.linha) === id));
+      try {
+        const d = await api('GET', '/api/comissoes/funcionario/' + id + '?inicio=' + $('fIni').value + '&fim=' + $('fFim').value);
+        const p = d.funcionario.percentuais;
+        $('detTitulo').textContent = 'Detalhe · ' + d.funcionario.nome;
+        $('detExplica').textContent = 'Balcão ' + pct(p.balcao) + '% · peças em OS ' + pct(p.pecas) + '% · mão de obra ' + pct(p.servicos) + '%';
+        const total = d.documentos.reduce((t, x) => t + x.comissao, 0);
+        $('det').innerHTML = d.documentos.length ? '<div style="overflow-x:auto;max-height:420px"><table class="cm-tab cm-det"><thead><tr><th>Documento</th><th>Data</th><th>Cliente</th><th class="num">Peças</th><th class="num">Mão de obra</th><th class="num">Comissão</th></tr></thead><tbody>' +
+          d.documentos.map((x) => '<tr><td><a href="/' + (x.vendaBalcaoId ? 'venda.html?id=' + x.vendaBalcaoId : (x.tipo === 'Externo' ? 'externa' : 'os') + '.html?id=' + x.id) + '">' + esc(x.codigo) + '</a><small>' + x.tipo + '</small></td>' +
+            '<td>' + new Date(x.dataConclusao).toLocaleDateString('pt-BR') + '</td><td>' + esc(x.cliente || '—') + '</td>' +
+            '<td class="num">' + (x.pecas ? moeda(x.pecas) : '—') + '</td><td class="num">' + (x.servicos ? moeda(x.servicos) : '—') + '</td><td class="num"><strong>' + moeda(x.comissao) + '</strong></td></tr>').join('') +
+          '</tbody><tfoot><tr><td colspan="5">Total</td><td class="num">' + moeda(total) + '</td></tr></tfoot></table></div>'
+          : '<div class="gr-vazio">Nada concluído por ' + esc(d.funcionario.nome) + ' no período.</div>';
+        detalheAtual = d;
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    }
+    let detalheAtual = null;
+
+    $('periodo').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-p]');
+      if (!b) return;
+      const [i, f] = periodoAtalho(b.dataset.p);
+      $('fIni').value = iso(i);
+      $('fFim').value = iso(f);
+      carregar();
+    });
+    ['fIni', 'fFim'].forEach((id) => $(id).addEventListener('change', carregar));
+    $('btnPdf').addEventListener('click', () => { G.redesenhar(); Exportar.pdf('Comissões ' + $('fIni').value + ' a ' + $('fFim').value); });
+    $('btnPlanilha').addEventListener('click', () => {
+      if (!dados) return;
+      const secoes = [
+        { titulo: 'Comissões · ' + $('cabImp').textContent },
+        { titulo: 'Por funcionário', colunas: ['Funcionário', 'Cargo', 'Balcão vendido (R$)', 'Balcão %', 'Balcão comissão (R$)', 'Peças OS (R$)', 'Peças %', 'Peças comissão (R$)', 'Mão de obra (R$)', 'Mão de obra %', 'Mão de obra comissão (R$)', 'Total comissão (R$)'],
+          linhas: dados.funcionarios.map((f) => [f.nome, f.cargo || '', f.base.balcao, f.percentuais.balcao, f.comissao.balcao, f.base.pecas, f.percentuais.pecas, f.comissao.pecas, f.base.servicos, f.percentuais.servicos, f.comissao.servicos, f.totalComissao]) },
+      ];
+      if (detalheAtual) {
+        secoes.push({ titulo: 'Detalhe · ' + detalheAtual.funcionario.nome, colunas: ['Documento', 'Tipo', 'Data', 'Cliente', 'Peças (R$)', 'Mão de obra (R$)', 'Comissão (R$)'],
+          linhas: detalheAtual.documentos.map((x) => [x.codigo, x.tipo, new Date(x.dataConclusao).toLocaleDateString('pt-BR'), x.cliente || '', x.pecas, x.servicos, x.comissao]) });
+      }
+      Exportar.planilha('Comissões ' + $('fIni').value + ' a ' + $('fFim').value, secoes);
+    });
+
+    const [i0, f0] = periodoAtalho('mes');
+    $('fIni').value = iso(i0);
+    $('fFim').value = iso(f0);
+    carregar();
+  </script>
+</body>
+</html>
