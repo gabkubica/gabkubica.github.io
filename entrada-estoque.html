@@ -31,6 +31,38 @@
       <a href="/" class="btn-voltar">← Painel</a>
       <a href="/fluxo.html" class="secundario">Como funciona</a>
       <button type="button" class="secundario" id="btnImprimirTudo">Imprimir tudo (papel)</button>
+      <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque</button>
+    </div>
+
+    <!-- Duas listas na mesma tela: peças dos boletos / contagens para o gerente aprovar -->
+    <div class="nu-periodo sem-imp cf-abas" id="abas" role="tablist" style="margin-bottom:12px">
+      <button type="button" class="ativo" data-aba="boletos">Peças dos boletos <span id="contAbaBoletos"></span></button>
+      <button type="button" data-aba="aprovar">Conferências para aprovar <span id="contAbaAprovar" class="cf-cont"></span></button>
+    </div>
+
+    <div id="mensagens" class="sem-imp"></div>
+
+    <!-- Conferências para aprovar (gerente). Servidor: src/routes/conferencia-estoque.js -->
+    <div id="areaAprovar" class="sem-imp" hidden>
+      <div class="os-secao">
+        <h2>Conferências para aprovar</h2>
+        <p class="aviso-vazio" style="margin-top:0">
+          Contagens feitas na <strong>Conferência de estoque</strong>. O estoque só muda quando o gerente aprova.
+          <strong>Fica com</strong> = saldo de agora corrigido pela diferença da contagem (o que vendeu ou entrou depois de contar continua valendo).
+        </p>
+        <div class="cf-barra">
+          <label class="cf-todas"><input type="checkbox" id="cfTodas"> Todas</label>
+          <button type="button" class="sucesso" id="cfAprovar" data-trava-gerente>Aprovar marcadas</button>
+          <button type="button" class="secundario" id="cfReconferir" data-trava-gerente>Contar de novo</button>
+          <button type="button" class="perigo" id="cfCancelar" data-trava-gerente>Cancelar marcadas</button>
+        </div>
+        <div id="cfLista"><p class="aviso-vazio">Carregando...</p></div>
+      </div>
+      <div class="os-secao" id="cfReconferirBox" hidden>
+        <h2>Esperando nova contagem</h2>
+        <p class="aviso-vazio" style="margin-top:0">O gerente pediu para contar de novo. Aparecem para o funcionário na Conferência de estoque.</p>
+        <div id="cfReconferirLista"></div>
+      </div>
     </div>
 
     <!-- Só no papel -->
@@ -39,6 +71,7 @@
       <span>Impresso em <span id="dataImpressao"></span></span>
     </div>
 
+    <div id="areaBoletos">
     <div class="os-secao sem-imp">
       <h2>Peças aguardando entrada <span id="cont" class="er-cont"></span></h2>
       <p class="aviso-vazio" style="margin-top:0">
@@ -56,9 +89,51 @@
       </div>
     </div>
 
-    <div id="mensagens" class="sem-imp"></div>
     <div id="lista"><p class="aviso-vazio">Carregando...</p></div>
+    </div>
   </main>
+
+  <!-- Conferência de estoque: contar uma peça e mandar para o gerente aprovar -->
+  <dialog id="dialogConf" class="dialog-tipos en-dialog cf-dialog">
+    <h3>Conferência de estoque</h3>
+    <p class="en-ajuda" style="margin:2px 0 0">Bipe a etiqueta (ou digite o nº, o código ou o nome), conte quantas tem e diga o local.
+      O estoque só muda quando o gerente aprovar.</p>
+    <p class="en-ajuda" id="cfQuemTexto" style="margin:6px 0 0"></p>
+
+    <div id="cfPedidos"></div>
+
+    <label class="en-campo">Peça
+      <span class="cf-busca">
+        <input type="text" id="cfBusca" autocomplete="off" spellcheck="false" placeholder="Nº da etiqueta, código ou nome">
+        <button type="button" class="secundario" id="cfBuscar">Buscar</button>
+        <button type="button" class="secundario" id="cfCamera" hidden title="Ler o QR Code com a câmera">Câmera</button>
+      </span>
+    </label>
+    <video id="cfVideo" class="cf-video" playsinline muted hidden></video>
+    <div id="cfOpcoes"></div>
+
+    <div id="cfPeca" hidden>
+      <div id="cfPecaInfo" class="cf-peca"></div>
+      <label class="en-campo">Quantas tem?
+        <input type="number" id="cfContado" min="0" step="1" inputmode="numeric">
+        <span class="en-ajuda">Conte todas as unidades desta peça (todas as prateleiras).</span>
+      </label>
+      <label class="en-campo">Local
+        <input type="text" id="cfLocal" class="en-local" maxlength="50" placeholder="Ex.: A-12">
+      </label>
+      <label class="en-campo">Observação <span class="en-ajuda">(opcional)</span>
+        <input type="text" id="cfObs" class="en-local" maxlength="500" style="max-width:100%" placeholder="Ex.: 2 com a borda lascada">
+      </label>
+    </div>
+
+    <div class="dialog-acoes">
+      <button id="cfEnviar" class="sucesso" type="button" disabled>Enviar para aprovação</button>
+      <button id="cfEtiqueta" class="secundario" type="button" disabled title="Imprime 1 etiqueta com QR Code desta peça">Imprimir etiqueta QR</button>
+      <a id="cfNovoItem" class="secundario" href="/itens.html?novo=1" target="_blank" title="Peça que não está cadastrada: cadastre e depois bipe aqui">Cadastrar item novo</a>
+      <button id="cfFechar" class="secundario" type="button">Fechar</button>
+    </div>
+    <div id="cfFeitas" class="en-ajuda"></div>
+  </dialog>
 
   <dialog id="dialogEntrada" class="dialog-tipos en-dialog">
     <h3>Dar entrada</h3>
@@ -141,6 +216,7 @@
         if (!r.ok) throw new Error(d.erro || 'Erro ao carregar a lista.');
         linhas = d.linhas;
         document.getElementById('cont').textContent = d.total_pecas ? '(' + pecas(d.total_pecas) + ')' : '';
+        document.getElementById('contAbaBoletos').textContent = d.total_pecas ? '(' + d.total_pecas + ')' : '';
         desenhar();
       } catch (e) {
         listaEl.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
@@ -415,6 +491,338 @@
       }
     }
 
+    // ================= abas: peças dos boletos / conferências para aprovar =================
+    const abas = document.getElementById('abas');
+    function mostrarAba(nome) {
+      abas.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === nome));
+      document.getElementById('areaBoletos').hidden = nome !== 'boletos';
+      document.getElementById('areaAprovar').hidden = nome !== 'aprovar';
+      try { history.replaceState(null, '', nome === 'aprovar' ? '#aprovar' : location.pathname + location.search); } catch (e) { /* ok */ }
+      if (nome === 'aprovar') carregarConferencias();
+    }
+    abas.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-aba]');
+      if (b) mostrarAba(b.dataset.aba);
+    });
+
+    // ================= conferências para aprovar (gerente) =================
+    let conferencias = { pendentes: [], reconferir: [] };
+    const cfLista = document.getElementById('cfLista');
+    function dataHoraBR(iso) {
+      return iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    }
+    function sinal(n) { return n > 0 ? '+' + n : String(n); }
+
+    async function carregarConferencias() {
+      try {
+        const r = await fetch('/api/conferencia-estoque', { cache: 'no-store' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro ao carregar as conferências.');
+        conferencias = d;
+        desenharConferencias();
+      } catch (e) {
+        cfLista.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    function desenharConferencias() {
+      const n = conferencias.pendentes.length;
+      document.getElementById('contAbaAprovar').textContent = n ? '(' + n + ')' : '';
+      document.getElementById('contAbaAprovar').classList.toggle('cf-tem', n > 0);
+      document.getElementById('cfTodas').checked = false;
+      if (!n) {
+        cfLista.innerHTML = '<p class="aviso-vazio">Nenhuma conferência esperando aprovação.</p>';
+      } else {
+        cfLista.innerHTML = `
+          <div class="tabela-envolve"><table class="en-tabela cf-tabela">
+            <thead><tr>
+              <th style="width:28px"></th><th style="width:76px">Nº</th><th>Peça</th><th>Local</th>
+              <th class="num" title="Saldo do sistema na hora da contagem">Sistema</th>
+              <th class="num">Contado</th><th class="num">Diferença</th>
+              <th class="num" title="Saldo que fica se aprovar agora">Fica com</th>
+              <th>Quem contou</th><th style="width:1%"></th>
+            </tr></thead>
+            <tbody>${conferencias.pendentes.map(c => {
+              const mudouLocal = c.localNovo && c.localNovo !== c.localAntes;
+              const mexeu = c.estoqueAgora !== c.saldoSistema;
+              return `<tr data-cf="${c.id}">
+                <td><input type="checkbox" class="cf-marca" value="${c.id}" aria-label="Marcar ${escapeHtml(c.nome)}"></td>
+                <td class="er-num">${numeroEtiqueta(c.numeroInterno)}</td>
+                <td class="cf-nome"><strong>${escapeHtml(c.nome)}</strong><span class="er-sub">${escapeHtml(c.codigo || '')}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}</span>
+                  ${c.observacao ? '<span class="er-sub cf-obs">“' + escapeHtml(c.observacao) + '”</span>' : ''}</td>
+                <td>${mudouLocal ? '<span class="cf-antes">' + escapeHtml(c.localAntes || '—') + '</span> → <strong>' + escapeHtml(c.localNovo) + '</strong>' : escapeHtml(c.localNovo || c.localAntes || '—')}</td>
+                <td class="num">${c.saldoSistema}</td>
+                <td class="num"><strong>${c.contado}</strong></td>
+                <td class="num"><span class="cf-dif ${c.ajuste > 0 ? 'cf-mais' : c.ajuste < 0 ? 'cf-menos' : 'cf-igual'}">${c.ajuste ? sinal(c.ajuste) : 'bateu'}</span></td>
+                <td class="num"><strong>${c.ficaCom}</strong>${mexeu ? '<span class="er-sub" title="O saldo mudou depois da contagem (venda ou entrada)">agora ' + c.estoqueAgora + '</span>' : ''}</td>
+                <td>${escapeHtml(c.funcionario || '—')}<span class="er-sub">${dataHoraBR(c.criadoEm)}</span></td>
+                <td class="cf-acoes">
+                  <button type="button" class="btn-mini sucesso" data-acao="aprovar" data-trava-gerente>Aprovar</button>
+                  <button type="button" class="btn-mini secundario" data-acao="reconferir" data-trava-gerente>Contar de novo</button>
+                  <button type="button" class="btn-mini perigo" data-acao="cancelar" data-trava-gerente>Cancelar</button>
+                </td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table></div>`;
+      }
+      const rb = document.getElementById('cfReconferirBox');
+      rb.hidden = !conferencias.reconferir.length;
+      document.getElementById('cfReconferirLista').innerHTML = conferencias.reconferir.map(c =>
+        '<div class="cf-linha-rec"><span class="er-num">' + numeroEtiqueta(c.numeroInterno) + '</span> <strong>' + escapeHtml(c.nome) + '</strong>' +
+        (c.motivo ? ' · <em>' + escapeHtml(c.motivo) + '</em>' : '') +
+        '<span class="er-sub">contou ' + c.contado + ' (sistema ' + c.saldoSistema + ') · ' + escapeHtml(c.funcionario || '') + '</span></div>').join('');
+      if (window.Gerente) Gerente.aplicarTravas(document.getElementById('areaAprovar'));
+    }
+
+    function marcadas() {
+      return [...cfLista.querySelectorAll('.cf-marca:checked')].map(x => Number(x.value));
+    }
+    document.getElementById('cfTodas').addEventListener('change', (ev) => {
+      cfLista.querySelectorAll('.cf-marca').forEach(x => { x.checked = ev.target.checked; });
+    });
+
+    async function decidir(acao, ids) {
+      if (!ids.length) return alert('Marque pelo menos uma conferência (ou use "Todas").');
+      if (window.Gerente && !Gerente.ativo()) { if (!(await Gerente.pedir())) return; }
+      const qtd = ids.length === 1 ? '1 conferência' : ids.length + ' conferências';
+      let corpo = { ids };
+      if (acao === 'aprovar') {
+        const lista = conferencias.pendentes.filter(c => ids.includes(c.id));
+        const mudam = lista.filter(c => c.ajuste).length;
+        if (!confirm('Aprovar ' + qtd + '?\n\n' + (mudam ? mudam + ' peça(s) vão ter o saldo corrigido.' : 'Todas bateram com o sistema: só atualiza local e data da conferência.'))) return;
+      } else if (acao === 'reconferir') {
+        const motivo = prompt('Devolver ' + qtd + ' para contar de novo.\nMotivo (opcional, o funcionário vê):', '');
+        if (motivo === null) return;
+        corpo.motivo = motivo;
+      } else if (!confirm('Cancelar ' + qtd + '? O estoque não muda.')) return;
+      try {
+        const r = await fetch('/api/conferencia-estoque/' + acao, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao salvar.');
+        const txt = acao === 'aprovar'
+          ? '✓ ' + d.aprovadas + ' aprovada(s)' + (d.ajustadas ? ', ' + d.ajustadas + ' com saldo corrigido' : '') + '.'
+          : acao === 'reconferir' ? '✓ ' + d.alteradas + ' devolvida(s) para contar de novo.' : '✓ ' + d.alteradas + ' cancelada(s). O estoque não mudou.';
+        mostrarMensagem(txt + (d.ignoradas ? ' (' + d.ignoradas + ' já tinham sido decididas por outra pessoa)' : ''), 'ok');
+        await carregarConferencias();
+        carregar();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+    document.getElementById('cfAprovar').addEventListener('click', () => decidir('aprovar', marcadas()));
+    document.getElementById('cfReconferir').addEventListener('click', () => decidir('reconferir', marcadas()));
+    document.getElementById('cfCancelar').addEventListener('click', () => decidir('cancelar', marcadas()));
+    cfLista.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-acao]');
+      if (b) decidir(b.dataset.acao, [Number(b.closest('[data-cf]').dataset.cf)]);
+    });
+    window.addEventListener('gerente:mudou', () => { if (!document.getElementById('areaAprovar').hidden) desenharConferencias(); });
+
+    // ================= diálogo "Conferência de estoque" (funcionário) =================
+    const dConf = document.getElementById('dialogConf');
+    const cfBusca = document.getElementById('cfBusca');
+    const cfOpcoes = document.getElementById('cfOpcoes');
+    let cfItem = null; // { item, aberta }
+    let feitasAgora = 0;
+
+    function quemNome() {
+      const o = campoQuem.selectedOptions[0];
+      return o && o.value ? o.textContent : '';
+    }
+    document.getElementById('btnConferencia').addEventListener('click', async () => {
+      if (!campoQuem.value) {
+        mostrarAba('boletos');
+        campoQuem.classList.add('er-falta');
+        campoQuem.focus();
+        mostrarMensagem('Primeiro escolha quem está conferindo (lá em cima).', 'erro');
+        return;
+      }
+      document.getElementById('cfQuemTexto').innerHTML = 'Conferindo: <strong>' + escapeHtml(quemNome()) + '</strong>';
+      feitasAgora = 0;
+      document.getElementById('cfFeitas').textContent = '';
+      limparPeca();
+      dConf.showModal();
+      cfBusca.focus();
+      await carregarConferencias();
+      desenharPedidos();
+    });
+
+    // Peças que o gerente mandou contar de novo.
+    function desenharPedidos() {
+      const rec = conferencias.reconferir;
+      document.getElementById('cfPedidos').innerHTML = rec.length
+        ? '<div class="cf-pedidos"><strong>O gerente pediu para contar de novo:</strong>' + rec.map(c =>
+            '<button type="button" class="cf-pedido" data-item="' + c.itemId + '"><span class="er-num">' + numeroEtiqueta(c.numeroInterno) + '</span> ' +
+            escapeHtml(c.nome) + (c.motivo ? ' <em>· ' + escapeHtml(c.motivo) + '</em>' : '') + '</button>').join('') + '</div>'
+        : '';
+    }
+    document.getElementById('cfPedidos').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-item]');
+      if (b) escolherItem(Number(b.dataset.item));
+    });
+
+    function limparPeca() {
+      cfItem = null;
+      document.getElementById('cfPeca').hidden = true;
+      cfOpcoes.innerHTML = '';
+      cfBusca.value = '';
+      document.getElementById('cfEnviar').disabled = true;
+      document.getElementById('cfEtiqueta').disabled = true;
+    }
+
+    async function buscarPeca() {
+      const t = cfBusca.value.trim();
+      if (!t) return;
+      cfOpcoes.innerHTML = '<p class="en-ajuda">Procurando...</p>';
+      try {
+        // Etiqueta QR = nº interno (o leitor digita 000342 + Enter): só o número exato.
+        if (/^\d{1,9}$/.test(t)) {
+          const r = await fetch('/api/itens/numero/' + encodeURIComponent(t));
+          if (r.ok) { const it = await r.json(); return escolherItem(it.id); }
+        }
+        const r = await fetch('/api/itens?inicio=0&limite=8&q=' + encodeURIComponent(t));
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro na busca.');
+        const lista = d.itens || [];
+        if (lista.length === 1) return escolherItem(lista[0].id);
+        if (!lista.length) {
+          cfOpcoes.innerHTML = '<div class="erro">Nenhuma peça com "' + escapeHtml(t) + '". Se ela não estiver cadastrada, use <strong>Cadastrar item novo</strong>.</div>';
+          return;
+        }
+        cfOpcoes.innerHTML = '<p class="en-ajuda" style="margin:8px 0 4px">Qual delas?</p>' + lista.map(i =>
+          '<button type="button" class="cf-opcao" data-item="' + i.id + '"><span class="er-num">' + numeroEtiqueta(i.numero_interno) + '</span> <strong>' +
+          escapeHtml(i.nome) + '</strong> <span class="er-sub">' + escapeHtml(i.codigo || '') + (i.localizacao ? ' · local ' + escapeHtml(i.localizacao) : '') + '</span></button>').join('') +
+          (d.total > lista.length ? '<p class="en-ajuda">Mais de ' + lista.length + ' encontradas: digite mais detalhes.</p>' : '');
+      } catch (e) {
+        cfOpcoes.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+    cfOpcoes.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-item]');
+      if (b) escolherItem(Number(b.dataset.item));
+    });
+    document.getElementById('cfBuscar').addEventListener('click', buscarPeca);
+    cfBusca.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); buscarPeca(); }
+    });
+
+    async function escolherItem(id) {
+      try {
+        const r = await fetch('/api/conferencia-estoque/item/' + id, { cache: 'no-store' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro ao abrir a peça.');
+        cfItem = d;
+        cfOpcoes.innerHTML = '';
+        const it = d.item;
+        const ultima = it.dataConferencia
+          ? 'Última conferência: ' + dataBR(it.dataConferencia) + (it.conferente ? ' por ' + escapeHtml(it.conferente) : '')
+          : 'Nunca foi conferida.';
+        let aviso = '';
+        if (d.aberta && d.aberta.status === 'pendente') {
+          aviso = '<div class="cf-aviso">Já tem uma contagem esperando o gerente (' + d.aberta.contado + ', por ' + escapeHtml(d.aberta.funcionario || '—') +
+            ' em ' + dataHoraBR(d.aberta.criadoEm) + '). Enviar de novo <strong>substitui</strong> aquela.</div>';
+        } else if (d.aberta && d.aberta.status === 'reconferir') {
+          aviso = '<div class="cf-aviso">O gerente pediu para contar de novo' + (d.aberta.motivo ? ': <em>' + escapeHtml(d.aberta.motivo) + '</em>' : '.') + '</div>';
+        }
+        document.getElementById('cfPecaInfo').innerHTML =
+          '<strong>' + escapeHtml(it.nome) + '</strong> <span class="er-num">' + numeroEtiqueta(it.numeroInterno) + '</span>' +
+          '<span class="er-sub">' + escapeHtml(it.codigo || '') + (it.marca ? ' · ' + escapeHtml(it.marca) : '') + ' · local: ' + escapeHtml(it.localizacao || '—') + '</span>' +
+          '<span class="er-sub">' + ultima + '</span>' + aviso;
+        document.getElementById('cfContado').value = '';
+        document.getElementById('cfLocal').value = it.localizacao || '';
+        document.getElementById('cfObs').value = '';
+        document.getElementById('cfPeca').hidden = false;
+        document.getElementById('cfEnviar').disabled = false;
+        document.getElementById('cfEtiqueta').disabled = false;
+        cfBusca.value = '';
+        document.getElementById('cfContado').focus();
+      } catch (e) {
+        cfOpcoes.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    async function enviarConferencia() {
+      if (!cfItem) return;
+      const txt = document.getElementById('cfContado').value.trim();
+      const contado = Number(txt);
+      if (txt === '' || !Number.isInteger(contado) || contado < 0) {
+        document.getElementById('cfContado').focus();
+        return alert('Quantas tem: número inteiro, 0 ou mais.');
+      }
+      const btn = document.getElementById('cfEnviar');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/conferencia-estoque', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_id: cfItem.item.id, funcionario_id: Number(campoQuem.value), contado,
+            localizacao: document.getElementById('cfLocal').value, observacao: document.getElementById('cfObs').value,
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao enviar.');
+        feitasAgora += 1;
+        document.getElementById('cfFeitas').innerHTML = '✓ <strong>' + escapeHtml(d.nome) + '</strong>: ' + d.contado + ' enviado para aprovação' +
+          (d.substituiu ? ' (substituiu a contagem anterior)' : '') + '. Enviadas agora: ' + feitasAgora + '. Pode bipar a próxima.';
+        limparPeca();
+        await carregarConferencias();
+        desenharPedidos();
+        cfBusca.focus();
+      } catch (e) {
+        btn.disabled = false;
+        alert(e.message);
+      }
+    }
+    document.getElementById('cfEnviar').addEventListener('click', enviarConferencia);
+    ['cfContado', 'cfLocal', 'cfObs'].forEach(id => document.getElementById(id).addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); enviarConferencia(); }
+    }));
+    document.getElementById('cfEtiqueta').addEventListener('click', () => {
+      if (cfItem) abrirEtiquetas([{ id: cfItem.item.id, copias: 1 }]);
+    });
+    document.getElementById('cfFechar').addEventListener('click', () => dConf.close());
+    dConf.addEventListener('close', () => { pararCamera(); if (!document.getElementById('areaAprovar').hidden) carregarConferencias(); });
+
+    // Câmera (celular): lê o QR da etiqueta, onde o navegador permite (BarcodeDetector).
+    let camStream = null;
+    let camTimer = null;
+    if ('BarcodeDetector' in window) document.getElementById('cfCamera').hidden = false;
+    function pararCamera() {
+      clearInterval(camTimer); camTimer = null;
+      if (camStream) camStream.getTracks().forEach(t => t.stop());
+      camStream = null;
+      document.getElementById('cfVideo').hidden = true;
+    }
+    document.getElementById('cfCamera').addEventListener('click', async () => {
+      if (camStream) return pararCamera();
+      const video = document.getElementById('cfVideo');
+      try {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = camStream;
+        video.hidden = false;
+        await video.play();
+        camTimer = setInterval(async () => {
+          try {
+            const achados = await detector.detect(video);
+            if (achados.length) {
+              cfBusca.value = achados[0].rawValue.trim();
+              pararCamera();
+              buscarPeca();
+            }
+          } catch (e) { /* tenta de novo */ }
+        }, 300);
+      } catch (e) {
+        pararCamera();
+        alert('Não foi possível usar a câmera: ' + e.message);
+      }
+    });
+
+    // Contador da aba logo ao abrir; #aprovar abre direto na lista do gerente.
+    carregarConferencias();
+    if (location.hash === '#aprovar') mostrarAba('aprovar');
     carregar();
   </script>
 </body>
