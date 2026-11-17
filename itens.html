@@ -359,6 +359,10 @@
       'preco': '90px', 'precoInst': '100px', 'local': '90px',
       'conferencia': '160px', 'acoes': '130px',
     };
+    // Tablet em pé: larguras menores (o nome quebra linha), para caber sem rolar.
+    if (window.innerWidth <= 900) {
+      Object.assign(LARGURAS_PADRAO, { codigo: '100px', nome: '190px', marca: '90px', estoque: '80px', preco: '85px', precoInst: '90px', local: '70px' });
+    }
 
     function pintarSetasOrdenacao() {
       document.querySelectorAll('#tabelaItens thead th.ordenavel').forEach(th => {
@@ -1308,6 +1312,13 @@
     document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
       chk.checked = chk.dataset.coluna !== 'acoes';
     });
+    // Tablet em pé (tela estreita): começa sem a coluna Conferência, para Estoque,
+    // preços e Local caberem sem rolar para o lado. Dá para ligar de novo em
+    // "Gerenciar visualização".
+    if (window.innerWidth <= 900) {
+      const chkConf = document.querySelector('.toolbar-colunas input[data-coluna="conferencia"]');
+      if (chkConf) chkConf.checked = false;
+    }
     aplicarVisibilidadeColunas();
     iniciarRedimensionamento();
     redefinirLarguras();

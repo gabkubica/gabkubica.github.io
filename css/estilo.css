@@ -1420,7 +1420,7 @@ html:not([data-gerente="sim"]) [data-somente-gerente] {
 
 .busca-3linhas {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   flex: 1;
   min-width: 240px;
@@ -1428,6 +1428,7 @@ html:not([data-gerente="sim"]) [data-somente-gerente] {
 
 .busca-3linhas input.busca {
   width: 100%;
+  min-width: 0; /* tablet: não deixa o 3º campo vazar da tela */
 }
 
 /* Celular: os 3 campos de busca um embaixo do outro, cada um com a largura
@@ -3338,11 +3339,30 @@ button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !imp
 .cf-abas .cf-cont.cf-tem { background: #f5b301; color: #18181b; border-radius: 999px; padding: 0 7px; margin-left: 2px; }
 .cf-barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 10px; }
 .cf-todas { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; margin-right: 6px; cursor: pointer; }
+.cf-tabela { table-layout: auto !important; }
+.cf-tabela td { vertical-align: middle; }
 .cf-tabela td.num, .cf-tabela th.num { text-align: center; white-space: nowrap; }
+.cf-tabela .cf-col-marca { width: 34px; }
+.cf-tabela .cf-col-acoes { width: 128px; }
+.cf-tabela .cf-col-marca input { width: 20px; height: 20px; }
 .cf-tabela .er-sub { display: block; }
 .cf-acoes { white-space: nowrap; }
-.cf-acoes .btn-mini { display: block; width: 100%; margin: 3px 0; }
-.cf-tabela .cf-nome { min-width: 200px; }
+.cf-acoes .btn-mini { display: block; width: 100%; margin: 4px 0; padding: 7px 8px; }
+.cf-tabela .cf-nome { min-width: 180px; }
+/* Celular: cada contagem vira um cartão */
+@media (max-width: 640px) {
+  .cf-tabela thead { display: none; }
+  .cf-tabela, .cf-tabela tbody, .cf-tabela tr, .cf-tabela td { display: block; width: auto !important; }
+  .cf-tabela tr { position: relative; padding: 10px 10px 10px 44px; border-bottom: 1px solid var(--borda); }
+  .cf-tabela td { border: 0 !important; padding: 2px 0 !important; text-align: left !important; }
+  .cf-tabela td.cf-col-marca { position: absolute; left: 10px; top: 12px; }
+  .cf-tabela td[data-rot] { display: inline-block; margin-right: 14px; }
+  .cf-tabela td[data-rot]::before { content: attr(data-rot) ": "; color: var(--texto-suave); font-size: 12px; }
+  .cf-tabela td[data-rot] .er-sub { display: inline; margin-left: 4px; }
+  .cf-acoes { display: flex !important; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .cf-acoes .btn-mini { display: inline-block; width: auto; margin: 0; }
+  .cf-envolve { max-height: none; }
+}
 .cf-dif { display: inline-block; min-width: 42px; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 13px; }
 .cf-dif.cf-mais { background: #e0ecff; color: #1e40af; }
 .cf-dif.cf-menos { background: #fde8e8; color: #9b1c1c; }
@@ -3370,3 +3390,98 @@ button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !imp
 .cf-aviso { margin-top: 6px; font-size: 13px; color: #8a5a12; }
 [data-tema="escuro"] .cf-aviso { color: #f5d9a8; }
 #cfFeitas { margin-top: 10px; }
+
+/* Tablet (2026-11-17: "vamos usar muito o tablet"): as listas com colunas de
+   largura fixa (boletos, despesas manuais, externos, pátio, OS) passavam da
+   tela e escondiam Status/Valor/Ações à direita. Abaixo de 1100px as colunas
+   se ajustam ao conteúdo e o texto quebra linha. */
+@media (max-width: 1100px) {
+  #tabelaBoletos, #tabelaManuais, #tabelaExternos, .patio-tabela, #tabelaOs { table-layout: auto; }
+  #tabelaBoletos th, #tabelaManuais th, #tabelaExternos th, .patio-tabela th, #tabelaOs th { width: auto !important; white-space: normal; }
+  #tabelaBoletos td, #tabelaManuais td, #tabelaExternos td, .patio-tabela td, #tabelaOs td { white-space: normal; }
+}
+
+/* Pátio no tablet/celular: cada carro vira um cartão (antes, Aviso, "Cliente
+   vem buscar?" e Abrir OS ficavam escondidos à direita). */
+@media (max-width: 1100px) {
+  .patio-tabela thead { display: none; }
+  .patio-tabela, .patio-tabela tbody { display: block; width: 100%; }
+  .patio-tabela tr {
+    display: grid; gap: 6px 14px; padding: 12px 14px; border-bottom: 1px solid var(--borda);
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "placa veiculo os status abrir" "contato contato contato contato contato" "aviso vem vem vem vem";
+    align-items: center;
+  }
+  .patio-tabela td { display: block; padding: 0 !important; border: 0 !important; min-width: 0; }
+  .patio-tabela .pt-placa { grid-area: placa; }
+  .patio-tabela .pt-veiculo { grid-area: veiculo; }
+  .patio-tabela .pt-os { grid-area: os; }
+  .patio-tabela .pt-status { grid-area: status; }
+  .patio-tabela .pt-abrir { grid-area: abrir; }
+  .patio-tabela .pt-contato { grid-area: contato; min-width: 0; }
+  .patio-tabela .pt-aviso { grid-area: aviso; }
+  .patio-tabela .pt-vem { grid-area: vem; }
+  .patio-tabela .btn-mini { padding: 8px 12px; font-size: 13px; }
+  .patio-tabela .patio-quando { max-width: none; }
+  .patio-tabela tr.patio-linha-ficou { background: rgba(224, 192, 122, .10); }
+  .patio-tabela tr.patio-linha-ficou td { background: transparent; }
+}
+@media (max-width: 600px) {
+  .patio-tabela tr {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "placa veiculo abrir" "os status status" "contato contato contato" "aviso aviso aviso" "vem vem vem";
+  }
+}
+/* Tablet: tabelas dentro de .tabela-envolve (caixa, balcão...) com larguras
+   fixas espremiam a coluna Cliente até sumir. */
+@media (max-width: 1100px) {
+  .tabela-envolve > table { table-layout: auto; }
+  .tabela-envolve > table th { width: auto !important; }
+}
+@media (max-width: 900px) {
+  #tabelaBoletos th, #tabelaBoletos td, #tabelaManuais th, #tabelaManuais td, #tabelaExternos th, #tabelaExternos td,
+  #tabelaOs th, #tabelaOs td, .tabela-envolve > table th, .tabela-envolve > table td { padding-left: 6px; padding-right: 6px; }
+}
+
+/* OS / externo / venda no tablet: as linhas de peças e serviços viram duas
+   faixas (antes Qtd e Preço ficavam cortados e Assistente, Subtotal e Remover
+   sumiam à direita). Faixa 1: código, peça, subtotal, remover.
+   Faixa 2: quantidade, preço, responsável, assistente (com o nome do campo em cima). */
+@media (min-width: 701px) and (max-width: 1100px) {
+  #corpoPecas, #corpoServicos { display: block; }
+  .tabela-linhas:has(#corpoPecas) thead, .tabela-linhas:has(#corpoServicos) thead { display: none; }
+  .tabela-linhas:has(#corpoPecas), .tabela-linhas:has(#corpoServicos) { display: block; }
+  #corpoPecas tr, #corpoServicos tr {
+    display: grid; align-items: end; gap: 6px 12px; padding: 10px 2px; border-bottom: 1px solid var(--borda);
+    grid-template-columns: 80px 150px minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas: "cod item item sub rem" "qtd preco func assist assist";
+  }
+  #corpoPecas td, #corpoServicos td { display: block; padding: 0 !important; border: 0 !important; width: auto !important; min-width: 0; }
+  #corpoPecas td[colspan], #corpoServicos td[colspan] { grid-column: 1 / -1; }
+  #corpoPecas td:nth-child(1), #corpoServicos td:nth-child(1) { grid-area: cod; color: var(--texto-suave); font-size: 13px; align-self: start; }
+  #corpoPecas td.rolavel, #corpoServicos td.rolavel { grid-area: item; font-weight: 600; align-self: start; white-space: normal; overflow: visible; }
+  #corpoPecas td.col-qtd, #corpoServicos td.col-qtd { grid-area: qtd; }
+  #corpoPecas td.col-preco, #corpoServicos td.col-preco { grid-area: preco; }
+  #corpoPecas td.col-func, #corpoServicos td.col-func { grid-area: func; }
+  #corpoPecas td.col-assist, #corpoServicos td.col-assist { grid-area: assist; }
+  #corpoPecas td.subtotal, #corpoServicos td.subtotal { grid-area: sub; text-align: right; align-self: start; font-size: 15px; }
+  #corpoPecas td.col-remover, #corpoServicos td.col-remover { grid-area: rem; align-self: start; }
+  #corpoPecas td[data-label]::before, #corpoServicos td[data-label]::before { content: none; }
+  #corpoPecas td.col-qtd::before { content: "Qtd"; }
+  #corpoPecas td.col-preco::before { content: "Preço unit. (R$)"; }
+  #corpoServicos td.col-preco::before { content: "Valor (R$)"; }
+  #corpoPecas td.col-func::before, #corpoServicos td.col-func::before { content: "Responsável"; }
+  #corpoPecas td.col-assist::before, #corpoServicos td.col-assist::before { content: "Assistente"; }
+  #corpoPecas td.col-qtd::before, #corpoPecas td.col-preco::before, #corpoServicos td.col-preco::before,
+  #corpoPecas td.col-func::before, #corpoServicos td.col-func::before,
+  #corpoPecas td.col-assist::before, #corpoServicos td.col-assist::before {
+    display: block; font-size: 11px; font-weight: 700; color: var(--texto-suave); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em;
+  }
+  #corpoPecas input, #corpoPecas select, #corpoServicos input, #corpoServicos select { padding: 8px; font-size: 15px; }
+}
+
+/* Itens no tablet em pé: colunas mais estreitas e o nome quebra linha. */
+@media (max-width: 900px) {
+  #tabelaItens tbody td.nome-longo { white-space: normal; overflow-x: hidden; cursor: default; }
+  #tabelaItens th, #tabelaItens td { padding-left: 6px; padding-right: 6px; }
+}

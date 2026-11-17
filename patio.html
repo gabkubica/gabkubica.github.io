@@ -191,24 +191,24 @@
         : '';
       return `
         <tr class="${grupo === 'ficou' ? 'patio-linha-ficou' : ''}">
-          <td><strong class="patio-placa">${escapeHtml(c.placa)}</strong></td>
-          <td>${escapeHtml([c.marca, c.modelo].filter(Boolean).join(' ')) || '—'}${c.ano ? ' ' + escapeHtml(c.ano) : ''}</td>
-          <td class="patio-contato">${contato(c.cliente_nome, c.cliente_id, c.cliente_telefone, c.cliente_email, c.cliente_cpf_cnpj)}${dono}</td>
-          <td><strong>${escapeHtml(c.codigo)}</strong><div class="patio-tel">${escapeHtml(tempoNoPatio(c.data_abertura))}</div></td>
-          <td>${statusBadge(c.status)}</td>
-          <td>
+          <td class="pt-placa"><strong class="patio-placa">${escapeHtml(c.placa)}</strong></td>
+          <td class="pt-veiculo">${escapeHtml([c.marca, c.modelo].filter(Boolean).join(' ')) || '—'}${c.ano ? ' ' + escapeHtml(c.ano) : ''}</td>
+          <td class="patio-contato pt-contato">${contato(c.cliente_nome, c.cliente_id, c.cliente_telefone, c.cliente_email, c.cliente_cpf_cnpj)}${dono}</td>
+          <td class="pt-os"><strong>${escapeHtml(c.codigo)}</strong><div class="patio-tel">${escapeHtml(tempoNoPatio(c.data_abertura))}</div></td>
+          <td class="pt-status">${statusBadge(c.status)}</td>
+          <td class="pt-aviso">
             <button type="button" class="btn-mini ${avisado ? 'sucesso' : 'secundario'}" data-patio-avisado="${c.id}"
               title="${avisado ? 'Clique para desmarcar' : 'Clique para marcar'}">${avisado ? '✓ ' : ''}Cliente avisado</button>
             ${avisado ? '<div class="patio-quando">' + escapeHtml(quandoCurto(c.cliente_avisado_em)) + '</div>' : ''}
           </td>
-          <td>
+          <td class="pt-vem" data-rot="Cliente vem buscar?">
             <div class="acoes-celula">
               ${botaoRetirada('vem_buscar', 'Vem buscar', 'sucesso')}
               ${botaoRetirada('nao_vem', 'Não vem hoje', 'perigo')}
             </div>
             ${quando}
           </td>
-          <td><button type="button" class="btn-mini azul" data-acao="abrir" data-id="${c.id}">Abrir OS</button></td>
+          <td class="pt-abrir"><button type="button" class="btn-mini azul" data-acao="abrir" data-id="${c.id}">Abrir OS</button></td>
         </tr>`;
     }
 

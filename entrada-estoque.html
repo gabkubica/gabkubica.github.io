@@ -534,29 +534,30 @@
         cfLista.innerHTML = '<p class="aviso-vazio">Nenhuma conferência esperando aprovação.</p>';
       } else {
         cfLista.innerHTML = `
-          <div class="tabela-envolve"><table class="en-tabela cf-tabela">
+          <div class="tabela-envolve cf-envolve"><table class="en-tabela cf-tabela">
             <thead><tr>
-              <th style="width:28px"></th><th style="width:76px">Nº</th><th>Peça</th><th>Local</th>
+              <th class="cf-col-marca"></th><th>Peça</th><th>Local</th>
               <th class="num" title="Saldo do sistema na hora da contagem">Sistema</th>
-              <th class="num">Contado</th><th class="num">Diferença</th>
-              <th class="num" title="Saldo que fica se aprovar agora">Fica com</th>
-              <th>Quem contou</th><th style="width:1%"></th>
+              <th class="num">Contado</th>
+              <th class="num" title="Diferença da contagem e o saldo que fica se aprovar agora">Diferença</th>
+              <th class="cf-col-acoes"></th>
             </tr></thead>
             <tbody>${conferencias.pendentes.map(c => {
               const mudouLocal = c.localNovo && c.localNovo !== c.localAntes;
               const mexeu = c.estoqueAgora !== c.saldoSistema;
               return `<tr data-cf="${c.id}">
-                <td><input type="checkbox" class="cf-marca" value="${c.id}" aria-label="Marcar ${escapeHtml(c.nome)}"></td>
-                <td class="er-num">${numeroEtiqueta(c.numeroInterno)}</td>
-                <td class="cf-nome"><strong>${escapeHtml(c.nome)}</strong><span class="er-sub">${escapeHtml(c.codigo || '')}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}</span>
+                <td class="cf-col-marca"><input type="checkbox" class="cf-marca" value="${c.id}" aria-label="Marcar ${escapeHtml(c.nome)}"></td>
+                <td class="cf-nome"><span class="er-num">${numeroEtiqueta(c.numeroInterno)}</span> <strong>${escapeHtml(c.nome)}</strong>
+                  <span class="er-sub">${escapeHtml(c.codigo || '')}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}</span>
+                  <span class="er-sub">Contou: ${escapeHtml(c.funcionario || '—')} · ${dataHoraBR(c.criadoEm)}</span>
                   ${c.observacao ? '<span class="er-sub cf-obs">“' + escapeHtml(c.observacao) + '”</span>' : ''}</td>
-                <td>${mudouLocal ? '<span class="cf-antes">' + escapeHtml(c.localAntes || '—') + '</span> → <strong>' + escapeHtml(c.localNovo) + '</strong>' : escapeHtml(c.localNovo || c.localAntes || '—')}</td>
-                <td class="num">${c.saldoSistema}</td>
-                <td class="num"><strong>${c.contado}</strong></td>
-                <td class="num"><span class="cf-dif ${c.ajuste > 0 ? 'cf-mais' : c.ajuste < 0 ? 'cf-menos' : 'cf-igual'}">${c.ajuste ? sinal(c.ajuste) : 'bateu'}</span></td>
-                <td class="num"><strong>${c.ficaCom}</strong>${mexeu ? '<span class="er-sub" title="O saldo mudou depois da contagem (venda ou entrada)">agora ' + c.estoqueAgora + '</span>' : ''}</td>
-                <td>${escapeHtml(c.funcionario || '—')}<span class="er-sub">${dataHoraBR(c.criadoEm)}</span></td>
-                <td class="cf-acoes">
+                <td data-rot="Local">${mudouLocal ? '<span class="cf-antes">' + escapeHtml(c.localAntes || '—') + '</span> → <strong>' + escapeHtml(c.localNovo) + '</strong>' : escapeHtml(c.localNovo || c.localAntes || '—')}</td>
+                <td class="num" data-rot="Sistema">${c.saldoSistema}</td>
+                <td class="num" data-rot="Contado"><strong>${c.contado}</strong></td>
+                <td class="num" data-rot="Diferença"><span class="cf-dif ${c.ajuste > 0 ? 'cf-mais' : c.ajuste < 0 ? 'cf-menos' : 'cf-igual'}">${c.ajuste ? sinal(c.ajuste) : 'bateu'}</span>
+                  <span class="er-sub" title="Saldo que fica se aprovar agora">fica com <strong>${c.ficaCom}</strong></span>
+                  ${mexeu ? '<span class="er-sub" title="O saldo mudou depois da contagem (venda ou entrada)">agora ' + c.estoqueAgora + '</span>' : ''}</td>
+                <td class="cf-acoes cf-col-acoes">
                   <button type="button" class="btn-mini sucesso" data-acao="aprovar" data-trava-gerente>Aprovar</button>
                   <button type="button" class="btn-mini secundario" data-acao="reconferir" data-trava-gerente>Contar de novo</button>
                   <button type="button" class="btn-mini perigo" data-acao="cancelar" data-trava-gerente>Cancelar</button>
