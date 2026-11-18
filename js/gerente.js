@@ -34,6 +34,7 @@
     '/usuarios.html',
     '/comissoes.html', // comissões dos funcionários
     '/pedidos.html', // pedido de compra (usa a agenda de contatos)
+    '/importar.html', // importar tabela de itens
     '/contatos.html', // agenda escondida: só se chega pela faixa do gerente
   ];
   const AVISO_TRAVA = 'Editável no modo gerenciador';
@@ -469,7 +470,7 @@
     montarFormulario(
       'Cadastrar o primeiro gerente',
       'Ainda não existe nenhum gerente no sistema. Cadastre o seu usuário: ' +
-      'depois disso, só um gerente consegue cadastrar outro (em Cadastro › Usuários).',
+      'depois disso, só um gerente consegue cadastrar outro (no botão Usuários da barra do gerente, ao lado de Contatos).',
       [
         { nome: 'nome', rotulo: 'Seu nome', tipo: 'text', auto: 'name', max: 80 },
         { nome: 'login', rotulo: 'Usuário (para entrar; sem espaço)', tipo: 'text', auto: 'username', max: 40 },

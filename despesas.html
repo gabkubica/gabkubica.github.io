@@ -702,6 +702,7 @@
               <div><label>Cadastro</label><div class="valor">${escapeHtml(formatarDataHora(b.dataCadastro))}</div></div>
               ${pagamento}
               <div><label>Nota fiscal</label><div class="valor">${b.notaFiscal ? 'nº ' + escapeHtml(b.notaFiscal) : '—'}${b.dataEmissao ? ' · emitida em ' + escapeHtml(formatarDataDia(b.dataEmissao)) : ''}</div></div>
+              ${b.pedidoCompraId ? '<div><label>Pedido de compra</label><div class="valor"><a href="/pedidos.html?id=' + b.pedidoCompraId + '">nº ' + b.pedidoCompraId + '</a></div></div>' : ''}
               ${b.valorFrete ? '<div><label>Frete</label><div class="valor">' + formatarMoeda(b.valorFrete) + '</div></div>' : ''}
               ${b.valorNota !== null ? '<div><label>Valor da nota</label><div class="valor">' + formatarMoeda(b.valorNota) + '</div></div>' : ''}
             </div>

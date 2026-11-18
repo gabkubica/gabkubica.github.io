@@ -28,23 +28,23 @@
        balconista conferir e dar a entrada. Só nessa hora entram no estoque.
        Servidor: src/routes/entrada-estoque.js. -->
   <main class="os-main">
-    <div class="sem-imp" style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <!-- Barra: à esquerda o que é da entrada; à direita os dois botões da
+         conferência de estoque, separados (contar / aprovar). -->
+    <div class="sem-imp en-barra">
       <a href="/" class="btn-voltar">← Painel</a>
       <a href="/fluxo.html" class="secundario">Como funciona</a>
       <button type="button" class="secundario" id="btnImprimirTudo">Imprimir tudo (papel)</button>
-      <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque</button>
-    </div>
-
-    <!-- Duas listas na mesma tela: peças dos boletos / contagens para o gerente aprovar -->
-    <div class="nu-periodo sem-imp cf-abas" id="abas" role="tablist" style="margin-bottom:12px">
-      <button type="button" class="ativo" data-aba="boletos">Peças dos boletos <span id="contAbaBoletos"></span></button>
-      <button type="button" data-aba="aprovar">Conferências para aprovar <span id="contAbaAprovar" class="cf-cont"></span></button>
+      <span class="en-barra-dir">
+        <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque</button>
+        <button type="button" id="btnAprovar" class="secundario" title="Contagens esperando o gerente aprovar">Conferências para aprovar <span id="contAbaAprovar" class="cf-cont"></span></button>
+      </span>
     </div>
 
     <div id="mensagens" class="sem-imp"></div>
 
     <!-- Conferências para aprovar (gerente). Servidor: src/routes/conferencia-estoque.js -->
     <div id="areaAprovar" class="sem-imp" hidden>
+      <button type="button" class="secundario" id="btnVoltarBoletos" style="margin-bottom:10px">← Voltar para as peças dos boletos</button>
       <div class="os-secao">
         <h2>Conferências para aprovar</h2>
         <p class="aviso-vazio" style="margin-top:0">
@@ -99,7 +99,9 @@
     <h3>Conferência de estoque</h3>
     <p class="en-ajuda" style="margin:2px 0 0">Bipe a etiqueta (ou digite o nº, o código ou o nome), conte quantas tem e diga o local.
       O estoque só muda quando o gerente aprovar.</p>
-    <p class="en-ajuda" id="cfQuemTexto" style="margin:6px 0 0"></p>
+    <label class="en-campo cf-quem">Quem está contando?
+      <select id="cfQuem"><option value="">— escolha seu nome —</option></select>
+    </label>
 
     <div id="cfPedidos"></div>
 
@@ -198,15 +200,26 @@
           const o = document.createElement('option');
           o.value = f.id; o.textContent = f.nome;
           campoQuem.appendChild(o);
+          document.getElementById('cfQuem').appendChild(o.cloneNode(true));
         });
         let ultimo = null;
         try { ultimo = localStorage.getItem(CHAVE_QUEM); } catch (e) { /* ok */ }
         if (ultimo && campoQuem.querySelector('option[value="' + CSS.escape(ultimo) + '"]')) campoQuem.value = ultimo;
+        document.getElementById('cfQuem').value = campoQuem.value;
       } catch (e) { /* ok */ }
     })();
     campoQuem.addEventListener('change', () => {
       try { localStorage.setItem(CHAVE_QUEM, campoQuem.value); } catch (e) { /* ok */ }
       campoQuem.classList.remove('er-falta');
+      document.getElementById('cfQuem').value = campoQuem.value;
+    });
+    // O mesmo "quem" dentro da Conferência de estoque (escolhe lá mesmo).
+    document.getElementById('cfQuem').addEventListener('change', (ev) => {
+      campoQuem.value = ev.target.value;
+      try { localStorage.setItem(CHAVE_QUEM, campoQuem.value); } catch (e) { /* ok */ }
+      ev.target.classList.remove('er-falta');
+      campoQuem.classList.remove('er-falta');
+      if (ev.target.value) document.getElementById('cfBusca').focus();
     });
 
     // ---------- lista ----------
@@ -217,7 +230,6 @@
         if (!r.ok) throw new Error(d.erro || 'Erro ao carregar a lista.');
         linhas = d.linhas;
         document.getElementById('cont').textContent = d.total_pecas ? '(' + pecas(d.total_pecas) + ')' : '';
-        document.getElementById('contAbaBoletos').textContent = d.total_pecas ? '(' + d.total_pecas + ')' : '';
         desenhar();
       } catch (e) {
         listaEl.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
@@ -257,53 +269,55 @@
         listaEl.innerHTML = '<p class="aviso-vazio">Nenhuma peça aguardando entrada com "' + escapeHtml(campoBusca.value.trim()) + '".</p>';
         return;
       }
-      listaEl.innerHTML = agrupar(lista).map(b => {
-        const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
-        return `
-        <section class="os-secao en-boleto" data-boleto="${b.id}">
-          <div class="en-boleto-topo">
-            <div>
-              <h3>Boleto nº ${escapeHtml(b.codigo)} · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}</h3>
-              <span class="er-sub">Lançado em ${dataBR(b.data)} · ${pecas(total)}</span>
-            </div>
-            <div class="os-acoes sem-imp" style="margin:0">
-              <a class="secundario" href="/despesas.html?boleto=${b.id}">Ver boleto</a>
-              <button type="button" class="secundario" data-etiquetas="${b.id}" title="Etiqueta com QR Code para colar nas peças (1 por peça)">Imprimir QR Code</button>
-              <button type="button" class="secundario" data-imprimir="${b.id}">Imprimir este boleto</button>
-            </div>
-          </div>
-          <div class="tabela-envolve">
-            <table class="en-tabela">
-              <thead><tr>
-                <th style="width:80px">Nº</th>
-                <th>Peça</th>
-                <th style="width:90px">Local</th>
-                <th style="width:72px;text-align:center">Na nota</th>
-                <th style="width:80px;text-align:center">Saldo hoje</th>
-                <th class="so-imp en-escrever">Chegou</th>
-                <th class="so-imp en-escrever">Saldo contado</th>
-                <th class="so-imp en-ok">✓</th>
-                <th class="sem-imp" style="width:130px"></th>
-              </tr></thead>
-              <tbody>${b.linhas.map(l => `
-                <tr class="${l.novo ? 'en-novo' : ''}">
-                  <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
-                  <td><strong>${escapeHtml(l.nome)}</strong>
-                    <span class="er-sub">${l.novo ? 'Peça nova: é cadastrada quando der entrada' : escapeHtml(l.codigo || '')}</span></td>
-                  <td>${escapeHtml(l.localizacao || '—')}</td>
-                  <td class="en-qtd">${l.quantidade}</td>
-                  <td class="en-saldo">${l.novo ? '—' : l.estoque}</td>
-                  <td class="so-imp en-escrever"></td>
-                  <td class="so-imp en-escrever"></td>
-                  <td class="so-imp en-ok"></td>
-                  <td class="sem-imp"><button type="button" class="sucesso" data-linha="${l.linha_id}">Dar entrada</button></td>
-                </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div class="so-imp en-assina">Conferido por: ______________________________ &nbsp;&nbsp; Data: ____/____/________</div>
-        </section>`;
-      }).join('');
+      // Uma tabela só, compacta: muitas peças por tela/folha. Cada boleto é
+      // uma faixa fina com as ações dele; Local e Saldo sempre à vista.
+      listaEl.innerHTML = `
+        <div class="tabela-envolve en-envolve">
+          <table class="en-tabela en-compacta sem-cartoes">
+            <thead><tr>
+              <th class="en-c-num">Nº</th>
+              <th>Peça</th>
+              <th class="en-c-local">Local</th>
+              <th class="en-c-qtd">Na nota</th>
+              <th class="en-c-qtd">Saldo hoje</th>
+              <th class="so-imp en-escrever">Chegou</th>
+              <th class="so-imp en-escrever">Saldo contado</th>
+              <th class="so-imp en-ok">✓</th>
+              <th class="sem-imp en-c-acao"></th>
+            </tr></thead>
+            ${agrupar(lista).map(b => {
+              const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
+              return `
+            <tbody class="en-boleto" data-boleto="${b.id}">
+              <tr class="en-grupo"><td colspan="9">
+                <div class="en-grupo-linha">
+                  <span><strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
+                    <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>
+                  <span class="en-grupo-acoes sem-imp">
+                    <a class="btn-mini secundario" href="/despesas.html?boleto=${b.id}">Ver boleto</a>
+                    <button type="button" class="btn-mini secundario" data-etiquetas="${b.id}" title="Etiqueta com QR Code para colar nas peças (1 por peça)">QR Code</button>
+                    <button type="button" class="btn-mini secundario" data-imprimir="${b.id}">Imprimir</button>
+                  </span>
+                </div>
+              </td></tr>
+              ${b.linhas.map(l => `
+              <tr class="${l.novo ? 'en-novo' : ''}">
+                <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
+                <td class="en-c-peca"><strong>${escapeHtml(l.nome)}</strong>
+                  <span class="er-sub">${l.novo ? 'peça nova: é cadastrada quando der entrada' : escapeHtml(l.codigo || '')}</span></td>
+                <td class="en-c-local">${escapeHtml(l.localizacao || '—')}</td>
+                <td class="en-qtd">${l.quantidade}</td>
+                <td class="en-saldo">${l.novo ? '—' : l.estoque}</td>
+                <td class="so-imp en-escrever"></td>
+                <td class="so-imp en-escrever"></td>
+                <td class="so-imp en-ok"></td>
+                <td class="sem-imp en-c-acao"><button type="button" class="btn-mini sucesso" data-linha="${l.linha_id}">Dar entrada</button></td>
+              </tr>`).join('')}
+            </tbody>`;
+            }).join('')}
+          </table>
+        </div>
+        <div class="so-imp en-assina">Conferido por: ______________________________ &nbsp;&nbsp; Data: ____/____/________</div>`;
     }
 
     // ---------- imprimir (a conferência ainda é muito no papel) ----------
@@ -493,18 +507,16 @@
     }
 
     // ================= abas: peças dos boletos / conferências para aprovar =================
-    const abas = document.getElementById('abas');
+    const btnAprovar = document.getElementById('btnAprovar');
     function mostrarAba(nome) {
-      abas.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === nome));
+      btnAprovar.classList.toggle('cf-ativo', nome === 'aprovar');
       document.getElementById('areaBoletos').hidden = nome !== 'boletos';
       document.getElementById('areaAprovar').hidden = nome !== 'aprovar';
       try { history.replaceState(null, '', nome === 'aprovar' ? '#aprovar' : location.pathname + location.search); } catch (e) { /* ok */ }
       if (nome === 'aprovar') carregarConferencias();
     }
-    abas.addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-aba]');
-      if (b) mostrarAba(b.dataset.aba);
-    });
+    btnAprovar.addEventListener('click', () => mostrarAba(document.getElementById('areaAprovar').hidden ? 'aprovar' : 'boletos'));
+    document.getElementById('btnVoltarBoletos').addEventListener('click', () => mostrarAba('boletos'));
 
     // ================= conferências para aprovar (gerente) =================
     let conferencias = { pendentes: [], reconferir: [] };
@@ -634,19 +646,14 @@
       return o && o.value ? o.textContent : '';
     }
     document.getElementById('btnConferencia').addEventListener('click', async () => {
-      if (!campoQuem.value) {
-        mostrarAba('boletos');
-        campoQuem.classList.add('er-falta');
-        campoQuem.focus();
-        mostrarMensagem('Primeiro escolha quem está conferindo (lá em cima).', 'erro');
-        return;
-      }
-      document.getElementById('cfQuemTexto').innerHTML = 'Conferindo: <strong>' + escapeHtml(quemNome()) + '</strong>';
+      const cfQuem = document.getElementById('cfQuem');
+      cfQuem.value = campoQuem.value;
+      cfQuem.classList.remove('er-falta');
       feitasAgora = 0;
       document.getElementById('cfFeitas').textContent = '';
       limparPeca();
       dConf.showModal();
-      cfBusca.focus();
+      if (cfQuem.value) cfBusca.focus(); else cfQuem.focus();
       await carregarConferencias();
       desenharPedidos();
     });
@@ -747,6 +754,12 @@
 
     async function enviarConferencia() {
       if (!cfItem) return;
+      if (!campoQuem.value) {
+        const q = document.getElementById('cfQuem');
+        q.classList.add('er-falta');
+        q.focus();
+        return alert('Escolha quem está contando (lá em cima).');
+      }
       const txt = document.getElementById('cfContado').value.trim();
       const contado = Number(txt);
       if (txt === '' || !Number.isInteger(contado) || contado < 0) {

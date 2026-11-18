@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar tabela - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/celular.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <style>
+    .im-passo { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+    .im-passo b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--vermelho); color: #fff; font-size: 14px; flex: none; }
+    .im-passo h2 { margin: 0; font-size: 18px; }
+    .im-origem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+    .im-arquivo { border: 2px dashed var(--input-borda); border-radius: 12px; padding: 18px; text-align: center; cursor: pointer; }
+    .im-arquivo.im-sobre { border-color: var(--vermelho); background: var(--tabela-hover); }
+    .im-arquivo strong { display: block; font-size: 16px; margin-bottom: 4px; }
+    .im-colar textarea { width: 100%; min-height: 110px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .im-dica { font-size: 13px; color: var(--texto-suave); }
+    .im-previa-envolve { overflow: auto; max-height: 420px; border: 1px solid var(--borda); border-radius: 8px; margin-top: 10px; }
+    .im-previa { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+    .im-previa th, .im-previa td { border-bottom: 1px solid var(--borda); padding: 5px 8px; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+    .im-previa thead th { position: sticky; top: 0; background: var(--card-bg); z-index: 1; vertical-align: top; }
+    .im-previa select { font-size: 13px; padding: 4px 6px; min-width: 150px; }
+    .im-previa select.im-usada { border-color: #15803d; box-shadow: 0 0 0 1px #15803d inset; font-weight: 700; }
+    .im-previa .im-como { display: block; font-size: 11px; font-weight: 400; color: var(--texto-suave); margin-top: 3px; }
+    .im-previa .im-titulo td { font-weight: 700; color: var(--texto-suave); font-style: italic; }
+    .im-previa td.im-ignorada, .im-previa th.im-ignorada .im-nome-col { opacity: .45; }
+    .im-opcoes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .im-opcoes label { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+    .im-opcoes small { color: var(--texto-suave); }
+    .im-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+    .im-chip { border: 1px solid var(--borda); background: var(--card-bg); color: var(--texto); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .im-chip.ativo { outline: 2px solid var(--vermelho); }
+    .im-chip.novo { background: #e9f7ee; color: #14532d; }
+    .im-chip.muda { background: #e0ecff; color: #1e40af; }
+    .im-chip.erro { background: #fde8e8; color: #9b1c1c; }
+    .im-chip.igual, .im-chip.pula { background: #eef0f3; color: #4b5563; }
+    [data-tema="escuro"] .im-chip.novo { background: #16301f; color: #7fd6a1; }
+    [data-tema="escuro"] .im-chip.muda { background: #1c2b44; color: #a8c8fb; }
+    [data-tema="escuro"] .im-chip.erro { background: #3b1d1d; color: #f8b4b4; }
+    [data-tema="escuro"] .im-chip.igual, [data-tema="escuro"] .im-chip.pula { background: #2a2e35; color: #b8bec8; }
+    .im-res td { vertical-align: top; }
+    .im-mud { display: block; font-size: 12px; }
+    .im-mud s { color: var(--texto-suave); }
+    .im-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+    @media (max-width: 760px) { .im-origem { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>IMPORTAR TABELA</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Importar tabela de itens: lê a planilha aqui no navegador, descobre
+       as colunas (o gerente confere), mostra o que vai acontecer e só grava
+       quando ele mandar. Servidor: src/routes/importacao.js. Só gerente. -->
+  <main class="os-main" style="max-width:1150px">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <a href="/itens.html" class="btn-voltar">← Itens</a>
+      <h1 style="margin:0;font-size:22px">Importar tabela de itens</h1>
+    </div>
+    <div id="mensagens"></div>
+
+    <section class="os-secao">
+      <div class="im-passo"><b>1</b><h2>Escolha a tabela</h2></div>
+      <div class="im-origem">
+        <label class="im-arquivo" id="caixaArquivo">
+          <strong>Abrir arquivo</strong>
+          <span class="im-dica">Excel (.xlsx) ou .csv — clique ou arraste o arquivo aqui</span>
+          <input type="file" id="arquivo" accept=".xlsx,.csv,.txt,text/csv" hidden>
+          <div id="nomeArquivo" class="im-dica" style="margin-top:6px"></div>
+        </label>
+        <div class="im-colar">
+          <label for="colado" style="font-weight:700;font-size:14px">Ou cole aqui</label>
+          <textarea id="colado" placeholder="No Excel: selecione as linhas (com o título), Ctrl+C, e cole aqui com Ctrl+V"></textarea>
+        </div>
+      </div>
+      <p class="im-dica" style="margin:8px 0 0">Arquivo .xls antigo? Abra no Excel e use "Salvar como" → "Pasta de Trabalho do Excel (.xlsx)". Tabela em PDF não dá para ler: peça ao fornecedor em Excel.</p>
+      <div id="escolhaAba" hidden style="margin-top:10px">
+        <label style="font-weight:700;font-size:14px">Aba da planilha
+          <select id="aba"></select>
+        </label>
+      </div>
+    </section>
+
+    <section class="os-secao" id="secColunas" hidden>
+      <div class="im-passo"><b>2</b><h2>Confira as colunas</h2></div>
+      <p class="im-dica" style="margin:0">O sistema adivinhou o que é cada coluna <span id="comoAdivinhou"></span>. Confira em cima de cada uma e troque se estiver errado.
+        Coluna que não interessa: deixe em "— não importar —".</p>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:14px">
+        <input type="checkbox" id="temTitulo"> A primeira linha é o título das colunas (não é peça)
+      </label>
+      <div class="im-previa-envolve"><table class="im-previa sem-cartoes" id="previa"></table></div>
+      <p class="im-dica" id="infoLinhas" style="margin:6px 0 0"></p>
+
+      <div class="im-opcoes">
+        <strong style="font-size:14px">O que fazer</strong>
+        <label><input type="checkbox" id="opNovos" checked> <span>Cadastrar as peças novas <small>(código que ainda não existe no sistema)</small></span></label>
+        <label><input type="checkbox" id="opAtualizar" checked> <span>Atualizar as peças que já existem <small>(mesmo código: troca só o que veio preenchido na tabela; célula vazia não apaga nada)</small></span></label>
+        <label style="margin-left:26px"><input type="checkbox" id="opEstoque"> <span>Trocar também o <strong>estoque</strong> das que já existem pelo da tabela <small>(vira ajuste no histórico de cada peça)</small></span></label>
+      </div>
+      <div class="im-acoes">
+        <button type="button" class="sucesso" id="btnPrevia">Ver o que vai acontecer</button>
+        <span class="im-dica">Nada é gravado ainda.</span>
+      </div>
+    </section>
+
+    <section class="os-secao" id="secResultado" hidden>
+      <div class="im-passo"><b>3</b><h2>Confira e importe</h2></div>
+      <div class="im-chips" id="chips"></div>
+      <div style="overflow:auto;max-height:480px;border:1px solid var(--borda);border-radius:8px">
+        <table class="planilha-tabela im-res sem-cartoes" style="table-layout:auto">
+          <thead><tr><th style="width:60px">Linha</th><th style="width:140px">Código</th><th>Peça</th><th>O que acontece</th></tr></thead>
+          <tbody id="resultado"></tbody>
+        </table>
+      </div>
+      <p class="im-dica" id="infoResultado"></p>
+      <div class="im-acoes">
+        <button type="button" class="sucesso" id="btnImportar">Importar agora</button>
+        <span class="im-dica">Grava tudo de uma vez. Dá para desfazer depois, lá embaixo.</span>
+      </div>
+    </section>
+
+    <section class="os-secao">
+      <h2>Importações feitas</h2>
+      <div style="overflow-x:auto">
+        <table class="planilha-tabela" style="table-layout:auto">
+          <thead><tr><th>Nº</th><th>Quando</th><th>Arquivo</th><th>Novas</th><th>Atualizadas</th><th>Quem</th><th></th></tr></thead>
+          <tbody id="historico"><tr><td colspan="7" class="aviso-vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function esc(t) {
+      return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    const moeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.innerHTML = texto ? '<div class="' + tipo + '">' + texto + '</div>' : '';
+      if (texto) m.scrollIntoView({ block: 'nearest' });
+    }
+    async function api(metodo, url, corpo) {
+      const r = await fetch(url, { method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || 'Erro na operação.');
+      return d;
+    }
+
+    // ================= ler a planilha =================
+    // XLSX é um .zip com XML dentro: lê aqui mesmo no navegador (sem enviar
+    // o arquivo para lugar nenhum).
+    function abrirZip(buf) {
+      const dv = new DataView(buf);
+      let e = buf.byteLength - 22;
+      while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+      if (e < 0) throw new Error('Este arquivo não parece um .xlsx.');
+      const total = dv.getUint16(e + 10, true);
+      let p = dv.getUint32(e + 16, true);
+      const arquivos = {};
+      const dec = new TextDecoder();
+      for (let i = 0; i < total; i++) {
+        const metodo = dv.getUint16(p + 10, true);
+        const tam = dv.getUint32(p + 20, true);
+        const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+        const local = dv.getUint32(p + 42, true);
+        arquivos[dec.decode(new Uint8Array(buf, p + 46, nl))] = { metodo, tam, local };
+        p += 46 + nl + xl + cl;
+      }
+      return async (nome) => {
+        const a = arquivos[nome];
+        if (!a) return null;
+        const ln = dv.getUint16(a.local + 26, true), lx = dv.getUint16(a.local + 28, true);
+        const dados = new Uint8Array(buf, a.local + 30 + ln + lx, a.tam);
+        if (a.metodo === 0) return dec.decode(dados);
+        const fluxo = new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        return await new Response(fluxo).text();
+      };
+    }
+    const xml = (t) => new DOMParser().parseFromString(t, 'application/xml');
+    function colunaDe(ref) {
+      const l = String(ref || '').match(/^[A-Z]+/);
+      if (!l) return -1;
+      let n = 0;
+      for (const ch of l[0]) n = n * 26 + (ch.charCodeAt(0) - 64);
+      return n - 1;
+    }
+    async function lerXlsx(buf) {
+      const ler = abrirZip(buf);
+      const wb = xml(await ler('xl/workbook.xml'));
+      const rels = xml(await ler('xl/_rels/workbook.xml.rels') || '<r/>');
+      const alvo = {};
+      for (const r of rels.getElementsByTagName('Relationship')) alvo[r.getAttribute('Id')] = r.getAttribute('Target');
+      const compart = [];
+      const ss = await ler('xl/sharedStrings.xml');
+      if (ss) for (const si of xml(ss).getElementsByTagName('si')) compart.push([...si.getElementsByTagName('t')].map((t) => t.textContent).join(''));
+      const abas = [];
+      for (const sh of wb.getElementsByTagName('sheet')) {
+        const rid = sh.getAttribute('r:id') || sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+        let t = alvo[rid] || '';
+        t = t.startsWith('/') ? t.slice(1) : 'xl/' + t.replace(/^\.\//, '');
+        abas.push({ nome: sh.getAttribute('name'), caminho: t });
+      }
+      const lerAba = async (aba) => {
+        const doc = xml(await ler(aba.caminho) || '<w/>');
+        const linhas = [];
+        for (const row of doc.getElementsByTagName('row')) {
+          const r = Number(row.getAttribute('r')) - 1;
+          const cel = [];
+          for (const c of row.getElementsByTagName('c')) {
+            const col = colunaDe(c.getAttribute('r'));
+            if (col < 0 || col > 200) continue;
+            const tipo = c.getAttribute('t');
+            const v = c.getElementsByTagName('v')[0];
+            let valor = null;
+            if (tipo === 's') valor = v ? compart[Number(v.textContent)] : null;
+            else if (tipo === 'inlineStr') valor = [...c.getElementsByTagName('t')].map((t) => t.textContent).join('');
+            else if (tipo === 'str' || tipo === 'e') valor = v ? v.textContent : null;
+            else if (tipo === 'b') valor = v ? (v.textContent === '1' ? 'SIM' : 'NÃO') : null;
+            else valor = v && v.textContent !== '' ? Number(v.textContent) : null;
+            cel[col] = valor;
+          }
+          linhas[r >= 0 ? r : linhas.length] = cel;
+        }
+        return linhas.filter(Boolean);
+      };
+      return { abas, lerAba };
+    }
+    // CSV / texto colado: separador ; , ou TAB (o que mais aparecer).
+    function lerTexto(t) {
+      t = t.replace(/^﻿/, '');
+      const amostra = t.split(/\r?\n/).slice(0, 20).join('\n');
+      const conta = (ch) => amostra.split(ch).length;
+      const sep = ['\t', ';', ','].sort((a, b) => conta(b) - conta(a))[0];
+      const linhas = [];
+      let linha = [], campo = '', aspas = false;
+      for (let i = 0; i < t.length; i++) {
+        const ch = t[i];
+        if (aspas) {
+          if (ch === '"' && t[i + 1] === '"') { campo += '"'; i++; }
+          else if (ch === '"') aspas = false;
+          else campo += ch;
+        } else if (ch === '"' && campo === '') aspas = true;
+        else if (ch === sep) { linha.push(campo); campo = ''; }
+        else if (ch === '\n' || ch === '\r') {
+          if (ch === '\r' && t[i + 1] === '\n') i++;
+          linha.push(campo); linhas.push(linha); linha = []; campo = '';
+        } else campo += ch;
+      }
+      if (campo !== '' || linha.length) { linha.push(campo); linhas.push(linha); }
+      return linhas.map((l) => l.map((c) => (c.trim() === '' ? null : c.trim())));
+    }
+    function decodificar(buf) {
+      try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); }
+    }
+
+    // ================= descobrir as colunas =================
+    const CAMPOS = [
+      { k: 'codigo', rot: 'Código' },
+      { k: 'nome', rot: 'Nome / descrição' },
+      { k: 'marca', rot: 'Marca' },
+      { k: 'preco', rot: 'Preço para levar' },
+      { k: 'preco_inst', rot: 'Preço com instalação' },
+      { k: 'custo', rot: 'Preço de custo (o que a loja paga)' },
+      { k: 'estoque', rot: 'Estoque' },
+      { k: 'minimo', rot: 'Estoque mínimo' },
+      { k: 'local', rot: 'Local' },
+    ];
+    const NUMERICOS = new Set(['preco', 'preco_inst', 'custo', 'estoque', 'minimo']);
+    // Ordem importa: "estoque mínimo" antes de "estoque", "preço c/ instalação" antes de "preço".
+    const TITULOS = [
+      ['minimo', /\bmin(imo)?\b|minimo/],
+      ['preco_inst', /instal/],
+      ['custo', /custo|compra|\bpago\b/],
+      ['preco', /preco|valor|venda|\bpvp\b|unit|r\$/],
+      ['estoque', /estoque|saldo|\bqtd|quant|dispon/],
+      ['local', /local|prateleira|posicao|endereco|gaveta/],
+      // Código antes de marca: "Cód. Fabricante" é código, "Fabricante" é marca.
+      ['codigo', /\bcod|codigo|\bref|referencia|\bsku\b|part ?n|\bpn\b/],
+      ['marca', /marca|fabricante|\bfabr|brand/],
+      ['nome', /descri|nome|produto|\bitem\b|\bpeca|mercadoria/],
+    ];
+    const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    function campoDoTitulo(t) {
+      const s = semAcento(t);
+      if (!s || /^[\d.,\s]+$/.test(s)) return null;
+      for (const [k, re] of TITULOS) if (re.test(s)) return k;
+      return null;
+    }
+    function numBR(v) {
+      if (v === null || v === undefined || v === '') return null;
+      if (typeof v === 'number') return v;
+      let t = String(v).trim().replace(/^r\$\s*/i, '').replace(/\s/g, '');
+      if (!t) return null;
+      if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+      else if (/^-?\d+,\d+$/.test(t)) t = t.replace(',', '.');
+      else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) t = t.replace(/,/g, '');
+      return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
+    }
+    let marcasConhecidas = new Set();
+
+    // Sem título (ou título que não diz nada): olha o conteúdo.
+    function adivinharPeloConteudo(dados, ncol, ja) {
+      const est = [];
+      for (let c = 0; c < ncol; c++) {
+        const vals = dados.slice(0, 300).map((l) => l[c]).filter((v) => v !== null && v !== undefined && String(v).trim() !== '');
+        const txt = vals.map((v) => String(v).trim());
+        const n = vals.length || 1;
+        const numeros = vals.filter((v) => Number.isFinite(numBR(v)));
+        est.push({
+          c, preench: vals.length / Math.max(1, Math.min(300, dados.length)),
+          media: txt.reduce((s, t) => s + t.length, 0) / n,
+          espacos: txt.filter((t) => /\s/.test(t)).length / n,
+          digitos: txt.filter((t) => /\d/.test(t)).length / n,
+          numerico: numeros.length / n,
+          decimal: numeros.filter((v) => !Number.isInteger(numBR(v))).length / n,
+          distintos: new Set(txt.map((t) => t.toLowerCase())).size / n,
+          marcas: txt.filter((t) => marcasConhecidas.has(t.toLowerCase())).length / n,
+        });
+      }
+      const livres = () => est.filter((e) => !ja.has(e.c) && e.preench > 0.3);
+      const usar = (campo, e) => { if (e) { ja.set(e.c, campo); } };
+      // Nome: o texto mais comprido, com espaços.
+      usar('nome', livres().filter((e) => e.espacos > 0.5 && e.numerico < 0.3).sort((a, b) => b.media - a.media)[0]);
+      // Código: curto, quase sem espaço, com números, quase todo diferente.
+      usar('codigo', livres().filter((e) => e.media <= 25 && e.espacos < 0.3 && e.digitos > 0.5 && e.distintos > 0.8 && e.decimal < 0.1)
+        .sort((a, b) => (b.distintos + b.digitos) - (a.distintos + a.digitos))[0]);
+      // Marca: texto curto que se repete (ou bate com marcas já cadastradas).
+      usar('marca', livres().filter((e) => e.numerico < 0.2 && e.media <= 25 && (e.marcas > 0.3 || e.distintos < 0.5))
+        .sort((a, b) => (b.marcas - a.marcas) || (a.distintos - b.distintos))[0]);
+      // Preço: a primeira coluna com centavos.
+      usar('preco', livres().filter((e) => e.numerico > 0.9 && e.decimal > 0.2)[0]);
+    }
+
+    let planilha = null;   // { linhas: [[...]], arquivo }
+    let mapa = [];         // campo de cada coluna ('' = não importar)
+    let comoFoi = [];      // 'título' | 'conteúdo' | ''
+    let previa = null;     // resposta do servidor
+    let filtroRes = null;
+
+    function carregarPlanilha(linhas, arquivo) {
+      linhas = linhas.filter((l) => l && l.some((v) => v !== null && v !== undefined && String(v).trim() !== ''));
+      if (!linhas.length) { mostrarMensagem('A tabela está vazia.', 'erro'); return; }
+      const ncol = Math.max(...linhas.map((l) => l.length));
+      linhas = linhas.map((l) => { const x = []; for (let c = 0; c < ncol; c++) x.push(l[c] === undefined ? null : l[c]); return x; });
+      // Linha de título: a primeira (das 10 primeiras) com 2 ou mais títulos conhecidos.
+      let tituloEm = -1;
+      for (let i = 0; i < Math.min(10, linhas.length); i++) {
+        if (linhas[i].filter((v) => typeof v === 'string' && campoDoTitulo(v)).length >= 2) { tituloEm = i; break; }
+      }
+      planilha = { linhas: tituloEm > 0 ? linhas.slice(tituloEm) : linhas, arquivo, ncol, pulo: Math.max(0, tituloEm) };
+      $('temTitulo').checked = tituloEm >= 0;
+      adivinhar();
+      previa = null;
+      $('secResultado').hidden = true;
+      $('secColunas').hidden = false;
+      desenharPrevia();
+      $('secColunas').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function adivinhar() {
+      const { linhas, ncol } = planilha;
+      const ja = new Map();
+      comoFoi = new Array(ncol).fill('');
+      if ($('temTitulo').checked) {
+        linhas[0].forEach((t, c) => {
+          const k = campoDoTitulo(t);
+          if (k && ![...ja.values()].includes(k)) { ja.set(c, k); comoFoi[c] = 'pelo título'; }
+        });
+      }
+      const antes = new Set(ja.keys());
+      const temCampo = (k) => [...ja.values()].includes(k);
+      if (!temCampo('nome') || !temCampo('codigo')) {
+        const tmp = new Map(ja);
+        adivinharPeloConteudo($('temTitulo').checked ? linhas.slice(1) : linhas, ncol, tmp);
+        for (const [c, k] of tmp) if (!antes.has(c) && !temCampo(k)) { ja.set(c, k); comoFoi[c] = 'pelo conteúdo'; }
+      }
+      mapa = new Array(ncol).fill('');
+      for (const [c, k] of ja) mapa[c] = k;
+      const porTitulo = comoFoi.filter((x) => x === 'pelo título').length, porConteudo = comoFoi.filter((x) => x === 'pelo conteúdo').length;
+      $('comoAdivinhou').textContent = porTitulo && porConteudo ? '(pelo título das colunas e pelo conteúdo)' : porTitulo ? '(pelo título das colunas)' : porConteudo ? '(pelo conteúdo, a tabela não tem título)' : '';
+    }
+    function desenharPrevia() {
+      const { linhas, ncol } = planilha;
+      const temTitulo = $('temTitulo').checked;
+      const opcoes = (c) => '<option value="">— não importar —</option>' + CAMPOS.map((f) => '<option value="' + f.k + '"' + (mapa[c] === f.k ? ' selected' : '') + '>' + f.rot + '</option>').join('');
+      let h = '<thead><tr>';
+      for (let c = 0; c < ncol; c++) {
+        h += '<th class="' + (mapa[c] ? '' : 'im-ignorada') + '"><select data-col="' + c + '" class="' + (mapa[c] ? 'im-usada' : '') + '">' + opcoes(c) + '</select>' +
+          (comoFoi[c] && mapa[c] ? '<span class="im-como">adivinhado ' + comoFoi[c] + '</span>' : '') +
+          (temTitulo ? '<span class="im-como im-nome-col">"' + esc(linhas[0][c] === null ? '' : linhas[0][c]) + '"</span>' : '') + '</th>';
+      }
+      h += '</tr></thead><tbody>';
+      const dados = temTitulo ? linhas.slice(1) : linhas;
+      dados.slice(0, 12).forEach((l) => {
+        const titulo = ehTituloDeSecao(l);
+        h += '<tr' + (titulo ? ' class="im-titulo" title="Parece um título de grupo (sem código e sem números): será pulada"' : '') + '>' +
+          l.map((v, c) => '<td class="' + (mapa[c] ? '' : 'im-ignorada') + '">' + esc(mostrarValor(v, mapa[c])) + '</td>').join('') + '</tr>';
+      });
+      $('previa').innerHTML = h + '</tbody>';
+      const pulam = dados.filter(ehTituloDeSecao).length;
+      $('infoLinhas').textContent = dados.length + ' linha(s) na tabela' + (dados.length > 12 ? ' (mostrando as 12 primeiras)' : '') +
+        (pulam ? ' · ' + pulam + ' parecem títulos de grupo e serão puladas' : '') + '.';
+    }
+    function mostrarValor(v, campo) {
+      if (v === null || v === undefined) return '';
+      if (campo && NUMERICOS.has(campo)) {
+        const n = numBR(v);
+        if (Number.isFinite(n)) return campo === 'estoque' || campo === 'minimo' ? String(n) : moeda(n);
+      }
+      return String(v);
+    }
+    // Linha sem código e sem nenhum número (ex.: "PARA-BRISAS"): título de grupo.
+    // Também: uma célula só preenchida, sem número (o título pode estar na coluna do código).
+    function ehTituloDeSecao(l) {
+      const cheia = (c) => l[c] !== null && l[c] !== undefined && String(l[c]).trim() !== '';
+      if (mapa.some((k, c) => k && NUMERICOS.has(k) && cheia(c))) return false;
+      const preenchidas = mapa.filter((k, c) => k && cheia(c)).length;
+      return preenchidas <= 1 || !cheia(mapa.indexOf('codigo'));
+    }
+    $('previa').addEventListener('change', (e) => {
+      const s = e.target.closest('select[data-col]');
+      if (!s) return;
+      const c = Number(s.dataset.col);
+      // Cada campo em uma coluna só: tira de onde estava.
+      if (s.value) mapa = mapa.map((k, i) => (k === s.value && i !== c ? '' : k));
+      mapa[c] = s.value;
+      comoFoi[c] = '';
+      previa = null;
+      $('secResultado').hidden = true;
+      desenharPrevia();
+    });
+    $('temTitulo').addEventListener('change', () => { adivinhar(); previa = null; $('secResultado').hidden = true; desenharPrevia(); });
+    ['opNovos', 'opAtualizar', 'opEstoque'].forEach((id) => $(id).addEventListener('change', () => {
+      $('opEstoque').disabled = !$('opAtualizar').checked;
+      previa = null; $('secResultado').hidden = true;
+    }));
+
+    // ================= abrir arquivo / colar =================
+    let xlsxAberto = null;
+    async function abrirArquivo(f) {
+      if (!f) return;
+      mostrarMensagem('', '');
+      $('nomeArquivo').textContent = f.name;
+      $('escolhaAba').hidden = true;
+      try {
+        const buf = await f.arrayBuffer();
+        if (/\.xlsx$/i.test(f.name)) {
+          if (typeof DecompressionStream === 'undefined') throw new Error('Este navegador é antigo demais para ler .xlsx. Atualize o Chrome/Edge, ou salve a planilha como .csv.');
+          xlsxAberto = await lerXlsx(buf);
+          xlsxAberto.arquivo = f.name;
+          if (!xlsxAberto.abas.length) throw new Error('Não achei nenhuma aba nesta planilha.');
+          $('aba').innerHTML = xlsxAberto.abas.map((a, i) => '<option value="' + i + '">' + esc(a.nome) + '</option>').join('');
+          $('escolhaAba').hidden = xlsxAberto.abas.length < 2;
+          await abrirAba(0);
+        } else if (/\.xls$/i.test(f.name)) {
+          throw new Error('Arquivo .xls antigo: abra no Excel e salve como .xlsx (Pasta de Trabalho do Excel).');
+        } else {
+          carregarPlanilha(lerTexto(decodificar(buf)), f.name);
+        }
+      } catch (e) {
+        mostrarMensagem(esc(e.message || 'Não consegui ler este arquivo.'), 'erro');
+      }
+    }
+    async function abrirAba(i) {
+      const aba = xlsxAberto.abas[i];
+      carregarPlanilha(await xlsxAberto.lerAba(aba), xlsxAberto.arquivo + (xlsxAberto.abas.length > 1 ? ' · ' + aba.nome : ''));
+    }
+    $('aba').addEventListener('change', () => abrirAba(Number($('aba').value)).catch((e) => mostrarMensagem(esc(e.message), 'erro')));
+    $('arquivo').addEventListener('change', () => abrirArquivo($('arquivo').files[0]));
+    const caixa = $('caixaArquivo');
+    caixa.addEventListener('dragover', (e) => { e.preventDefault(); caixa.classList.add('im-sobre'); });
+    caixa.addEventListener('dragleave', () => caixa.classList.remove('im-sobre'));
+    caixa.addEventListener('drop', (e) => { e.preventDefault(); caixa.classList.remove('im-sobre'); abrirArquivo(e.dataTransfer.files[0]); });
+    let timerColar = null;
+    $('colado').addEventListener('input', () => {
+      clearTimeout(timerColar);
+      timerColar = setTimeout(() => {
+        const t = $('colado').value;
+        if (t.trim()) { $('nomeArquivo').textContent = ''; carregarPlanilha(lerTexto(t), 'colado'); }
+      }, 400);
+    });
+
+    // ================= prévia e importação =================
+    function montarLinhas() {
+      const temTitulo = $('temTitulo').checked;
+      const dados = temTitulo ? planilha.linhas.slice(1) : planilha.linhas;
+      const base = (temTitulo ? 2 : 1) + planilha.pulo; // nº da linha como no Excel (aprox.)
+      const saida = [];
+      dados.forEach((l, i) => {
+        if (ehTituloDeSecao(l)) return;
+        const linha = { n: i + base };
+        mapa.forEach((k, c) => {
+          if (!k) return;
+          const v = l[c];
+          if (v === null || v === undefined || String(v).trim() === '') return;
+          if (NUMERICOS.has(k)) { const n = numBR(v); linha[k] = Number.isFinite(n) ? n : String(v); }
+          else linha[k] = typeof v === 'number' ? String(v) : v;
+        });
+        saida.push(linha);
+      });
+      return saida;
+    }
+    function opcoes() { return { novos: $('opNovos').checked, atualizar: $('opAtualizar').checked, estoque: $('opAtualizar').checked && $('opEstoque').checked }; }
+    $('btnPrevia').addEventListener('click', async () => {
+      if (!mapa.includes('codigo')) return mostrarMensagem('Escolha qual coluna é o <strong>Código</strong>: é por ele que o sistema sabe se a peça já existe.', 'erro');
+      if (!mapa.includes('nome') && $('opNovos').checked) return mostrarMensagem('Escolha qual coluna é o <strong>Nome</strong> (para cadastrar as peças novas), ou desmarque "Cadastrar as peças novas".', 'erro');
+      const btn = $('btnPrevia');
+      btn.disabled = true;
+      try {
+        previa = await api('POST', '/api/importacao/previa', { linhas: montarLinhas(), opcoes: opcoes() });
+        mostrarMensagem('', '');
+        filtroRes = previa.resumo.erro ? 'erro' : previa.resumo.muda ? 'muda' : 'novo';
+        desenharResultado();
+        $('secResultado').hidden = false;
+        $('secResultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
+      btn.disabled = false;
+    });
+    const NOMES = { novo: 'peças novas', muda: 'vão mudar', igual: 'iguais (nada muda)', pula: 'puladas', erro: 'com problema' };
+    function valorTela(campo, v) {
+      if (v === null || v === undefined || v === '') return '—';
+      return ['preco', 'preco_inst', 'custo'].includes(campo) ? moeda(v) : String(v);
+    }
+    function desenharResultado() {
+      const r = previa.resumo;
+      $('chips').innerHTML = Object.keys(NOMES).filter((k) => r[k]).map((k) =>
+        '<button type="button" class="im-chip ' + k + (filtroRes === k ? ' ativo' : '') + '" data-f="' + k + '">' + r[k] + ' ' + NOMES[k] + '</button>').join('');
+      const lista = previa.linhas.filter((l) => l.acao === filtroRes);
+      const LIM = 500;
+      $('resultado').innerHTML = lista.slice(0, LIM).map((l) => {
+        let o = '';
+        if (l.acao === 'novo') {
+          const v = l.valores;
+          o = 'Cadastra: ' + [v.marca, 'levar ' + moeda(v.preco), 'c/ inst. ' + moeda(v.preco_inst), v.custo !== null ? 'custo ' + moeda(v.custo) : '', v.estoque ? 'estoque ' + v.estoque : '', v.local ? 'local ' + v.local : '']
+            .filter(Boolean).map(esc).join(' · ') + (l.aviso ? '<span class="im-mud" style="color:#b45309">⚠ ' + esc(l.aviso) + '</span>' : '');
+        } else if (l.acao === 'muda') {
+          o = l.mudancas.map((m) => '<span class="im-mud">' + esc(m.rot) + ': <s>' + esc(valorTela(m.campo, m.antes)) + '</s> → <strong>' + esc(valorTela(m.campo, m.depois)) + '</strong></span>').join('');
+        } else if (l.acao === 'igual') o = 'Já está igual no sistema.';
+        else o = esc(l.erro || '');
+        return '<tr><td>' + l.n + '</td><td><strong>' + esc(l.codigo || '—') + '</strong></td><td>' + esc(l.nome || '') + '</td><td>' + o + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="aviso-vazio">Nada aqui.</td></tr>';
+      $('infoResultado').textContent = lista.length > LIM ? 'Mostrando ' + LIM + ' de ' + lista.length + '.' : '';
+      const grava = r.novo + r.muda;
+      $('btnImportar').disabled = !grava;
+      $('btnImportar').textContent = grava ? 'Importar agora (' + [r.novo ? r.novo + ' novas' : '', r.muda ? r.muda + ' atualizadas' : ''].filter(Boolean).join(', ') + ')' : 'Nada para importar';
+    }
+    $('chips').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-f]');
+      if (b) { filtroRes = b.dataset.f; desenharResultado(); }
+    });
+    $('btnImportar').addEventListener('click', async () => {
+      const r = previa.resumo;
+      const txt = 'Importar agora?\n\n' + (r.novo ? '• ' + r.novo + ' peça(s) nova(s) serão cadastradas\n' : '') + (r.muda ? '• ' + r.muda + ' peça(s) serão atualizadas\n' : '') +
+        (r.erro ? '• ' + r.erro + ' linha(s) com problema ficam de fora\n' : '') + '\nDá para desfazer depois em "Importações feitas".';
+      if (!confirm(txt)) return;
+      const btn = $('btnImportar');
+      btn.disabled = true;
+      try {
+        const d = await api('POST', '/api/importacao/aplicar', { linhas: montarLinhas(), opcoes: opcoes(), arquivo: planilha.arquivo });
+        mostrarMensagem('✓ Importação nº ' + d.id + ' feita: ' + d.resumo.novo + ' peça(s) nova(s), ' + d.resumo.muda + ' atualizada(s). <a href="/itens.html">Ver na tabela de itens</a>', 'ok');
+        $('secResultado').hidden = true;
+        $('secColunas').hidden = true;
+        $('colado').value = '';
+        $('arquivo').value = '';
+        $('nomeArquivo').textContent = '';
+        planilha = null;
+        carregarHistorico();
+      } catch (e) { mostrarMensagem(esc(e.message), 'erro'); btn.disabled = false; }
+    });
+
+    // ================= importações feitas =================
+    async function carregarHistorico() {
+      try {
+        const d = await api('GET', '/api/importacao');
+        $('historico').innerHTML = d.importacoes.length ? d.importacoes.map((x) => {
+          const r = x.desfazerResumo;
+          return '<tr><td><strong>' + x.id + '</strong></td><td>' + new Date(x.criadoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) + '</td>' +
+            '<td>' + esc(x.arquivo || '—') + '</td><td>' + x.novos + '</td><td>' + x.atualizados + '</td><td>' + esc(x.usuario || '—') + '</td><td>' +
+            (x.desfeitaEm
+              ? '<small>Desfeita em ' + new Date(x.desfeitaEm).toLocaleDateString('pt-BR') + (r ? ': ' + r.apagadas + ' apagada(s), ' + r.voltaram + ' valor(es) voltaram' +
+                  (r.ficaram ? ', ' + r.ficaram + ' ficaram (já usadas)' : '') + (r.mantidos ? ', ' + r.mantidos + ' mantido(s) (mudaram depois)' : '') : '') + '</small>'
+              : '<button type="button" class="btn-mini perigo" data-desfazer="' + x.id + '">Desfazer</button>') + '</td></tr>';
+        }).join('') : '<tr><td colspan="7" class="aviso-vazio">Nenhuma importação ainda.</td></tr>';
+      } catch (e) { $('historico').innerHTML = '<tr><td colspan="7" class="aviso-vazio">' + esc(e.message) + '</td></tr>'; }
+    }
+    $('historico').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-desfazer]');
+      if (!b) return;
+      if (!confirm('Desfazer a importação nº ' + b.dataset.desfazer + '?\n\n• Peças novas que ainda não foram usadas (OS, venda, boleto) são apagadas.\n• Valores trocados voltam ao que eram, se ninguém mexeu neles depois.\n• Estoque volta pela diferença, se o saldo ainda é o da importação.')) return;
+      try {
+        const r = await api('POST', '/api/importacao/' + b.dataset.desfazer + '/desfazer');
+        mostrarMensagem('✓ Desfeita: ' + r.apagadas + ' peça(s) apagada(s), ' + r.voltaram + ' valor(es) voltaram' + (r.ficaram ? ', ' + r.ficaram + ' peça(s) ficaram porque já foram usadas' : '') +
+          (r.mantidos ? ', ' + r.mantidos + ' valor(es) mantidos porque mudaram depois da importação' : '') + '.', 'ok');
+        carregarHistorico();
+      } catch (er) { mostrarMensagem(esc(er.message), 'erro'); }
+    });
+
+    (async () => {
+      try { marcasConhecidas = new Set((await api('GET', '/api/importacao/marcas')).marcas.map((m) => m.toLowerCase())); } catch (e) { /* fora do modo */ }
+      carregarHistorico();
+    })();
+  </script>
+</body>
+</html>

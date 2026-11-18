@@ -33,34 +33,16 @@
       </div>
       <div class="busca-acoes">
         <button id="btnBuscar">Buscar</button>
-        <button id="btnLimpar" class="secundario">Limpar</button>
-        <button id="btnColunas" class="secundario" type="button" title="Mostrar/ocultar colunas e ajustar larguras">Gerenciar visualização</button>
         <button id="btnNovo" class="sucesso">Novo Produto</button>
+        <button id="btnLimpar" class="secundario">Limpar</button>
         <a href="/entrada-estoque.html" class="secundario" title="Peças dos boletos aguardando entrada no estoque">Entrada de estoque</a>
         <a href="/pedidos.html" class="secundario" title="Pedir ao vendedor as peças abaixo do mínimo">Pedido de compra</a>
+        <a href="/importar.html" class="secundario" title="Importar uma tabela inteira de peças (Excel ou CSV)">Importar tabela</a>
         <button id="btnEtiquetas" class="secundario" type="button" title="Lista de etiquetas com QR code para imprimir">Etiquetas QR<span id="contEtiquetas"></span></button>
         <label class="filtro-estoque">
           <input type="checkbox" id="chkEstoqueBaixo"> Abaixo do mínimo
         </label>
-        <label class="filtro-estoque" title="Itens que saíram mais do que estava cadastrado">
-          <input type="checkbox" id="chkEstoqueNegativo"> Estoque negativo
-        </label>
       </div>
-    </div>
-
-    <div id="painelColunas" class="toolbar-colunas oculto">
-      <span>Gerenciar visualização:</span>
-      <label><input type="checkbox" data-coluna="codigo" checked> Código</label>
-      <label><input type="checkbox" data-coluna="nome" checked> Nome</label>
-      <label><input type="checkbox" data-coluna="marca" checked> Marca</label>
-      <label><input type="checkbox" data-coluna="estoque" checked> Estoque</label>
-      <label><input type="checkbox" data-coluna="preco" checked> Preço levar</label>
-      <label><input type="checkbox" data-coluna="precoInst" checked> Preço c/ inst.</label>
-      <label><input type="checkbox" data-coluna="local" checked> Local</label>
-      <label><input type="checkbox" data-coluna="conferencia" checked> Conferência</label>
-      <label><input type="checkbox" data-coluna="acoes"> Ações</label>
-      <button id="btnLarguras" type="button" class="secundario">Redefinir larguras</button>
-      <button id="btnFecharColunas" type="button" class="secundario">Fechar</button>
     </div>
 
     <div id="mensagens"></div>
@@ -482,7 +464,6 @@
       const params = new URLSearchParams();
       if (q) params.append('q', q);
       if (estoqueBaixo) params.append('estoque_baixo', 'true');
-      if (document.getElementById('chkEstoqueNegativo').checked) params.append('estoque_negativo', 'true');
       if (ordemCampo) {
         params.append('ordem', ordemCampo);
         params.append('dir', ordemDirecao);
@@ -1167,11 +1148,14 @@
         <option value="${f.id}">${escapeHtml(f.nome)}${f.ativo ? '' : ' (inativo)'}</option>`).join('');
     }
 
+    // Colunas fixas (o antigo "Gerenciar visualização" saiu): a coluna Ações
+    // fica sempre escondida (editar = clicar no código; histórico e excluir
+    // estão dentro do Editar). Tablet em pé (tela estreita) começa sem a
+    // coluna Conferência, para Estoque, preços e Local caberem sem rolar.
     function aplicarVisibilidadeColunas() {
       const tabela = document.getElementById('tabelaItens');
-      document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
-        tabela.classList.toggle('sem-' + chk.dataset.coluna, !chk.checked);
-      });
+      tabela.classList.add('sem-acoes');
+      tabela.classList.toggle('sem-conferencia', window.innerWidth <= 900);
     }
 
     // Redimensionar coluna usando Pointer Capture (o jeito correto e robusto
@@ -1253,7 +1237,6 @@
       buscarItens(true);
     });
     document.getElementById('chkEstoqueBaixo').addEventListener('change', () => buscarItens(true));
-    document.getElementById('chkEstoqueNegativo').addEventListener('change', () => buscarItens(true));
     document.getElementById('tabelaItens').addEventListener('click', e => {
       // Ignora o clique que o navegador dispara depois de soltar o mouse ao
       // arrastar a alcinha de redimensionar a coluna — sem isso, redimensionar
@@ -1286,17 +1269,6 @@
     // depende também de custo e margem estarem preenchidos.
     window.addEventListener('gerente:mudou', () => atualizarPrecoSugerido());
 
-    document.getElementById('btnColunas').addEventListener('click', () => {
-      document.getElementById('painelColunas').classList.toggle('oculto');
-    });
-    document.getElementById('btnFecharColunas').addEventListener('click', () => {
-      document.getElementById('painelColunas').classList.add('oculto');
-    });
-    document.getElementById('btnLarguras').addEventListener('click', redefinirLarguras);
-
-    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
-      chk.addEventListener('change', aplicarVisibilidadeColunas);
-    });
 
     tbody.addEventListener('click', e => {
       const botao = e.target.closest('button[data-acoes]');
@@ -1361,23 +1333,10 @@
       if (params.get('estoque_baixo')) {
         document.getElementById('chkEstoqueBaixo').checked = true;
       }
-      if (params.get('estoque_negativo')) {
-        document.getElementById('chkEstoqueNegativo').checked = true;
-      }
     }
 
     carregarFuncionarios();
 
-    document.querySelectorAll('.toolbar-colunas input[data-coluna]').forEach(chk => {
-      chk.checked = chk.dataset.coluna !== 'acoes';
-    });
-    // Tablet em pé (tela estreita): começa sem a coluna Conferência, para Estoque,
-    // preços e Local caberem sem rolar para o lado. Dá para ligar de novo em
-    // "Gerenciar visualização".
-    if (window.innerWidth <= 900) {
-      const chkConf = document.querySelector('.toolbar-colunas input[data-coluna="conferencia"]');
-      if (chkConf) chkConf.checked = false;
-    }
     aplicarVisibilidadeColunas();
     iniciarRedimensionamento();
     redefinirLarguras();

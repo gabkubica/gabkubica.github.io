@@ -3340,7 +3340,7 @@ a.a-caminho:hover { text-decoration: underline; }
 button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !important; color: #fff !important; }
 
 /* Conferência de estoque (entrada-estoque.html) */
-.cf-abas .cf-cont.cf-tem { background: #f5b301; color: #18181b; border-radius: 999px; padding: 0 7px; margin-left: 2px; }
+.cf-cont.cf-tem { background: #f5b301; color: #18181b; border-radius: 999px; padding: 0 7px; margin-left: 2px; }
 .cf-barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 10px; }
 .cf-todas { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; margin-right: 6px; cursor: pointer; }
 .cf-tabela { table-layout: auto !important; }
@@ -3710,4 +3710,61 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 /* No celular, a barra mostra só o título (a explicação miúda quebrava em 3 linhas). */
 @media (max-width: 700px) {
   details.recolhivel > summary small { display: none; }
+}
+
+/* Entrada de estoque: barra com a conferência à direita e lista compacta
+   (uma tabela só, muitas peças por tela e por folha). */
+.en-barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.en-barra-dir { margin-left: auto; display: inline-flex; gap: 8px; flex-wrap: wrap; }
+#btnAprovar.cf-ativo { background: #1e40af !important; border-color: #1e40af !important; color: #fff !important; }
+.cf-quem { margin-top: 10px; }
+.cf-quem select { font-size: 16px; padding: 8px 10px; max-width: 320px; }
+.en-envolve { max-height: none; }
+.en-compacta { table-layout: auto !important; width: 100%; }
+.en-compacta th, .en-compacta td { padding: 4px 8px !important; font-size: 13.5px; line-height: 1.25; }
+.en-compacta .en-c-num { width: 70px; }
+.en-compacta .en-c-local { width: 90px; white-space: nowrap; font-weight: 600; }
+.en-compacta .en-c-qtd { width: 70px; text-align: center; }
+.en-compacta .en-c-acao { width: 104px; text-align: right; }
+.en-compacta .en-c-peca .er-sub { display: inline; margin-left: 6px; }
+.en-compacta .en-qtd { font-size: 15px; }
+.en-compacta .en-saldo { font-weight: 600; }
+.en-compacta .btn-mini { padding: 4px 9px; }
+.en-compacta tr.en-grupo td { background: var(--tabela-th); padding: 6px 8px !important; border-top: 2px solid var(--borda); }
+.en-grupo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.en-grupo-sub { display: inline !important; }
+.en-grupo-acoes { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .en-barra-dir { margin-left: 0; width: 100%; }
+  .en-barra-dir button { flex: 1 1 0; }
+  .en-compacta thead { display: none; }
+  .en-compacta, .en-compacta tbody, .en-compacta tr, .en-compacta td { display: block; width: auto !important; }
+  .en-compacta tr:not(.en-grupo) { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 12px; padding: 8px 4px; border-bottom: 1px solid var(--borda); align-items: center; }
+  .en-compacta tr:not(.en-grupo) td { border: 0 !important; padding: 0 !important; }
+  .en-compacta td.er-num { grid-column: 1; }
+  .en-compacta td.en-c-peca { grid-column: 2 / 4; }
+  .en-compacta td.en-c-local::before { content: "Local "; color: var(--texto-suave); font-weight: 400; font-size: 12px; }
+  .en-compacta td.en-qtd::before { content: "Na nota "; color: var(--texto-suave); font-weight: 400; font-size: 12px; }
+  .en-compacta td.en-saldo::before { content: "Saldo "; color: var(--texto-suave); font-weight: 400; font-size: 12px; }
+  .en-compacta td.en-qtd, .en-compacta td.en-saldo { text-align: left; font-size: 14px; }
+  .en-compacta td.en-c-acao { grid-column: 1 / 4; text-align: left; }
+  .en-compacta td.en-c-acao .btn-mini { width: 100%; padding: 8px; }
+  .en-compacta td.so-imp { display: none !important; }
+}
+@media print {
+  .en-compacta th, .en-compacta td { padding: 3px 5px !important; font-size: 11px !important; }
+  .en-compacta tr.en-grupo td { border: 1px solid #000 !important; font-size: 11.5px !important; }
+  .en-compacta td.en-escrever, .en-compacta td.en-ok { height: 20px; }
+  .en-compacta .en-escrever { width: 62px; }
+  tbody.en-boleto.en-fora-da-impressao { display: none !important; }
+  .en-compacta tbody.en-boleto { break-inside: auto !important; }
+}
+.en-grupo-acoes .btn-mini, .en-grupo-acoes a.btn-mini { font-size: 12px; padding: 4px 10px; line-height: 1.3; min-height: 0; }
+/* Conferência de estoque: "Enviar" grande sozinho; os outros menores ao lado. */
+.cf-dialog .dialog-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cf-dialog .dialog-acoes #cfEnviar { flex: 1 1 100%; font-size: 16px; padding: 11px; }
+.cf-dialog .dialog-acoes > :not(#cfEnviar) { flex: 1 1 0; white-space: nowrap; font-size: 13px; padding: 7px 10px; text-align: center; }
+@media (max-width: 700px) {
+  .en-compacta tr.en-grupo td { border: 0 !important; border-top: 2px solid var(--borda) !important; }
+  .cf-dialog .dialog-acoes > :not(#cfEnviar) { white-space: normal; }
 }
