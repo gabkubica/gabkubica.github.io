@@ -31,29 +31,37 @@
 
     <div class="os-secao">
       <h2 class="fx-titulo">Como a peça chega no estoque</h2>
-      <p class="fx-lead">A regra é uma só: <strong>a peça só entra no estoque quando o balconista confere e dá a entrada.</strong>
-        Lançar o boleto não mexe no estoque.</p>
+      <p class="fx-lead">Pedido → recebe a mercadoria (nota + QR) → guarda no estoque. A regra continua: <strong>a peça só entra no estoque quando o balconista confere e dá a entrada.</strong></p>
 
       <ol class="fx-passos">
         <li class="fx-passo">
           <span class="fx-num">1</span>
           <div>
-            <h3>Lançar o boleto</h3>
-            <p>Chegou a nota do fornecedor: lance o boleto em <a href="/despesas.html">Despesas</a> com as peças, quantidades e preços.</p>
-            <p class="fx-efeito">O estoque <strong>não muda</strong>. As peças vão para a lista da <a href="/entrada-estoque.html">Entrada de estoque</a>, e na tabela de <a href="/itens.html">Itens</a> aparece um <span class="a-caminho-exemplo">+2</span> ao lado do saldo.</p>
+            <h3>Pedir ao fornecedor</h3>
+            <p>O gerente monta o <a href="/pedidos.html">Pedido de compra</a> (peças e quantidades, sem preço) e manda para o vendedor por e-mail.</p>
+            <p class="fx-efeito">O pedido fica "Esperando chegar". Ele é a central da mercadoria: mostra o que já chegou, o que falta e o que já foi guardado.</p>
           </div>
         </li>
         <li class="fx-passo">
           <span class="fx-num">2</span>
           <div>
-            <h3>Dar entrada</h3>
-            <p>Na <a href="/entrada-estoque.html">Entrada de estoque</a> as peças aparecem separadas por boleto. Dá para <strong>imprimir</strong> (tudo ou um boleto só), conferir no papel à caneta e depois lançar.</p>
-            <p>Para lançar, o balconista escolhe o nome dele, acha a peça (procura ou bipa a etiqueta) e aperta <strong>Dar entrada</strong>. Ali ele diz <strong>quantas chegaram</strong> e, se contou a prateleira, já <strong>atualiza o saldo geral</strong>.</p>
-            <p class="fx-efeito">Agora sim a peça entra no estoque. Se ele atualizou o saldo, a “última conferência” fica com a data de hoje e o nome dele.</p>
+            <h3>Receber a mercadoria</h3>
+            <p>Chegou a mercadoria: abra o pedido (na Entrada de estoque, botão <strong>Pedidos a receber</strong>) e aperte <strong>Receber mercadoria</strong>.
+              Confira quantas vieram, digite o preço de cada peça como está na nota, o nº da NF e o vencimento, e imprima os <strong>QR Codes</strong> para colar nas peças.</p>
+            <p class="fx-efeito">O boleto é criado sozinho em Despesas, ligado ao pedido. O estoque <strong>ainda não muda</strong>: as peças vão para a lista da <a href="/entrada-estoque.html">Entrada de estoque</a>.
+              Compra sem pedido? Lance o boleto direto em <a href="/despesas.html">Despesas</a>, como sempre.</p>
           </div>
         </li>
         <li class="fx-passo">
           <span class="fx-num">3</span>
+          <div>
+            <h3>Guardar (dar entrada)</h3>
+            <p>Na <a href="/entrada-estoque.html">Entrada de estoque</a> o balconista escolhe o nome dele, acha a peça (procura ou bipa a etiqueta) e aperta <strong>Dar entrada</strong>, dizendo quantas chegaram.</p>
+            <p class="fx-efeito">Agora sim a peça entra no estoque. Quando tudo do pedido estiver guardado, o pedido fica <strong>Concluído</strong> sozinho.</p>
+          </div>
+        </li>
+        <li class="fx-passo">
+          <span class="fx-num">4</span>
           <div>
             <h3>Vender ou usar</h3>
             <p>A peça sai do estoque quando entra numa OS, numa venda de balcão ou num serviço externo. Em <strong>modo orçamento</strong> ela não sai.</p>
@@ -65,7 +73,7 @@
     <div class="fx-grade">
       <div class="os-secao">
         <h3>Chegou só uma parte?</h3>
-        <p>Em “Quantas chegaram”, coloque quantas vieram. O resto continua na lista, esperando.</p>
+        <p>No pedido, coloque em “Chegou” só o que veio. O pedido fica “Chegou parte · faltam X” e, quando o resto chegar, é só apertar <strong>Receber o restante</strong>. Se o resto não vier, o gerente encerra o pedido.</p>
       </div>
       <div class="os-secao">
         <h3>Peça nova?</h3>

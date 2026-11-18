@@ -38,6 +38,7 @@
       <a href="/" class="btn-voltar">← Painel</a>
       <a href="/fluxo.html" class="secundario">Como funciona</a>
       <button type="button" class="secundario" id="btnImprimirTudo">Imprimir tudo (papel)</button>
+      <a class="azul" id="btnPedidosReceber" href="/pedidos.html?receber=1" title="Chegou mercadoria de um pedido? Receba por lá: confere, cadastra a nota e imprime os QR">Pedidos a receber</a>
       <span class="en-barra-dir">
         <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque</button>
         <button type="button" id="btnAprovar" class="secundario" title="Contagens esperando o gerente aprovar">Conferências para aprovar <span id="contAbaAprovar" class="cf-cont"></span></button>
@@ -262,7 +263,7 @@
       const mapa = new Map();
       for (const l of lista) {
         if (!mapa.has(l.boleto_id)) {
-          mapa.set(l.boleto_id, { id: l.boleto_id, codigo: l.boleto_codigo, fornecedor: l.fornecedor, data: l.boleto_data, nf: l.nota_fiscal, linhas: [] });
+          mapa.set(l.boleto_id, { id: l.boleto_id, codigo: l.boleto_codigo, fornecedor: l.fornecedor, data: l.boleto_data, nf: l.nota_fiscal, pedido: l.pedido_id, linhas: [] });
         }
         mapa.get(l.boleto_id).linhas.push(l);
       }
@@ -302,7 +303,7 @@
             <tbody class="en-boleto" data-boleto="${b.id}">
               <tr class="en-grupo"><td colspan="10">
                 <div class="en-grupo-linha">
-                  <span><strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
+                  <span>${b.pedido ? '<a class="en-pedido" href="/pedidos.html?id=' + b.pedido + '">Pedido nº ' + b.pedido + '</a> · ' : ''}<strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
                     <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>
                   <span class="en-grupo-acoes sem-imp">
                     <a class="btn-mini secundario" href="/despesas.html?boleto=${b.id}">Ver boleto</a>
@@ -313,7 +314,7 @@
               </td></tr>
               ${b.linhas.map((l, k) => `
               <tr class="${l.novo ? 'en-novo' : ''}">
-                ${k === 0 ? '<td class="so-imp en-p-bol' + (b.linhas.length === 1 ? ' en-p-uma' : '') + '" rowspan="' + b.linhas.length + '"><strong>nº ' + escapeHtml(b.codigo) + '</strong>' +
+                ${k === 0 ? '<td class="so-imp en-p-bol' + (b.linhas.length === 1 ? ' en-p-uma' : '') + '" rowspan="' + b.linhas.length + '">' + (b.pedido ? 'Ped. ' + b.pedido + ' · ' : '') + '<strong>nº ' + escapeHtml(b.codigo) + '</strong>' +
                   (b.nf ? ' NF ' + escapeHtml(b.nf) : '') + (b.linhas.length === 1 ? ' · ' : '<br>') + escapeHtml(b.fornecedor || '') + '</td>' : ''}
                 <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
                 <td class="en-c-peca"><strong>${escapeHtml(l.nome)}</strong>
@@ -865,6 +866,11 @@
     // Contador da aba logo ao abrir; #aprovar abre direto na lista do gerente.
     carregarConferencias();
     if (location.hash === '#aprovar') mostrarAba('aprovar');
+    // Quantos pedidos estão esperando a mercadoria chegar.
+    fetch('/api/pedidos').then(r => r.json()).then(d => {
+      const n = (d.pedidos || []).filter(p => p.fase === 'enviado' || p.fase === 'parcial').length;
+      if (n) document.getElementById('btnPedidosReceber').textContent = 'Pedidos a receber (' + n + ')';
+    }).catch(() => {});
     carregar();
   </script>
 </body>

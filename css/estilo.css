@@ -3836,3 +3836,6 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 .abas.abas-sub { margin-top: 8px; }
 .abas.abas-sub .aba { font-size: 13px; padding: 6px 12px; }
 .abas.abas-sub .aba small { font-weight: 400; opacity: .75; }
+
+.en-pedido { display: inline-block; font-weight: 700; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: #e0ecff; color: #1e40af !important; text-decoration: none; }
+[data-tema="escuro"] .en-pedido { background: #1c2b44; color: #a8c8fb !important; }

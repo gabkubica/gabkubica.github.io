@@ -33,7 +33,6 @@
     '/funcionarios.html',
     '/usuarios.html',
     '/comissoes.html', // comissões dos funcionários
-    '/pedidos.html', // pedido de compra (usa a agenda de contatos)
     '/importar.html', // importar tabela de itens
     '/contatos.html', // agenda escondida: só se chega pela faixa do gerente
   ];

@@ -17,87 +17,112 @@
   <style>
     .pc-topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
     .pc-topo h2 { margin: 0; font-size: 22px; }
+    /* Lista de pedidos */
+    .pc-filtros { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+    .pc-filtros button { font-size: 13px; padding: 6px 12px; border-radius: 999px; }
+    .pc-filtros button.ativo { outline: 2px solid var(--vermelho); }
     .pc-lista { width: 100%; border-collapse: collapse; font-size: 14px; }
     .pc-lista th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); }
-    .pc-lista td { padding: 8px 6px; border-bottom: 1px solid var(--borda); }
+    .pc-lista td { padding: 9px 6px; border-bottom: 1px solid var(--borda); }
     .pc-lista tr.pc-linha { cursor: pointer; }
     .pc-lista tr.pc-linha:hover td { background: var(--tabela-hover); }
-    .pc-lista tr.pc-atual td { background: var(--ct-sel, #e3ebf5); }
-    [data-tema="escuro"] .pc-lista tr.pc-atual td { background: #1c2b44; }
-    .pc-st { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
-    .pc-st.rascunho { background: #fdf3e0; color: #8a5a12; }
-    .pc-st.enviado { background: #e9f7ee; color: #14532d; }
-    [data-tema="escuro"] .pc-st.rascunho { background: #3a2f1a; color: #e0c07a; }
-    [data-tema="escuro"] .pc-st.enviado { background: #16301f; color: #7fd6a1; }
+    .pc-vazio { padding: 18px; text-align: center; color: var(--texto-suave); }
+    /* Fase do pedido */
+    .pc-fase { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; display: inline-block; }
+    .pc-fase.rascunho { background: #eef0f3; color: #4b5563; }
+    .pc-fase.enviado { background: #fdf3e0; color: #8a5a12; }
+    .pc-fase.parcial { background: #fde8e8; color: #9b1c1c; }
+    .pc-fase.guardando { background: #e0ecff; color: #1e40af; }
+    .pc-fase.concluido { background: #e9f7ee; color: #14532d; }
+    [data-tema="escuro"] .pc-fase.rascunho { background: #2a2e35; color: #b8bec8; }
+    [data-tema="escuro"] .pc-fase.enviado { background: #3a2f1a; color: #e0c07a; }
+    [data-tema="escuro"] .pc-fase.parcial { background: #3b1d1d; color: #f8b4b4; }
+    [data-tema="escuro"] .pc-fase.guardando { background: #1c2b44; color: #a8c8fb; }
+    [data-tema="escuro"] .pc-fase.concluido { background: #16301f; color: #7fd6a1; }
+    /* Passos */
+    .pc-passos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 14px 0 12px; counter-reset: passo; }
+    .pc-passo { padding: 9px 10px; border-radius: 8px; border: 1px solid var(--borda); color: var(--texto-suave); font-size: 13px; font-weight: 600; }
+    .pc-passo b { display: block; font-size: 11px; font-weight: 400; }
+    .pc-passo.feito { background: #e9f7ee; color: #14532d; border-color: transparent; }
+    .pc-passo.agora { border: 2px solid var(--vermelho); color: var(--texto); }
+    [data-tema="escuro"] .pc-passo.feito { background: #16301f; color: #7fd6a1; }
+    /* Próximo passo: UM botão principal */
+    .pc-proximo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: 10px;
+      background: var(--tabela-th); border: 1px solid var(--borda); }
+    .pc-proximo p { margin: 0; font-size: 15px; }
+    .pc-proximo small { display: block; color: var(--texto-suave); font-size: 12.5px; margin-top: 2px; }
+    .pc-proximo .pc-grande { font-size: 16px; padding: 12px 20px; font-weight: 700; }
+    .pc-proximo-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .pc-link { background: none !important; border: 0 !important; color: var(--texto-suave) !important; text-decoration: underline; padding: 2px 0 !important; font-size: 13px; cursor: pointer; }
+    /* Dados e itens */
     .pc-grade { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; }
     .pc-grade label, .pc-bloco label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
     .pc-bloco { margin-top: 14px; padding: 12px; border: 1px dashed var(--input-borda); border-radius: 10px; }
     .pc-linha-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
-    .pc-busca { position: relative; flex: 1 1 260px; }
+    .pc-busca { position: relative; flex: 1 1 240px; }
     .pc-sug { position: absolute; left: 0; right: 0; z-index: 10; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.15); max-height: 280px; overflow: auto; }
     .pc-sug button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--texto); padding: 7px 10px; cursor: pointer; font-size: 13px; }
     .pc-sug button:hover { background: var(--tabela-hover); }
     .pc-sug small { color: var(--texto-suave); }
-    .pc-itens { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    .pc-itens { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 12px; }
     .pc-itens th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
     .pc-itens td { padding: 6px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
-    .pc-itens input { width: 100%; font-size: 13px; padding: 5px 6px; }
+    .pc-itens input { width: 100%; font-size: 14px; padding: 5px 6px; }
     .pc-itens .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pc-itens .cen { text-align: center; font-variant-numeric: tabular-nums; }
     .pc-itens small { color: var(--texto-suave); display: block; }
-    .pc-itens .pc-qtd { width: 70px; }
-    .pc-itens .pc-custo { width: 100px; }
-    .pc-rodape { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
-    .pc-rodape .pc-espaco { flex: 1; }
-    .pc-total { font-size: 14px; margin-top: 8px; text-align: right; }
-    .pc-vazio { padding: 18px; text-align: center; color: var(--texto-suave); }
-    .pc-st.nota { background: #e0ecff; color: #1e40af; }
-    [data-tema="escuro"] .pc-st.nota { background: #1c2b44; color: #a8c8fb; }
-    /* Vende muito / vende pouco */
+    .pc-itens .pc-qtd { width: 72px; }
+    .pc-total { font-size: 13.5px; margin-top: 8px; text-align: right; color: var(--texto-suave); }
     .pc-giro { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
     .pc-giro.muito { background: #e9f7ee; color: #14532d; }
     .pc-giro.pouco { background: #eef0f3; color: #4b5563; }
     [data-tema="escuro"] .pc-giro.muito { background: #16301f; color: #7fd6a1; }
     [data-tema="escuro"] .pc-giro.pouco { background: #2a2e35; color: #b8bec8; }
     .pc-giro-mes { display: block; font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
-    .pc-legenda { font-size: 12px; color: var(--texto-suave); margin-top: 6px; }
-    /* Janela "Tabela de itens" */
+    .pc-sit { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+    .pc-sit.s-ok { background: #e9f7ee; color: #14532d; }
+    .pc-sit.s-falta { background: #fde8e8; color: #9b1c1c; }
+    .pc-sit.s-amais { background: #fdf3e0; color: #8a5a12; }
+    [data-tema="escuro"] .pc-sit.s-ok { background: #16301f; color: #7fd6a1; }
+    [data-tema="escuro"] .pc-sit.s-falta { background: #3b1d1d; color: #f8b4b4; }
+    [data-tema="escuro"] .pc-sit.s-amais { background: #3a2f1a; color: #e0c07a; }
+    .pc-notas { margin-top: 14px; }
+    .pc-nota { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; margin-top: 6px; font-size: 13.5px; }
+    .pc-rodape { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+    .pc-rodape .pc-espaco { flex: 1; }
+    .pc-contato-linha { display: flex; gap: 6px; }
+    .pc-contato-linha select { flex: 1 1 auto; min-width: 0; }
+    .pc-contato-linha button { flex: none; white-space: nowrap; padding: 6px 10px; font-size: 13px; }
+    /* Janelas */
     .pc-dlg { width: min(1000px, calc(100vw - 24px)) !important; max-width: none !important; max-height: calc(100vh - 40px); display: none; flex-direction: column; padding: 14px 16px; }
     .pc-dlg[open] { display: flex; }
     .pc-dlg-topo { display: flex; align-items: center; gap: 10px; }
     .pc-dlg-topo h3 { margin: 0; flex: 1; }
-    .pc-dlg-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0 6px; }
-    .pc-dlg-filtros input[type="text"] { flex: 1 1 260px; font-size: 15px; padding: 8px 10px; }
-    .pc-dlg-filtros label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
-    .pc-dlg-lista { overflow: auto; flex: 1; min-height: 200px; border: 1px solid var(--borda); border-radius: 8px; }
+    .pc-dlg-lista { overflow: auto; flex: 1; min-height: 160px; border: 1px solid var(--borda); border-radius: 8px; }
     .pc-dlg-lista .pc-itens { margin-top: 0; }
     .pc-dlg-lista thead th { position: sticky; top: 0; background: var(--card-bg); z-index: 1; }
     .pc-dlg-lista tr.pc-na-lista td { background: var(--tabela-hover); }
     .pc-dlg-rodape { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--texto-suave); }
-    .pc-add { white-space: nowrap; }
-    /* Nota (boleto) do pedido */
-    .pc-nota h3 { margin: 0 0 6px; font-size: 16px; }
-    .pc-nota-cab { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
-    .pc-resumo { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 4px; }
-    .pc-sit { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
-    .pc-sit.s-ok { background: #e9f7ee; color: #14532d; }
-    .pc-sit.s-faltou, .pc-sit.s-naoveio { background: #fde8e8; color: #9b1c1c; }
-    .pc-sit.s-amais, .pc-sit.s-foradopedido { background: #fdf3e0; color: #8a5a12; }
-    [data-tema="escuro"] .pc-sit.s-ok { background: #16301f; color: #7fd6a1; }
-    [data-tema="escuro"] .pc-sit.s-faltou, [data-tema="escuro"] .pc-sit.s-naoveio { background: #3b1d1d; color: #f8b4b4; }
-    [data-tema="escuro"] .pc-sit.s-amais, [data-tema="escuro"] .pc-sit.s-foradopedido { background: #3a2f1a; color: #e0c07a; }
+    .pc-form { display: flex; flex-direction: column; gap: 10px; }
+    .pc-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
+    .pc-form small { font-weight: 400; color: var(--texto-suave); }
+    .pc-form input { font-size: 15px; padding: 8px 10px; }
+    .rc-nota { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+    .rc-nota label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
+    .rc-nota input, .rc-nota select { font-size: 15px; padding: 7px 9px; }
+    .rc-conf { margin-top: 8px; font-size: 13.5px; }
+    .rc-conf.ok { color: #15803d; } .rc-conf.dif { color: #b45309; }
+    .rc-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+    .rc-acoes .pc-espaco { flex: 1; }
     .pc-bol { display: block; width: 100%; text-align: left; margin: 4px 0; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--card-bg); color: var(--texto); cursor: pointer; font-size: 14px; }
     .pc-bol:hover:not([disabled]) { border-color: var(--vermelho); }
     .pc-bol[disabled] { opacity: .55; cursor: not-allowed; }
     .pc-bol small { display: block; color: var(--texto-suave); }
-    .pc-bol.pc-provavel { border-left: 4px solid #1e40af; }
-    .pc-contato-linha { display: flex; gap: 6px; }
-    .pc-contato-linha select { flex: 1 1 auto; min-width: 0; }
-    .pc-contato-linha button { flex: none; white-space: nowrap; padding: 6px 10px; font-size: 13px; }
-    .pc-form-contato { display: flex; flex-direction: column; gap: 10px; }
-    .pc-form-contato label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
-    .pc-form-contato small { font-weight: 400; color: var(--texto-suave); }
-    .pc-form-contato input { font-size: 15px; padding: 8px 10px; }
-    @media (max-width: 760px) { .pc-grade { grid-template-columns: minmax(0, 1fr); } .pc-col-est { display: none; } }
+    @media (max-width: 760px) {
+      .pc-grade { grid-template-columns: minmax(0, 1fr); }
+      .pc-passos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pc-col-est { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -109,45 +134,57 @@
     <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
   </header>
 
-  <!-- Pedido de compra: puxa as peças abaixo do mínimo (por marca), deixa
-       mexer na lista e manda para o vendedor (PDF + e-mail pronto).
-       Servidor: src/routes/pedidos.js. Só gerente. -->
+  <!-- Pedido de compra = a central da mercadoria que chega:
+       1 montar -> 2 enviar ao vendedor -> 3 receber a mercadoria (cadastra a
+       nota/boleto e imprime os QR) -> 4 guardar no estoque (Entrada de
+       estoque). Em cada fase aparece UM botão principal com o próximo passo.
+       Montar/enviar: gerente. Receber: qualquer funcionário.
+       Servidor: src/routes/pedidos.js. -->
   <main class="os-main" style="max-width:1150px">
     <div class="pc-topo">
-      <a href="/itens.html" class="btn-voltar">← Itens</a>
-      <h2>Pedido de compra</h2>
+      <a href="/entrada-estoque.html" class="btn-voltar">← Entrada de estoque</a>
+      <h2>Pedidos de compra</h2>
       <span style="flex:1"></span>
-      <button type="button" class="sucesso" id="btnNovo">+ Novo pedido</button>
+      <button type="button" class="sucesso" id="btnNovo" data-trava-gerente>+ Novo pedido</button>
     </div>
     <div id="mensagens"></div>
 
+    <!-- ================= um pedido aberto ================= -->
     <div class="os-secao" id="secEditor" hidden>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
         <h2 style="margin:0" id="edTitulo">Novo pedido</h2>
-        <span id="edStatus"></span>
+        <button type="button" class="secundario" id="btnFecharPedido">← Voltar à lista</button>
       </div>
 
-      <div class="pc-grade" style="margin-top:12px">
-        <label>Vendedor (da agenda de Contatos)
-          <span class="pc-contato-linha">
-            <select id="edContato"><option value="">— escolher —</option></select>
-            <button type="button" class="secundario" id="btnNovoContato" title="Cadastrar um vendedor novo na agenda">+ Novo contato</button>
-          </span>
-        </label>
-        <label>Fornecedor (como sai no pedido)
-          <input type="text" id="edFornecedor" maxlength="160" placeholder="Ex.: Saint-Gobain Sekurit">
-        </label>
-        <label>E-mail do vendedor
-          <input type="email" id="edEmail" maxlength="160" placeholder="vendedor@empresa.com.br">
-        </label>
-      </div>
+      <div class="pc-passos" id="passos"></div>
+      <div class="pc-proximo" id="proximo"></div>
 
-      <div class="pc-bloco">
+      <!-- Dados do pedido (editáveis enquanto nada chegou) -->
+      <div id="blocoDados">
+        <div class="pc-grade" style="margin-top:14px">
+          <label>Vendedor (da agenda de Contatos)
+            <span class="pc-contato-linha">
+              <select id="edContato" data-trava-gerente><option value="">— escolher —</option></select>
+              <button type="button" class="secundario" id="btnNovoContato" title="Cadastrar um vendedor novo na agenda" data-trava-gerente>+ Novo contato</button>
+            </span>
+          </label>
+          <label>Fornecedor (como sai no pedido)
+            <input type="text" id="edFornecedor" maxlength="160" placeholder="Ex.: Saint-Gobain Sekurit" data-trava-gerente>
+          </label>
+          <label>E-mail do vendedor
+            <input type="email" id="edEmail" maxlength="160" placeholder="vendedor@empresa.com.br" data-trava-gerente>
+          </label>
+        </div>
+      </div>
+      <p id="linhaDados" class="aviso-vazio" style="margin:12px 0 0" hidden></p>
+
+      <!-- Montar a lista (só enquanto nada chegou) -->
+      <div class="pc-bloco" id="blocoMontar">
         <div class="pc-linha-acoes">
-          <label style="flex:1 1 240px">Puxar o que está abaixo do mínimo
+          <label style="flex:1 1 200px">Puxar o que está abaixo do mínimo
             <select id="edMarca"><option value="">Todas as marcas</option></select>
           </label>
-          <label style="flex:0 1 210px">Quais
+          <label style="flex:0 1 200px">Quais
             <select id="edGiro">
               <option value="">Todas</option>
               <option value="muito">Só as que vendem muito</option>
@@ -164,54 +201,94 @@
           <button type="button" class="azul" id="btnTabela" title="Abre a tabela de itens para escolher as peças">Abrir tabela de itens</button>
           <button type="button" class="secundario" id="btnLivre" title="Peça que ainda não está cadastrada">+ Linha livre</button>
         </div>
-        <p class="pc-legenda"><span class="pc-giro muito">Vende muito</span> / <span class="pc-giro pouco">Vende pouco</span>:
-          quanto a peça saiu nos últimos 90 dias (OS + balcão). "Vende muito" = entre as que mais saem na loja.</p>
+        <p class="aviso-vazio" style="margin:8px 0 0;font-size:12.5px">Sem preço: o preço vem na nota. O último custo aparece só como referência.
+          <span class="pc-giro muito">Vende muito</span> / <span class="pc-giro pouco">Vende pouco</span> = quanto a peça saiu nos últimos 90 dias.</p>
       </div>
 
       <div style="overflow-x:auto">
         <table class="pc-itens">
-          <thead><tr><th>Código</th><th>Peça</th><th class="pc-col-est">Estoque</th><th>Vende</th><th>Qtd</th><th>Ref. un. (R$)</th><th class="num">Subtotal</th><th></th></tr></thead>
+          <thead id="edCab"></thead>
           <tbody id="edItens"></tbody>
         </table>
       </div>
       <div class="pc-total" id="edTotal"></div>
 
-      <div class="pc-bloco pc-nota" id="edNota" hidden></div>
+      <div class="pc-notas" id="edNotas"></div>
 
-      <div class="pc-bloco" style="border-style:solid">
+      <div class="pc-bloco" style="border-style:solid" id="blocoObs">
         <label>Observações (vão no pedido e no e-mail)
-          <textarea id="edObs" maxlength="3000" style="min-height:60px" placeholder="Ex.: entregar até sexta; faturar em 3x"></textarea>
-        </label>
-        <label style="flex-direction:row;align-items:center;gap:8px;font-weight:400;margin-top:8px">
-          <input type="checkbox" id="edPrecos"> Mostrar os valores de referência no PDF (último custo)
+          <textarea id="edObs" maxlength="3000" style="min-height:56px" placeholder="Ex.: entregar até sexta; faturar em 3x" data-trava-gerente></textarea>
         </label>
       </div>
 
       <div class="pc-rodape">
-        <button type="button" class="sucesso" id="btnSalvar">Salvar</button>
-        <button type="button" class="secundario" id="btnPdf">Ver PDF</button>
-        <button type="button" class="azul" id="btnEml" title="Baixa um e-mail pronto (para, assunto, texto e PDF anexo). Abra o arquivo: o Outlook/e-mail do Windows mostra o rascunho; é só Enviar.">E-mail com PDF anexo</button>
-        <button type="button" class="secundario" id="btnGmail" title="Abre o Gmail com o texto pronto e baixa o PDF para você anexar">Abrir no Gmail</button>
+        <button type="button" class="sucesso" id="btnSalvar" data-trava-gerente>Salvar pedido</button>
+        <button type="button" class="secundario" id="btnPdf" data-trava-gerente>Ver PDF</button>
         <span class="pc-espaco"></span>
-        <button type="button" class="secundario" id="btnRascunho" hidden>Voltar para rascunho</button>
-        <button type="button" class="perigo" id="btnExcluir">Excluir</button>
+        <button type="button" class="secundario" id="btnRascunho" hidden data-trava-gerente>Voltar para rascunho</button>
+        <button type="button" class="perigo" id="btnExcluir" data-trava-gerente>Excluir pedido</button>
       </div>
-      <p class="aviso-vazio" style="margin:10px 0 0;font-size:13px">
-        <strong>E-mail com PDF anexo:</strong> baixa um arquivo de e-mail; abra ele (dois cliques) e o Outlook mostra o e-mail pronto, com o PDF anexado. É só conferir e Enviar.
-        <strong>Abrir no Gmail:</strong> abre o Gmail com o texto pronto e baixa o PDF; arraste o PDF para o e-mail.
-      </p>
     </div>
 
-    <div class="os-secao">
-      <h2>Pedidos</h2>
+    <!-- ================= lista ================= -->
+    <div class="os-secao" id="secLista">
+      <div class="pc-filtros" id="filtros"></div>
       <div style="overflow-x:auto">
         <table class="pc-lista">
-          <thead><tr><th>Nº</th><th>Fornecedor</th><th>Peças</th><th>Situação</th><th>Atualizado</th></tr></thead>
-          <tbody id="lista"><tr><td colspan="5" class="pc-vazio">Carregando...</td></tr></tbody>
+          <thead><tr><th>Nº</th><th>Fornecedor</th><th>Peças</th><th>Situação</th><th>Chegou</th><th>Data</th></tr></thead>
+          <tbody id="lista"><tr><td colspan="6" class="pc-vazio">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
   </main>
+
+  <!-- ================= Receber mercadoria ================= -->
+  <dialog id="dlgReceber" class="dialog-tipos pc-dlg">
+    <div class="pc-dlg-topo">
+      <h3 id="rcTitulo">Receber mercadoria</h3>
+      <button type="button" class="cf-x" id="rcFechar" aria-label="Fechar">✕</button>
+    </div>
+    <p class="aviso-vazio" style="margin:4px 0 8px">Confira o que chegou (corrija a quantidade se veio diferente) e digite o preço de cada peça como está na nota.</p>
+    <div class="pc-dlg-lista">
+      <table class="pc-itens sem-cartoes">
+        <thead><tr><th>Peça</th><th class="cen">Falta chegar</th><th class="cen">Chegou</th><th class="num">Preço un. na nota (R$)</th><th class="num">Subtotal</th></tr></thead>
+        <tbody id="rcItens"></tbody>
+      </table>
+    </div>
+    <div class="pc-busca" style="margin-top:8px;max-width:520px;flex:none">
+      <input type="text" style="width:100%" id="rcBusca" autocomplete="off" spellcheck="false" placeholder="+ Veio peça que não estava no pedido? Procure aqui">
+      <div class="pc-sug" id="rcSug" hidden></div>
+    </div>
+    <div class="rc-nota">
+      <label style="grid-column: span 2">Fornecedor (cadastro)
+        <span class="pc-busca" style="flex:none;display:block">
+          <input type="text" style="width:100%;box-sizing:border-box" id="rcForn" autocomplete="off" placeholder="Procure o fornecedor">
+          <span class="pc-sug" id="rcFornSug" hidden></span>
+        </span>
+      </label>
+      <label>Nº da nota fiscal<input type="text" id="rcNF" maxlength="30" autocomplete="off"></label>
+      <label>Emissão<input type="date" id="rcEmissao"></label>
+      <label>Frete (R$)<input type="number" id="rcFrete" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+      <label>Total da nota (R$)<input type="number" id="rcTotalNota" min="0" step="0.01" inputmode="decimal" placeholder="para conferir"></label>
+      <label>1º vencimento<input type="date" id="rcVenc"></label>
+      <label>Parcelas<select id="rcParcelas"></select></label>
+    </div>
+    <div class="rc-conf" id="rcConf"></div>
+    <div class="rc-acoes">
+      <button type="button" class="secundario" id="rcQr">Imprimir QR Codes</button>
+      <button type="button" class="pc-link" id="rcExistente">O boleto já foi lançado em Despesas? Ligar boleto existente</button>
+      <span class="pc-espaco"></span>
+      <button type="button" class="sucesso" id="rcSalvar" style="font-size:16px;padding:11px 18px">Salvar nota e mandar para guardar</button>
+    </div>
+  </dialog>
+
+  <!-- Ligar um boleto já lançado -->
+  <dialog id="dlgBoleto" class="dialog-tipos" style="width:min(640px, calc(100vw - 24px))">
+    <h3 style="margin-top:0">Ligar boleto já lançado</h3>
+    <input type="text" id="bolBusca" autocomplete="off" placeholder="Procurar por fornecedor, nº do boleto ou NF" style="width:100%;font-size:15px;padding:8px 10px">
+    <div id="bolLista" style="max-height:55vh;overflow:auto;margin-top:8px"></div>
+    <div class="dialog-acoes"><button type="button" class="secundario" id="bolFechar">Cancelar</button></div>
+  </dialog>
 
   <!-- Tabela de itens: escolher as peças do pedido na lista inteira -->
   <dialog id="dlgTabela" class="dialog-tipos pc-dlg">
@@ -219,9 +296,9 @@
       <h3>Tabela de itens</h3>
       <button type="button" class="sucesso" id="tbFechar">Pronto</button>
     </div>
-    <div class="pc-dlg-filtros">
+    <div class="rc-nota" style="grid-template-columns:minmax(0,1fr) auto;margin:10px 0 6px">
       <input type="text" id="tbBusca" autocomplete="off" spellcheck="false" placeholder="Procurar por nome, código, marca ou nº da etiqueta">
-      <label><input type="checkbox" id="tbAbaixo"> Só abaixo do mínimo</label>
+      <label style="flex-direction:row;align-items:center;font-weight:400"><input type="checkbox" id="tbAbaixo"> Só abaixo do mínimo</label>
     </div>
     <div class="pc-dlg-lista">
       <table class="pc-itens sem-cartoes">
@@ -238,19 +315,11 @@
   <!-- Cadastrar um vendedor novo (vai para a agenda de Contatos) -->
   <dialog id="dlgContato" class="dialog-tipos" style="width:min(460px, calc(100vw - 24px))">
     <h3 style="margin-top:0">Novo contato (vendedor)</h3>
-    <form id="formContato" class="pc-form-contato">
-      <label>Nome do vendedor
-        <input type="text" id="ncNome" maxlength="120" autocomplete="off" placeholder="Ex.: Ricardo">
-      </label>
-      <label>Empresa (fornecedor)
-        <input type="text" id="ncEmpresa" maxlength="120" autocomplete="off" placeholder="Ex.: Saint-Gobain Sekurit">
-      </label>
-      <label>E-mail <small>(para mandar o pedido)</small>
-        <input type="email" id="ncEmail" maxlength="160" autocomplete="off" placeholder="vendedor@empresa.com.br">
-      </label>
-      <label>Celular / WhatsApp
-        <input type="tel" id="ncFone" maxlength="40" autocomplete="off" placeholder="(48) 99999-9999">
-      </label>
+    <form id="formContato" class="pc-form">
+      <label>Nome do vendedor<input type="text" id="ncNome" maxlength="120" autocomplete="off" placeholder="Ex.: Ricardo"></label>
+      <label>Empresa (fornecedor)<input type="text" id="ncEmpresa" maxlength="120" autocomplete="off" placeholder="Ex.: Saint-Gobain Sekurit"></label>
+      <label>E-mail <small>(para mandar o pedido)</small><input type="email" id="ncEmail" maxlength="160" autocomplete="off" placeholder="vendedor@empresa.com.br"></label>
+      <label>Celular / WhatsApp<input type="tel" id="ncFone" maxlength="40" autocomplete="off" placeholder="(48) 99999-9999"></label>
       <p class="aviso-vazio" style="margin:0;font-size:12.5px">Fica salvo na agenda de Contatos (etiqueta "Fornecedor") e já é escolhido neste pedido.</p>
       <div class="dialog-acoes">
         <button type="submit" class="sucesso" id="ncSalvar">Salvar contato</button>
@@ -259,30 +328,18 @@
     </form>
   </dialog>
 
-  <!-- Ligar a nota (boleto) que chegou -->
-  <dialog id="dlgBoleto" class="dialog-tipos" style="width:min(640px, calc(100vw - 24px))">
-    <h3 style="margin-top:0">Ligar a nota (boleto) deste pedido</h3>
-    <p class="aviso-vazio" style="margin:0 0 8px">Escolha o boleto que foi lançado em Despesas para esta compra. Depois a tela mostra o que veio e o que faltou.</p>
-    <input type="text" id="bolBusca" autocomplete="off" placeholder="Procurar por fornecedor, nº do boleto ou NF" style="width:100%;font-size:15px;padding:8px 10px">
-    <div id="bolLista" style="max-height:55vh;overflow:auto;margin-top:8px"></div>
-    <div class="dialog-acoes"><button type="button" class="secundario" id="bolFechar">Cancelar</button></div>
-  </dialog>
-
   <script>
     const $ = (id) => document.getElementById(id);
     function esc(t) {
       return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
     const moeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dataBR = (d) => (d ? new Date(d).toLocaleDateString('pt-BR') : '');
+    const ehGerente = () => !window.Gerente || Gerente.ativo();
     function mostrarMensagem(texto, tipo) {
       const m = $('mensagens');
-      m.replaceChildren();
-      if (!texto) return;
-      const d = document.createElement('div');
-      d.className = tipo;
-      d.textContent = texto;
-      m.appendChild(d);
-      setTimeout(() => m.replaceChildren(), tipo === 'erro' ? 10000 : 5000);
+      m.innerHTML = texto ? '<div class="' + tipo + '">' + texto + '</div>' : '';
+      if (texto) m.scrollIntoView({ block: 'nearest' });
     }
     async function api(metodo, url, corpo) {
       const r = await fetch(url, { method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
@@ -292,24 +349,261 @@
     }
     function baixar(url) {
       const a = document.createElement('a');
-      a.href = url;
-      a.download = '';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = '';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    async function abrirEtiquetas(itens) {
+      if (!itens.length) return alert('Nenhuma peça cadastrada para imprimir (peça nova ganha QR depois de dar entrada).');
+      let formato = 'grande';
+      try { formato = localStorage.getItem('etiquetas-formato') || 'grande'; } catch (e) { /* ok */ }
+      const aba = window.open('', '_blank');
+      if (aba) aba.document.write('<p style="font-family:sans-serif">Gerando etiquetas...</p>');
+      try {
+        const resp = await fetch('/api/itens/etiquetas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formato, itens }) });
+        if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).erro || 'Erro ao gerar as etiquetas.');
+        const url = URL.createObjectURL(await resp.blob());
+        if (aba) aba.location.href = url; else window.location.href = url;
+      } catch (e) { if (aba) aba.close(); alert(e.message); }
     }
 
+    const FASES = {
+      rascunho: { rot: 'Rascunho', passo: 1 }, enviado: { rot: 'Esperando chegar', passo: 3 }, parcial: { rot: 'Chegou parte', passo: 3 },
+      guardando: { rot: 'Falta guardar', passo: 4 }, concluido: { rot: 'Concluído', passo: 5 },
+    };
+    const fase = (f, r) => '<span class="pc-fase ' + f + '">' + FASES[f].rot + (f === 'parcial' && r ? ' · faltam ' + r.faltam : '') + '</span>';
+
     let contatos = [];
-    let pedido = null;   // o que está aberto
-    let linhas = [];     // itens na tela
+    let pedidos = [];
+    let filtro = 'andamento';
+    let pedido = null;   // o que está aberto (do servidor)
+    let linhas = [];     // itens na tela (montagem)
     let mudou = false;
+
+    // ================= lista =================
+    const FILTROS = [
+      ['andamento', 'Em andamento', (p) => p.fase !== 'concluido'],
+      ['receber', 'Esperando chegar', (p) => p.fase === 'enviado' || p.fase === 'parcial'],
+      ['guardando', 'Falta guardar', (p) => p.fase === 'guardando'],
+      ['rascunho', 'Rascunhos', (p) => p.fase === 'rascunho'],
+      ['concluido', 'Concluídos', (p) => p.fase === 'concluido'],
+      ['todos', 'Todos', () => true],
+    ];
+    async function carregarLista() {
+      pedidos = (await api('GET', '/api/pedidos')).pedidos;
+      desenharLista();
+    }
+    function desenharLista() {
+      $('filtros').innerHTML = FILTROS.map(([k, rot, f]) => '<button type="button" class="secundario' + (filtro === k ? ' ativo' : '') + '" data-f="' + k + '">' +
+        rot + ' (' + pedidos.filter(f).length + ')</button>').join('');
+      const f = FILTROS.find((x) => x[0] === filtro)[2];
+      const lista = pedidos.filter(f);
+      $('lista').innerHTML = lista.length ? lista.map((p) =>
+        '<tr class="pc-linha" data-id="' + p.id + '"><td><strong>' + p.id + '</strong></td>' +
+        '<td>' + esc(p.fornecedor || '—') + '</td>' +
+        '<td>' + p.itens + ' peça(s) · ' + p.unidades + ' un.</td>' +
+        '<td>' + fase(p.fase, p.resumo) + '</td>' +
+        '<td>' + (p.notas ? p.resumo.chegaram + ' de ' + p.resumo.pedidas + (p.notas > 1 ? ' <small style="color:var(--texto-suave)">(' + p.notas + ' notas)</small>' : '') : '—') + '</td>' +
+        '<td>' + dataBR(p.enviadoEm || p.atualizadoEm) + '</td></tr>').join('')
+        : '<tr><td colspan="6" class="pc-vazio">Nenhum pedido aqui.</td></tr>';
+    }
+    $('filtros').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) { filtro = b.dataset.f; desenharLista(); } });
+    $('lista').addEventListener('click', async (e) => {
+      const tr = e.target.closest('[data-id]');
+      if (!tr) return;
+      if (mudou && !confirm('Há mudanças não salvas neste pedido. Abrir outro mesmo assim?')) return;
+      try { abrir(await api('GET', '/api/pedidos/' + tr.dataset.id)); } catch (er) { mostrarMensagem(esc(er.message), 'erro'); }
+    });
+
+    // ================= pedido aberto =================
+    // Dá para mexer na lista enquanto nada chegou (e só o gerente).
+    const podeMontar = () => (!pedido || !pedido.notas.length) && ehGerente();
+    function abrir(p) {
+      pedido = p;
+      linhas = p ? p.itens.map((i) => ({ ...i })) : [];
+      mudou = false;
+      $('secEditor').hidden = false;
+      $('secLista').hidden = true;
+      $('edTitulo').textContent = p ? 'Pedido nº ' + p.id + (p.fornecedor ? ' · ' + p.fornecedor : '') : 'Novo pedido';
+      $('edContato').value = p && p.contatoId ? String(p.contatoId) : '';
+      $('edFornecedor').value = p ? (p.fornecedor || '') : '';
+      $('edEmail').value = p ? (p.email || '') : '';
+      $('edObs').value = p ? (p.observacoes || '') : '';
+      desenharTudo();
+      if (p) history.replaceState(null, '', '?id=' + p.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function fecharPedido() {
+      if (mudou && !confirm('Há mudanças não salvas neste pedido. Sair mesmo assim?')) return;
+      pedido = null; mudou = false;
+      $('secEditor').hidden = true;
+      $('secLista').hidden = false;
+      history.replaceState(null, '', location.pathname);
+      carregarLista();
+    }
+    $('btnFecharPedido').addEventListener('click', fecharPedido);
+
+    function desenharTudo() {
+      const f = pedido ? pedido.fase : 'rascunho';
+      const passo = FASES[f].passo;
+      const PASSOS = [['Montar a lista', 'peças e quantidades'], ['Enviar ao vendedor', 'PDF / e-mail'], ['Receber a mercadoria', 'nota + QR Codes'], ['Guardar no estoque', 'Entrada de estoque']];
+      const atual = f === 'rascunho' ? (linhas.length ? 2 : 1) : passo;
+      $('passos').innerHTML = PASSOS.map(([t, s], i) => {
+        const n = i + 1;
+        const cls = n < atual || f === 'concluido' ? 'feito' : n === atual ? 'agora' : '';
+        return '<div class="pc-passo ' + cls + '">' + (cls === 'feito' ? '✓ ' : n + '. ') + t + '<b>' + s + '</b></div>';
+      }).join('');
+      desenharProximo();
+      const montar = podeMontar();
+      $('blocoDados').hidden = !montar;
+      $('blocoMontar').hidden = !montar;
+      $('blocoObs').hidden = !montar;
+      $('linhaDados').hidden = montar || !pedido;
+      if (pedido && !montar) {
+        $('linhaDados').innerHTML = 'Vendedor: <strong>' + esc(pedido.contatoNome || '—') + '</strong>' + (pedido.email ? ' · ' + esc(pedido.email) : '') +
+          (pedido.observacoes ? ' · Obs.: ' + esc(pedido.observacoes) : '');
+      }
+      $('btnSalvar').hidden = !montar;
+      $('btnPdf').hidden = !pedido;
+      $('btnExcluir').hidden = !pedido;
+      $('btnRascunho').hidden = !(pedido && pedido.fase === 'enviado');
+      desenharItens();
+      desenharNotas();
+      if (window.Gerente) Gerente.aplicarTravas($('secEditor'));
+    }
+
+    // Próximo passo: UM botão principal por fase.
+    function desenharProximo() {
+      const p = pedido;
+      const f = p ? p.fase : 'rascunho';
+      let h = '';
+      if (f === 'rascunho') {
+        h = '<div><p><strong>Monte a lista e mande para o vendedor.</strong></p><small>Escolha o vendedor, ponha as peças e as quantidades. Não precisa de preço: o preço vem na nota.</small></div>' +
+          '<div class="pc-proximo-acoes"><button type="button" class="azul pc-grande" data-acao="email" data-trava-gerente>Enviar por e-mail (PDF anexo)</button>' +
+          '<button type="button" class="secundario" data-acao="gmail" data-trava-gerente>Abrir no Gmail</button>' +
+          '<button type="button" class="pc-link" data-acao="marcar-enviado" data-trava-gerente>Já mandei de outro jeito</button></div>';
+      } else if (f === 'enviado' || f === 'parcial') {
+        const r = p.resumo;
+        h = '<div><p><strong>' + (f === 'parcial' ? 'Chegou parte: faltam ' + r.faltam + ' peça(s).' : 'Pedido enviado. Quando a mercadoria chegar, clique aqui.') + '</strong></p>' +
+          '<small>Você confere o que veio, digita a nota (preços, vencimento) e imprime os QR Codes. As peças vão para a Entrada de estoque.</small></div>' +
+          '<div class="pc-proximo-acoes"><button type="button" class="sucesso pc-grande" data-acao="receber">' + (f === 'parcial' ? 'Receber o restante' : 'Receber mercadoria') + '</button>' +
+          (r.chegaram > r.guardadas ? '<a class="secundario" href="/entrada-estoque.html">Guardar as que já chegaram (' + (r.chegaram - r.guardadas) + ')</a>' : '') +
+          (f === 'parcial' ? '<button type="button" class="pc-link" data-acao="encerrar" data-trava-gerente>O resto não vem: encerrar pedido</button>' : '') + '</div>';
+      } else if (f === 'guardando') {
+        const falta = p.resumo.chegaram - p.resumo.guardadas;
+        h = '<div><p><strong>Mercadoria recebida. Falta guardar ' + falta + ' peça(s) no estoque.</strong></p>' +
+          '<small>Cole os QR Codes e dê entrada de cada peça na Entrada de estoque. O pedido fica concluído sozinho.' + (p.encerradoEm ? ' (Pedido encerrado: o resto não vem.)' : '') + '</small></div>' +
+          '<div class="pc-proximo-acoes"><a class="sucesso pc-grande" href="/entrada-estoque.html">Ir para a Entrada de estoque</a>' +
+          '<button type="button" class="secundario" data-acao="qr-tudo">Imprimir QR Codes</button></div>';
+      } else {
+        h = '<div><p><strong>✓ Pedido concluído.</strong></p><small>Tudo o que chegou já está guardado no estoque' + (p.encerradoEm ? ' (o resto não veio: pedido encerrado em ' + dataBR(p.encerradoEm) + ')' : '') + '.</small></div>' +
+          (p.encerradoEm ? '<div class="pc-proximo-acoes"><button type="button" class="pc-link" data-acao="reabrir" data-trava-gerente>Reabrir (vai vir o resto)</button></div>' : '');
+      }
+      $('proximo').innerHTML = h;
+    }
+    $('proximo').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-acao]');
+      if (!b || b.disabled) return;
+      const a = b.dataset.acao;
+      try {
+        if (a === 'receber') abrirReceber();
+        else if (a === 'email') await enviarEmail();
+        else if (a === 'gmail') await enviarGmail();
+        else if (a === 'marcar-enviado') {
+          const p = await prontoParaEnviar(); if (!p) return;
+          abrir(await api('POST', '/api/pedidos/' + p.id + '/enviado', { enviado: true }));
+          mostrarMensagem('Pedido marcado como enviado. Quando a mercadoria chegar, clique em "Receber mercadoria".', 'ok');
+        } else if (a === 'encerrar') {
+          if (!confirm('Encerrar o pedido nº ' + pedido.id + '? Faltam ' + pedido.resumo.faltam + ' peça(s) que não vão vir.')) return;
+          abrir(await api('POST', '/api/pedidos/' + pedido.id + '/encerrar', { encerrado: true }));
+        } else if (a === 'reabrir') abrir(await api('POST', '/api/pedidos/' + pedido.id + '/encerrar', { encerrado: false }));
+        else if (a === 'qr-tudo') abrirEtiquetas(pedido.itens.filter((i) => i.itemId && i.chegou).map((i) => ({ id: i.itemId, copias: i.chegou })));
+      } catch (er) { mostrarMensagem(esc(er.message), 'erro'); }
+    });
 
     function giroHtml(g) {
       if (!g) return '<small>—</small>';
       return '<span class="pc-giro ' + g.classe + '">' + (g.classe === 'muito' ? 'Vende muito' : 'Vende pouco') + '</span>' +
         '<span class="pc-giro-mes">' + (g.vendidos90 ? String(g.porMes).replace('.', ',') + ' por mês' : 'não vendeu em 90 dias') + '</span>';
     }
-    // Busca o "vende muito/pouco" das peças da lista que ainda não têm.
+    function desenharItens() {
+      if (podeMontar()) {
+        $('edCab').innerHTML = '<tr><th>Código</th><th>Peça</th><th class="pc-col-est">Estoque</th><th>Vende</th><th>Qtd</th><th></th></tr>';
+        $('edItens').innerHTML = linhas.length ? linhas.map((l, i) =>
+          '<tr data-i="' + i + '"><td>' + (l.itemId ? esc(l.codigo || '') : '<input type="text" data-campo="codigo" value="' + esc(l.codigo || '') + '" placeholder="código" style="width:90px">') + '</td>' +
+          '<td>' + (l.itemId ? '<strong>' + esc(l.nome) + '</strong>' : '<input type="text" data-campo="nome" value="' + esc(l.nome) + '" placeholder="Descreva a peça">') +
+            '<small>' + [l.marca, l.custoCatalogo ? 'último custo ' + moeda(l.custoCatalogo) : ''].filter(Boolean).map(esc).join(' · ') + '</small></td>' +
+          '<td class="pc-col-est">' + (l.estoque !== null && l.estoque !== undefined ? l.estoque + ' <small>mín. ' + l.minimo + (l.aCaminho ? ' · +' + l.aCaminho + ' a caminho' : '') + '</small>' : '<small>não cadastrada</small>') + '</td>' +
+          '<td>' + (l.itemId ? giroHtml(l.giro) : '<small>—</small>') + '</td>' +
+          '<td><input type="number" class="pc-qtd" data-campo="quantidade" min="1" step="1" value="' + l.quantidade + '"></td>' +
+          '<td><button type="button" class="btn-mini perigo" data-tirar="' + i + '" title="Tirar da lista">✕</button></td></tr>').join('')
+          : '<tr><td colspan="6" class="pc-vazio">Lista vazia. Puxe as peças abaixo do mínimo, abra a tabela de itens ou procure uma peça.</td></tr>';
+        const un = linhas.reduce((t, l) => t + l.quantidade, 0);
+        const muito = linhas.filter((l) => l.giro && l.giro.classe === 'muito').length;
+        $('edTotal').innerHTML = linhas.length ? linhas.length + ' peça(s) · ' + un + ' unidade(s)' + (muito ? ' · ' + muito + ' vendem muito' : '') : '';
+        return;
+      }
+      // Depois de receber: o que chegou de cada peça.
+      $('edCab').innerHTML = '<tr><th>Peça</th><th class="cen">Pedido</th><th class="cen">Chegou</th><th class="cen">Guardado</th><th>Situação</th></tr>';
+      const linhasHtml = (pedido ? pedido.itens : linhas).map((i) => {
+        const sit = !pedido.notas.length ? '' : i.falta ? '<span class="pc-sit s-falta">Falta ' + i.falta + '</span>'
+          : i.aMais ? '<span class="pc-sit s-amais">Veio ' + i.aMais + ' a mais</span>' : '<span class="pc-sit s-ok">Chegou tudo</span>';
+        return '<tr><td><strong>' + esc(i.nome) + '</strong><small>' + esc([i.codigo, i.marca].filter(Boolean).join(' · ')) + '</small></td>' +
+          '<td class="cen">' + i.quantidade + '</td><td class="cen">' + (i.chegou || 0) + '</td><td class="cen">' + (i.guardado || 0) + '</td><td>' + sit + '</td></tr>';
+      }).concat((pedido ? pedido.extras : []).map((x) => '<tr><td><strong>' + esc(x.nome) + '</strong><small>veio na nota sem estar no pedido</small></td>' +
+        '<td class="cen">—</td><td class="cen">' + x.chegou + '</td><td class="cen">' + x.guardado + '</td><td><span class="pc-sit s-amais">Fora do pedido</span></td></tr>'));
+      $('edItens').innerHTML = linhasHtml.join('') || '<tr><td colspan="5" class="pc-vazio">Sem peças.</td></tr>';
+      const r = pedido ? pedido.resumo : null;
+      $('edTotal').innerHTML = r && pedido.notas.length ? 'Pedidas ' + r.pedidas + ' · chegaram ' + r.chegaram + ' · guardadas ' + r.guardadas + (r.faltam ? ' · <strong>faltam ' + r.faltam + '</strong>' : '') : '';
+    }
+    function desenharNotas() {
+      const box = $('edNotas');
+      if (!pedido || !pedido.notas.length) { box.innerHTML = ''; return; }
+      box.innerHTML = '<strong style="font-size:14px">Notas deste pedido</strong>' + pedido.notas.map((n) =>
+        '<div class="pc-nota"><span><strong>Boleto nº ' + esc(n.codigo) + '</strong>' + (n.notaFiscal ? ' · NF ' + esc(n.notaFiscal) : '') + ' · ' + dataBR(n.data) +
+          (ehGerente() ? ' · ' + moeda(n.valor) + (n.parcelas > 1 ? ' em ' + n.parcelas + 'x' : '') : '') + ' · ' + n.unidades + ' un. ' +
+          (n.aguardando ? '<span class="pc-fase guardando">' + n.aguardando + ' para guardar</span>' : '<span class="pc-fase concluido">guardado</span>') + '</span>' +
+          '<span style="display:inline-flex;gap:6px"><a class="btn-mini secundario" href="/despesas.html?boleto=' + n.boletoId + '">Ver boleto</a>' +
+          '<button type="button" class="btn-mini secundario" data-desligar="' + n.boletoId + '" data-trava-gerente>Desligar</button></span></div>').join('');
+    }
+    $('edNotas').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-desligar]');
+      if (!b || b.disabled) return;
+      if (!confirm('Desligar esta nota do pedido? (o boleto continua em Despesas, nada é apagado)')) return;
+      try { abrir(await api('DELETE', '/api/pedidos/' + pedido.id + '/notas/' + b.dataset.desligar)); } catch (er) { mostrarMensagem(esc(er.message), 'erro'); }
+    });
+
+    // ---------- montar a lista ----------
+    $('edItens').addEventListener('input', (e) => {
+      const tr = e.target.closest('[data-i]');
+      if (!tr || !e.target.dataset.campo) return;
+      const l = linhas[Number(tr.dataset.i)];
+      const c = e.target.dataset.campo;
+      if (c === 'quantidade') l.quantidade = Math.max(1, parseInt(e.target.value, 10) || 1);
+      else l[c] = e.target.value;
+      mudou = true;
+    });
+    $('edItens').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tirar]');
+      if (!b) return;
+      linhas.splice(Number(b.dataset.tirar), 1);
+      mudou = true;
+      desenharTudo();
+    });
+    ['edFornecedor', 'edEmail', 'edObs'].forEach((id) => $(id).addEventListener('input', () => { mudou = true; }));
+    $('edContato').addEventListener('change', () => {
+      const c = contatos.find((x) => String(x.id) === $('edContato').value);
+      if (c) {
+        $('edFornecedor').value = c.empresa ? c.empresa + (c.nome !== c.empresa ? ' (' + c.nome + ')' : '') : c.nome;
+        if (c.email) $('edEmail').value = c.email;
+        else mostrarMensagem(esc(c.nome) + ' não tem e-mail na agenda. Digite o e-mail aqui (ou cadastre em Contatos).', 'aviso');
+        mudou = true;
+      }
+    });
+    function addLinha(i, qtd) {
+      const ja = linhas.find((l) => l.itemId === i.itemId);
+      if (ja) ja.quantidade += qtd; else linhas.push({ ...i, quantidade: qtd });
+      mudou = true;
+    }
     async function completarGiros() {
       const faltam = linhas.filter((l) => l.itemId && !l.giro).map((l) => l.itemId);
       if (!faltam.length) return;
@@ -319,189 +613,78 @@
         desenharItens();
       } catch (e) { /* sem giro */ }
     }
-
-    // ---------- lista de pedidos ----------
-    async function carregarLista() {
-      const d = await api('GET', '/api/pedidos');
-      $('lista').innerHTML = d.pedidos.length ? d.pedidos.map((p) =>
-        '<tr class="pc-linha' + (pedido && pedido.id === p.id ? ' pc-atual' : '') + '" data-id="' + p.id + '"><td><strong>' + p.id + '</strong></td>' +
-        '<td>' + esc(p.fornecedor || '—') + (p.email ? '<br><small style="color:var(--texto-suave)">' + esc(p.email) + '</small>' : '') + '</td>' +
-        '<td>' + p.itens + ' peça(s) · ' + p.unidades + ' un.</td>' +
-        '<td>' + (p.boletoId
-          ? '<span class="pc-st nota">Nota chegou</span><br><small style="color:var(--texto-suave)">boleto ' + esc(p.boletoCodigo) + (p.notaFiscal ? ' · NF ' + esc(p.notaFiscal) : '') + '</small>'
-          : '<span class="pc-st ' + p.status + '">' + (p.status === 'enviado' ? 'Enviado' : 'Rascunho') + '</span>') + '</td>' +
-        '<td>' + new Date(p.enviadoEm || p.atualizadoEm).toLocaleDateString('pt-BR') + '</td></tr>').join('')
-        : '<tr><td colspan="5" class="pc-vazio">Nenhum pedido ainda. Aperte "+ Novo pedido".</td></tr>';
-    }
-    $('lista').addEventListener('click', async (e) => {
-      const tr = e.target.closest('[data-id]');
-      if (!tr) return;
-      if (mudou && !confirm('Há mudanças não salvas neste pedido. Abrir outro mesmo assim?')) return;
-      abrir(await api('GET', '/api/pedidos/' + tr.dataset.id));
-    });
-
-    // ---------- editor ----------
-    function abrir(p) {
-      pedido = p;
-      linhas = p ? p.itens.map((i) => ({ ...i })) : [];
-      mudou = false;
-      $('secEditor').hidden = false;
-      $('edTitulo').textContent = p ? 'Pedido nº ' + p.id : 'Novo pedido';
-      $('edStatus').innerHTML = !p ? '' : p.nota
-        ? '<span class="pc-st nota">Nota chegou · boleto ' + esc(p.nota.codigo) + '</span>'
-        : '<span class="pc-st ' + p.status + '">' + (p.status === 'enviado' ? 'Enviado em ' + new Date(p.enviadoEm).toLocaleDateString('pt-BR') : 'Rascunho') + '</span>';
-      $('edContato').value = p && p.contatoId ? String(p.contatoId) : '';
-      $('edFornecedor').value = p ? (p.fornecedor || '') : '';
-      $('edEmail').value = p ? (p.email || '') : '';
-      $('edObs').value = p ? (p.observacoes || '') : '';
-      $('edPrecos').checked = p ? p.mostrarPrecos : false;
-      $('btnExcluir').hidden = !p;
-      $('btnRascunho').hidden = !(p && p.status === 'enviado');
-      desenharItens();
-      desenharNota();
-      carregarLista();
-      $('secEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function desenharItens() {
-      $('edItens').innerHTML = linhas.length ? linhas.map((l, i) =>
-        '<tr data-i="' + i + '"><td>' + (l.itemId ? esc(l.codigo || '') : '<input type="text" data-campo="codigo" value="' + esc(l.codigo || '') + '" placeholder="código" style="width:90px">') + '</td>' +
-        '<td>' + (l.itemId ? esc(l.nome) : '<input type="text" data-campo="nome" value="' + esc(l.nome) + '" placeholder="Descreva a peça">') +
-          (l.marca ? '<small>' + esc(l.marca) + '</small>' : '') + '</td>' +
-        '<td class="pc-col-est">' + (l.estoque !== null && l.estoque !== undefined ? l.estoque + ' <small>mín. ' + l.minimo + (l.aCaminho ? ' · +' + l.aCaminho + ' a caminho' : '') + '</small>' : '<small>não cadastrada</small>') + '</td>' +
-        '<td>' + (l.itemId ? giroHtml(l.giro) : '<small>—</small>') + '</td>' +
-        '<td><input type="number" class="pc-qtd" data-campo="quantidade" min="1" step="1" value="' + l.quantidade + '"></td>' +
-        '<td><input type="number" class="pc-custo" data-campo="custo" min="0" step="0.01" value="' + (l.custo !== null && l.custo !== undefined ? l.custo : '') + '"></td>' +
-        '<td class="num">' + (l.custo ? moeda(l.custo * l.quantidade) : '—') + '</td>' +
-        '<td><button type="button" class="btn-mini perigo" data-tirar="' + i + '" title="Tirar da lista">✕</button></td></tr>').join('')
-        : '<tr><td colspan="8" class="pc-vazio">Lista vazia. Puxe as peças abaixo do mínimo, abra a tabela de itens ou procure uma peça.</td></tr>';
-      atualizarTotal();
-    }
-    function atualizarTotal() {
-      const total = linhas.reduce((t, l) => t + (Number(l.custo) || 0) * l.quantidade, 0);
-      const un = linhas.reduce((t, l) => t + l.quantidade, 0);
-      const muito = linhas.filter((l) => l.giro && l.giro.classe === 'muito').length;
-      const pouco = linhas.filter((l) => l.giro && l.giro.classe === 'pouco').length;
-      $('edTotal').innerHTML = linhas.length ? linhas.length + ' peça(s) · ' + un + ' unidade(s)' +
-        (muito || pouco ? ' · <span class="pc-giro muito">' + muito + ' vendem muito</span> <span class="pc-giro pouco">' + pouco + ' vendem pouco</span>' : '') +
-        (total ? ' · referência <strong>' + moeda(total) + '</strong>' : '') : '';
-    }
-    $('edItens').addEventListener('input', (e) => {
-      const tr = e.target.closest('[data-i]');
-      if (!tr || !e.target.dataset.campo) return;
-      const l = linhas[Number(tr.dataset.i)];
-      const c = e.target.dataset.campo;
-      if (c === 'quantidade') l.quantidade = Math.max(1, parseInt(e.target.value, 10) || 1);
-      else if (c === 'custo') l.custo = e.target.value === '' ? null : Number(e.target.value);
-      else l[c] = e.target.value;
-      mudou = true;
-      const sub = tr.querySelector('.num');
-      if (sub) sub.textContent = l.custo ? moeda(l.custo * l.quantidade) : '—';
-      atualizarTotal();
-    });
-    $('edItens').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-tirar]');
-      if (!b) return;
-      linhas.splice(Number(b.dataset.tirar), 1);
-      mudou = true;
-      desenharItens();
-    });
-    ['edFornecedor', 'edEmail', 'edObs', 'edPrecos'].forEach((id) => $(id).addEventListener('input', () => { mudou = true; }));
-    $('edContato').addEventListener('change', () => {
-      const c = contatos.find((x) => String(x.id) === $('edContato').value);
-      if (c) {
-        $('edFornecedor').value = c.empresa ? c.empresa + (c.nome !== c.empresa ? ' (' + c.nome + ')' : '') : c.nome;
-        if (c.email) $('edEmail').value = c.email;
-        else mostrarMensagem(c.nome + ' não tem e-mail na agenda. Digite o e-mail aqui (ou cadastre em Contatos).', 'aviso');
-        mudou = true;
-      }
-    });
-
-    // Puxar abaixo do mínimo (sem repetir peça que já está na lista)
+    const deItem = (i) => ({ itemId: i.id, codigo: i.codigo, nome: i.nome, marca: i.marca, custoCatalogo: i.ultimo_custo || i.custo_medio || i.preco_custo || null,
+      estoque: i.estoque, minimo: i.estoque_minimo, aCaminho: i.a_caminho || 0, giro: i.giro || null });
     $('btnPuxar').addEventListener('click', async () => {
       try {
         const qs = new URLSearchParams();
         if ($('edMarca').value) qs.set('marca', $('edMarca').value);
         if ($('edGiro').value) qs.set('giro', $('edGiro').value);
         const d = await api('GET', '/api/pedidos/sugestao' + (qs.toString() ? '?' + qs : ''));
-        // As que vendem muito entram primeiro na lista.
         d.itens.sort((a, b) => (a.giro.classe === b.giro.classe ? 0 : a.giro.classe === 'muito' ? -1 : 1));
         let n = 0;
         for (const s of d.itens) {
           if (linhas.some((l) => l.itemId === s.itemId)) continue;
-          linhas.push({ itemId: s.itemId, codigo: s.codigo, nome: s.nome, marca: s.marca, quantidade: s.sugestao, custo: s.custo, estoque: s.estoque, minimo: s.minimo, aCaminho: s.aCaminho, giro: s.giro });
+          linhas.push({ itemId: s.itemId, codigo: s.codigo, nome: s.nome, marca: s.marca, quantidade: s.sugestao, custoCatalogo: s.custo, estoque: s.estoque, minimo: s.minimo, aCaminho: s.aCaminho, giro: s.giro });
           n++;
         }
         mudou = mudou || n > 0;
-        desenharItens();
-        mostrarMensagem(n ? n + ' peça(s) entraram na lista (as que vendem muito primeiro). A quantidade sugerida completa até o mínimo; mude à vontade.' : 'Nada novo para puxar' + ($('edMarca').value || $('edGiro').value ? ' com esse filtro.' : '.'), 'ok');
-      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+        desenharTudo();
+        mostrarMensagem(n ? n + ' peça(s) entraram na lista (as que vendem muito primeiro). A quantidade completa até o mínimo; mude à vontade.' : 'Nada novo para puxar com esse filtro.', 'ok');
+      } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
     });
-
-    // Adicionar peça pela busca
-    let timerBusca = null;
-    $('edBusca').addEventListener('input', () => {
-      clearTimeout(timerBusca);
-      const q = $('edBusca').value.trim();
-      if (q.length < 2) { $('edSug').hidden = true; return; }
-      timerBusca = setTimeout(async () => {
-        try {
-          const d = await api('GET', '/api/itens?limite=10&q=' + encodeURIComponent(q));
-          const box = $('edSug');
-          box.innerHTML = (d.itens || []).map((i, k) => '<button type="button" data-k="' + k + '"><strong>' + esc(i.nome) + '</strong> <small>' + esc([i.codigo, i.marca, 'estoque ' + i.estoque].filter(Boolean).join(' · ')) + '</small></button>').join('') ||
-            '<div class="pc-vazio" style="padding:8px">Nada encontrado. Use "+ Linha livre".</div>';
-          box._itens = d.itens || [];
-          box.hidden = false;
-        } catch (e) { /* sem sugestão */ }
-      }, 250);
-    });
-    $('edSug').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-k]');
-      if (!b) return;
-      const i = $('edSug')._itens[Number(b.dataset.k)];
-      const ja = linhas.find((l) => l.itemId === i.id);
-      if (ja) { ja.quantidade += 1; }
-      else linhas.push({ itemId: i.id, codigo: i.codigo, nome: i.nome, marca: i.marca, quantidade: 1, custo: i.ultimo_custo || i.custo_medio || i.preco_custo || null, estoque: i.estoque, minimo: i.estoque_minimo, aCaminho: i.a_caminho || 0 });
-      mudou = true;
-      $('edBusca').value = '';
-      $('edSug').hidden = true;
-      desenharItens();
-      completarGiros();
-    });
-    document.addEventListener('click', (e) => { if (!e.target.closest('.pc-busca')) $('edSug').hidden = true; });
+    // busca rápida
+    function busca(input, caixa, aoEscolher, extra) {
+      let t = null;
+      input.addEventListener('input', () => {
+        clearTimeout(t);
+        const q = input.value.trim();
+        if (q.length < 2) { caixa.hidden = true; return; }
+        t = setTimeout(async () => {
+          try {
+            const d = await api('GET', '/api/itens?limite=10&q=' + encodeURIComponent(q));
+            caixa._itens = d.itens || [];
+            caixa.innerHTML = caixa._itens.map((i, k) => '<button type="button" data-k="' + k + '"><strong>' + esc(i.nome) + '</strong> <small>' +
+              esc([i.codigo, i.marca, 'estoque ' + i.estoque].filter(Boolean).join(' · ')) + '</small></button>').join('') ||
+              '<div class="pc-vazio" style="padding:8px">Nada encontrado.' + (extra || '') + '</div>';
+            caixa.hidden = false;
+          } catch (e) { /* sem sugestão */ }
+        }, 250);
+      });
+      caixa.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-k]');
+        if (!b) return;
+        aoEscolher(caixa._itens[Number(b.dataset.k)]);
+        input.value = ''; caixa.hidden = true;
+      });
+    }
+    busca($('edBusca'), $('edSug'), (i) => { addLinha(deItem(i), 1); desenharTudo(); completarGiros(); }, ' Use "+ Linha livre".');
+    document.addEventListener('click', (e) => { document.querySelectorAll('.pc-sug').forEach((s) => { if (!s.parentElement.contains(e.target)) s.hidden = true; }); });
     $('btnLivre').addEventListener('click', () => {
-      linhas.push({ itemId: null, codigo: '', nome: '', marca: null, quantidade: 1, custo: null, estoque: null });
+      linhas.push({ itemId: null, codigo: '', nome: '', marca: null, quantidade: 1, estoque: null });
       mudou = true;
-      desenharItens();
+      desenharTudo();
       const ins = $('edItens').querySelectorAll('input[data-campo="nome"]');
       if (ins.length) ins[ins.length - 1].focus();
     });
 
     // ---------- tabela de itens (janela) ----------
     const TB_LIMITE = 60;
-    let tbItens = [];
-    let tbTimer = null;
-    let tbPedido = 0;
-    function qtdNaLista(id) { const l = linhas.find((x) => x.itemId === id); return l ? l.quantidade : 0; }
+    let tbItens = [], tbTimer = null, tbPedido = 0;
+    const qtdNaLista = (id) => { const l = linhas.find((x) => x.itemId === id); return l ? l.quantidade : 0; };
     function tbLinha(i, k) {
       const na = qtdNaLista(i.id);
       return '<tr data-k="' + k + '"' + (na ? ' class="pc-na-lista"' : '') + '><td>' + esc(i.codigo || '') + '</td>' +
-        '<td><strong>' + esc(i.nome) + '</strong>' + (i.numero_interno ? ' <small style="display:inline">nº ' + String(i.numero_interno).padStart(6, '0') + '</small>' : '') + '</td>' +
-        '<td>' + esc(i.marca || '') + '</td>' +
+        '<td><strong>' + esc(i.nome) + '</strong></td><td>' + esc(i.marca || '') + '</td>' +
         '<td class="num">' + i.estoque + (i.a_caminho ? ' <small style="display:inline">+' + i.a_caminho + '</small>' : '') + '</td>' +
-        '<td class="num">' + (i.estoque_minimo || '—') + '</td>' +
-        '<td>' + (i.giro ? giroHtml(i.giro) : '<small>...</small>') + '</td>' +
-        '<td class="num"><button type="button" class="btn-mini ' + (na ? 'secundario' : 'sucesso') + ' pc-add" data-add="' + k + '">' +
-          (na ? '✓ ' + na + ' na lista · +1' : '+ Pedir') + '</button></td></tr>';
+        '<td class="num">' + (i.estoque_minimo || '—') + '</td><td>' + (i.giro ? giroHtml(i.giro) : '<small>...</small>') + '</td>' +
+        '<td class="num"><button type="button" class="btn-mini ' + (na ? 'secundario' : 'sucesso') + '" data-add="' + k + '">' + (na ? '✓ ' + na + ' na lista · +1' : '+ Pedir') + '</button></td></tr>';
     }
-    function tbDesenhar() {
-      $('tbCorpo').innerHTML = tbItens.length ? tbItens.map(tbLinha).join('') : '<tr><td colspan="7" class="pc-vazio">Nenhuma peça encontrada.</td></tr>';
-    }
+    const tbDesenhar = () => { $('tbCorpo').innerHTML = tbItens.length ? tbItens.map(tbLinha).join('') : '<tr><td colspan="7" class="pc-vazio">Nenhuma peça encontrada.</td></tr>'; };
     async function tbCarregar(doZero) {
       const meu = ++tbPedido;
       const qs = new URLSearchParams({ limite: TB_LIMITE, inicio: doZero ? 0 : tbItens.length });
-      const q = $('tbBusca').value.trim();
-      if (q) qs.set('q', q);
+      if ($('tbBusca').value.trim()) qs.set('q', $('tbBusca').value.trim());
       if ($('tbAbaixo').checked) qs.set('estoque_baixo', 'true');
       try {
         const d = await api('GET', '/api/itens?' + qs);
@@ -519,174 +702,71 @@
         }
       } catch (e) { $('tbCorpo').innerHTML = '<tr><td colspan="7" class="pc-vazio">' + esc(e.message) + '</td></tr>'; }
     }
-    $('btnTabela').addEventListener('click', () => {
-      $('dlgTabela').showModal();
-      $('tbBusca').focus();
-      tbCarregar(true);
-    });
+    $('btnTabela').addEventListener('click', () => { $('dlgTabela').showModal(); $('tbBusca').focus(); tbCarregar(true); });
     $('tbBusca').addEventListener('input', () => { clearTimeout(tbTimer); tbTimer = setTimeout(() => tbCarregar(true), 250); });
     $('tbAbaixo').addEventListener('change', () => tbCarregar(true));
     $('tbMais').addEventListener('click', () => tbCarregar(false));
-    $('tbFechar').addEventListener('click', () => $('dlgTabela').close());
+    $('tbFechar').addEventListener('click', () => { $('dlgTabela').close(); desenharTudo(); });
     $('tbCorpo').addEventListener('click', (e) => {
       const b = e.target.closest('[data-add]');
       if (!b) return;
       const k = Number(b.dataset.add);
       const i = tbItens[k];
-      const ja = linhas.find((l) => l.itemId === i.id);
-      if (ja) ja.quantidade += 1;
-      else {
-        // Abaixo do mínimo: já vem com a quantidade que completa o mínimo.
-        const falta = (Number(i.estoque_minimo) || 0) - Number(i.estoque) - (i.a_caminho || 0);
-        linhas.push({ itemId: i.id, codigo: i.codigo, nome: i.nome, marca: i.marca, quantidade: Math.max(1, falta), custo: i.ultimo_custo || i.custo_medio || i.preco_custo || null,
-          estoque: i.estoque, minimo: i.estoque_minimo, aCaminho: i.a_caminho || 0, giro: i.giro || null });
-      }
-      mudou = true;
-      desenharItens();
-      completarGiros();
+      const falta = (Number(i.estoque_minimo) || 0) - Number(i.estoque) - (i.a_caminho || 0);
+      addLinha(deItem(i), qtdNaLista(i.id) ? 1 : Math.max(1, falta));
       b.closest('tr').outerHTML = tbLinha(i, k);
-    });
-
-    // ---------- nota (boleto) do pedido ----------
-    const SIT = { ok: 'Veio certo', faltou: 'Faltou', amais: 'Veio a mais', naoveio: 'Não veio', foradopedido: 'Fora do pedido' };
-    function desenharNota() {
-      const box = $('edNota');
-      if (!pedido) { box.hidden = true; return; }
-      box.hidden = false;
-      const n = pedido.nota;
-      if (!n) {
-        box.innerHTML = '<div class="pc-nota-cab"><div><h3>Nota / boleto deste pedido</h3>' +
-          '<span class="aviso-vazio" style="margin:0">Ainda não chegou. Quando a nota do fornecedor chegar e o boleto for lançado em Despesas, ligue aqui para conferir o que veio.</span></div>' +
-          '<button type="button" class="azul" id="btnLigarNota">Ligar a nota que chegou</button></div>';
-        return;
-      }
-      const c = n.comparacao;
-      const r = c.resumo;
-      const chips = Object.keys(SIT).filter((k) => r[k]).map((k) => '<span class="pc-sit s-' + k + '">' + r[k] + ' ' + SIT[k].toLowerCase() + '</span>').join('');
-      box.innerHTML = '<div class="pc-nota-cab"><div><h3>✓ Nota ligada: boleto nº ' + esc(n.codigo) + (n.notaFiscal ? ' · NF ' + esc(n.notaFiscal) : '') + '</h3>' +
-          '<small style="color:var(--texto-suave)">' + esc(n.fornecedor || '') + ' · ' + new Date(n.data).toLocaleDateString('pt-BR') + ' · ' + moeda(n.valor) +
-          (n.parcelas > 1 ? ' em ' + n.parcelas + 'x' : '') + ' · ligada em ' + new Date(n.vinculadoEm).toLocaleDateString('pt-BR') + '</small></div>' +
-          '<span style="display:inline-flex;gap:6px;flex-wrap:wrap"><a class="secundario" href="/despesas.html?boleto=' + n.boletoId + '">Ver boleto</a>' +
-          '<button type="button" class="secundario" id="btnDesligarNota">Desligar</button></span></div>' +
-        '<div class="pc-resumo">' + (c.tudoCerto ? '<span class="pc-sit s-ok">✓ Veio tudo certo, igual ao pedido</span>' : chips) + '</div>' +
-        '<div style="overflow-x:auto"><table class="pc-itens"><thead><tr><th>Peça</th><th class="num">Pedido</th><th class="num">Na nota</th><th>Situação</th><th>No estoque</th></tr></thead><tbody>' +
-        c.linhas.map((l) => '<tr><td><strong>' + esc(l.nome) + '</strong>' + (l.codigo ? ' <small style="display:inline">' + esc(l.codigo) + '</small>' : '') + '</td>' +
-          '<td class="num">' + (l.pedido || '—') + '</td><td class="num">' + (l.nota || '—') + '</td>' +
-          '<td><span class="pc-sit s-' + l.situacao + '">' + SIT[l.situacao] +
-            (l.situacao === 'faltou' ? ' ' + (-l.diferenca) : l.situacao === 'amais' ? ' +' + l.diferenca : '') + '</span></td>' +
-          '<td>' + (!l.nota ? '—' : l.entrou >= l.nota ? 'Entrou' : l.entrou ? l.entrou + ' de ' + l.nota + ' entraram' : 'Aguardando entrada') + '</td></tr>').join('') +
-        '</tbody></table></div>';
-    }
-    let bolLista = [];
-    async function carregarBoletos() {
-      try {
-        const d = await api('GET', '/api/pedidos/boletos' + ($('bolBusca').value.trim() ? '?q=' + encodeURIComponent($('bolBusca').value.trim()) : ''));
-        // As notas do mesmo fornecedor do pedido aparecem primeiro.
-        const chave = String(pedido.fornecedor || '').toLowerCase().split(/[\s(]+/).filter((w) => w.length > 3)[0] || '';
-        const provavel = (b) => chave && String(b.fornecedor || '').toLowerCase().includes(chave);
-        bolLista = d.boletos.sort((a, b) => (provavel(b) ? 1 : 0) - (provavel(a) ? 1 : 0));
-        $('bolLista').innerHTML = bolLista.length ? bolLista.map((b, k) => {
-          const deOutro = b.pedidoId && b.pedidoId !== pedido.id;
-          return '<button type="button" class="pc-bol' + (provavel(b) ? ' pc-provavel' : '') + '" data-bol="' + k + '"' + (deOutro ? ' disabled' : '') + '>' +
-            '<strong>Boleto nº ' + esc(b.codigo) + '</strong> · ' + esc(b.fornecedor || 'sem fornecedor') + (b.notaFiscal ? ' · NF ' + esc(b.notaFiscal) : '') +
-            '<small>' + new Date(b.data).toLocaleDateString('pt-BR') + ' · ' + moeda(b.valor) + (b.parcelas > 1 ? ' em ' + b.parcelas + 'x' : '') + ' · ' + b.linhas + ' peça(s), ' + b.unidades + ' un.' +
-            (deOutro ? ' · já ligada ao pedido nº ' + b.pedidoId : provavel(b) ? ' · mesmo fornecedor do pedido' : '') + '</small></button>';
-        }).join('') : '<p class="aviso-vazio">Nenhum boleto encontrado.</p>';
-      } catch (e) { $('bolLista').innerHTML = '<div class="erro">' + esc(e.message) + '</div>'; }
-    }
-    $('edNota').addEventListener('click', async (e) => {
-      if (e.target.closest('#btnLigarNota')) {
-        if (mudou) { try { await salvar(true); } catch (er) { return mostrarMensagem(er.message, 'erro'); } }
-        $('bolBusca').value = '';
-        $('dlgBoleto').showModal();
-        $('bolBusca').focus();
-        carregarBoletos();
-      } else if (e.target.closest('#btnDesligarNota')) {
-        if (!confirm('Desligar a nota do pedido nº ' + pedido.id + '? (o boleto continua em Despesas, nada é apagado)')) return;
-        try { abrir(await api('POST', '/api/pedidos/' + pedido.id + '/boleto', { boleto_id: null })); mostrarMensagem('Nota desligada do pedido.', 'ok'); }
-        catch (er) { mostrarMensagem(er.message, 'erro'); }
-      }
-    });
-    let bolTimer = null;
-    $('bolBusca').addEventListener('input', () => { clearTimeout(bolTimer); bolTimer = setTimeout(carregarBoletos, 250); });
-    $('bolFechar').addEventListener('click', () => $('dlgBoleto').close());
-    $('bolLista').addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-bol]');
-      if (!b || b.disabled) return;
-      const bol = bolLista[Number(b.dataset.bol)];
-      if (!confirm('Ligar o boleto nº ' + bol.codigo + (bol.notaFiscal ? ' (NF ' + bol.notaFiscal + ')' : '') + ' ao pedido nº ' + pedido.id + '?')) return;
-      try {
-        const p = await api('POST', '/api/pedidos/' + pedido.id + '/boleto', { boleto_id: bol.id });
-        $('dlgBoleto').close();
-        abrir(p);
-        mostrarMensagem(p.nota && p.nota.comparacao.tudoCerto ? 'Nota ligada: veio tudo certo, igual ao pedido.' : 'Nota ligada. Confira abaixo o que veio diferente do pedido.', 'ok');
-        $('edNota').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (er) { alert(er.message); }
+      completarGiros();
     });
 
     // ---------- salvar e enviar ----------
     async function salvar(silencioso) {
       const corpo = {
         contato_id: $('edContato').value || null, fornecedor: $('edFornecedor').value, email: $('edEmail').value,
-        observacoes: $('edObs').value, mostrar_precos: $('edPrecos').checked,
-        itens: linhas.map((l) => ({ item_id: l.itemId, codigo: l.codigo, nome: l.nome, marca: l.marca, quantidade: l.quantidade, custo: l.custo })),
+        observacoes: $('edObs').value, mostrar_precos: false,
+        itens: linhas.map((l) => ({ item_id: l.itemId, codigo: l.codigo, nome: l.nome, marca: l.marca, quantidade: l.quantidade, custo: null })),
       };
       const salvo = await api(pedido ? 'PUT' : 'POST', '/api/pedidos' + (pedido ? '/' + pedido.id : ''), corpo);
-      const id = salvo.id;
-      pedido = salvo;
       mudou = false;
-      if (!silencioso) mostrarMensagem('Pedido nº ' + id + ' salvo.', 'ok');
       abrir(salvo);
+      if (!silencioso) mostrarMensagem('Pedido nº ' + salvo.id + ' salvo.', 'ok');
       return salvo;
     }
     async function prontoParaEnviar() {
       if (!linhas.length) { mostrarMensagem('A lista está vazia.', 'erro'); return null; }
-      const p = await salvar(true);
-      return p;
+      return (mudou || !pedido) ? salvar(true) : pedido;
     }
-    async function marcarEnviado() {
-      abrir(await api('POST', '/api/pedidos/' + pedido.id + '/enviado', { enviado: true }));
+    async function enviarEmail() {
+      const p = await prontoParaEnviar(); if (!p) return;
+      if (!p.email && !confirm('O pedido está sem e-mail do vendedor. Baixar mesmo assim? (você digita o e-mail no Outlook)')) return;
+      baixar('/api/pedidos/' + p.id + '/email.eml');
+      abrir(await api('POST', '/api/pedidos/' + p.id + '/enviado', { enviado: true }));
+      mostrarMensagem('E-mail baixado: abra o arquivo "Pedido-de-compra-' + p.id + '.eml" (pasta Downloads), confira e aperte Enviar. Quando a mercadoria chegar, volte aqui e clique em "Receber mercadoria".', 'ok');
     }
-    $('btnSalvar').addEventListener('click', async () => { try { await salvar(); } catch (e) { mostrarMensagem(e.message, 'erro'); } });
+    async function enviarGmail() {
+      const p = await prontoParaEnviar(); if (!p) return;
+      const t = await api('GET', '/api/pedidos/' + p.id + '/texto');
+      let corpo = t.corpo.replace(/\r\n/g, '\n');
+      if (corpo.length > 1800) corpo = corpo.slice(0, 1700) + '\n...\n(lista completa no PDF anexo)';
+      baixar('/api/pedidos/' + p.id + '/pdf?baixar=1');
+      window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(p.email || '') + '&su=' + encodeURIComponent(t.assunto) + '&body=' + encodeURIComponent(corpo), '_blank');
+      abrir(await api('POST', '/api/pedidos/' + p.id + '/enviado', { enviado: true }));
+      mostrarMensagem('O PDF foi baixado: arraste "Pedido-de-compra-' + p.id + '.pdf" (pasta Downloads) para o e-mail do Gmail antes de enviar.', 'ok');
+    }
+    $('btnSalvar').addEventListener('click', async () => { try { await salvar(); } catch (e) { mostrarMensagem(esc(e.message), 'erro'); } });
     $('btnPdf').addEventListener('click', async () => {
-      try { const p = await prontoParaEnviar(); if (p) window.open('/api/pedidos/' + p.id + '/pdf', '_blank'); } catch (e) { mostrarMensagem(e.message, 'erro'); }
-    });
-    $('btnEml').addEventListener('click', async () => {
-      try {
-        const p = await prontoParaEnviar();
-        if (!p) return;
-        if (!p.email && !confirm('O pedido está sem e-mail do vendedor. Baixar mesmo assim? (você digita o e-mail no Outlook)')) return;
-        baixar('/api/pedidos/' + p.id + '/email.eml');
-        await marcarEnviado();
-        mostrarMensagem('E-mail baixado. Abra o arquivo "Pedido-de-compra-' + p.id + '.eml" (na pasta Downloads): o Outlook mostra o e-mail pronto com o PDF. Confira e aperte Enviar.', 'ok');
-      } catch (e) { mostrarMensagem(e.message, 'erro'); }
-    });
-    $('btnGmail').addEventListener('click', async () => {
-      try {
-        const p = await prontoParaEnviar();
-        if (!p) return;
-        const t = await api('GET', '/api/pedidos/' + p.id + '/texto');
-        let corpo = t.corpo.replace(/\r\n/g, '\n');
-        if (corpo.length > 1800) corpo = corpo.slice(0, 1700) + '\n...\n(lista completa no PDF anexo)';
-        const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(p.email || '') + '&su=' + encodeURIComponent(t.assunto) + '&body=' + encodeURIComponent(corpo);
-        baixar('/api/pedidos/' + p.id + '/pdf?baixar=1');
-        window.open(url, '_blank');
-        await marcarEnviado();
-        mostrarMensagem('O PDF foi baixado: arraste "Pedido-de-compra-' + p.id + '.pdf" (pasta Downloads) para o e-mail do Gmail antes de enviar.', 'ok');
-      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+      try { const p = await prontoParaEnviar(); if (p) window.open('/api/pedidos/' + p.id + '/pdf', '_blank'); } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
     });
     $('btnRascunho').addEventListener('click', async () => {
-      try { abrir(await api('POST', '/api/pedidos/' + pedido.id + '/enviado', { enviado: false })); } catch (e) { mostrarMensagem(e.message, 'erro'); }
+      try { abrir(await api('POST', '/api/pedidos/' + pedido.id + '/enviado', { enviado: false })); } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
     });
     $('btnExcluir').addEventListener('click', async () => {
-      if (!pedido || !confirm('Excluir o pedido nº ' + pedido.id + '?')) return;
+      if (!pedido || !confirm('Excluir o pedido nº ' + pedido.id + '?' + (pedido.notas.length ? '\n(Os boletos ligados continuam em Despesas.)' : ''))) return;
       try {
         await api('DELETE', '/api/pedidos/' + pedido.id);
-        pedido = null;
-        $('secEditor').hidden = true;
+        mudou = false;
         mostrarMensagem('Pedido excluído.', 'ok');
-        carregarLista();
-      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+        fecharPedido();
+      } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
     });
     $('btnNovo').addEventListener('click', () => {
       if (mudou && !confirm('Há mudanças não salvas neste pedido. Começar outro mesmo assim?')) return;
@@ -694,18 +774,184 @@
     });
     window.addEventListener('beforeunload', (e) => { if (mudou) { e.preventDefault(); e.returnValue = ''; } });
 
+    // ================= Receber mercadoria =================
+    let rc = [];          // linhas da janela
+    let rcFornId = null;  // cliente (fornecedor) do boleto
+    const hoje = () => new Date().toLocaleDateString('en-CA');
+    function abrirReceber() {
+      const g = ehGerente();
+      rc = pedido.itens.filter((i) => i.falta > 0).map((i) => ({
+        itemId: i.itemId, nome: i.nome, codigo: i.codigo, numeroInterno: i.numeroInterno, falta: i.falta, chegou: i.falta,
+        preco: g && i.custoCatalogo ? i.custoCatalogo : '',
+      }));
+      $('rcTitulo').textContent = 'Receber mercadoria · Pedido nº ' + pedido.id + (pedido.notas.length ? ' (entrega ' + (pedido.notas.length + 1) + ')' : '');
+      rcFornId = pedido.fornecedorClienteId || null;
+      $('rcForn').value = pedido.fornecedorClienteNome || '';
+      if (!rcFornId) adivinharFornecedor();
+      ['rcNF', 'rcFrete', 'rcTotalNota'].forEach((id) => { $(id).value = ''; });
+      $('rcEmissao').value = hoje();
+      const v = new Date(); v.setDate(v.getDate() + 30); $('rcVenc').value = v.toLocaleDateString('en-CA');
+      $('rcParcelas').innerHTML = Array.from({ length: 12 }, (_, k) => '<option value="' + (k + 1) + '">' + (k ? (k + 1) + 'x' : 'À vista (1)') + '</option>').join('');
+      desenharRc();
+      $('dlgReceber').showModal();
+      const p1 = $('rcItens').querySelector('input');
+      if (p1) p1.focus();
+    }
+    async function adivinharFornecedor() {
+      const palavra = String(pedido.fornecedor || '').split(/[\s(]+/).filter((w) => w.length > 3)[0];
+      if (!palavra) return;
+      try {
+        const l = await api('GET', '/api/clientes?q=' + encodeURIComponent(palavra));
+        const lista = (Array.isArray(l) ? l : l.clientes || []).filter((c) => !c.seguradora);
+        if (lista.length === 1) { rcFornId = lista[0].id; $('rcForn').value = lista[0].nome_razao_social; desenharConf(); }
+      } catch (e) { /* digita à mão */ }
+    }
+    function desenharRc() {
+      $('rcItens').innerHTML = rc.length ? rc.map((l, k) =>
+        '<tr data-k="' + k + '"><td><strong>' + esc(l.nome) + '</strong><small>' + esc(l.codigo || (l.itemId ? '' : 'peça nova: é cadastrada ao dar entrada')) + (l.extra ? ' · fora do pedido' : '') + '</small></td>' +
+        '<td class="cen">' + (l.extra ? '—' : l.falta) + '</td>' +
+        '<td class="cen"><input type="number" min="0" step="1" data-c="chegou" value="' + l.chegou + '" style="width:76px;text-align:center"></td>' +
+        '<td class="num"><input type="number" min="0" step="0.01" data-c="preco" value="' + l.preco + '" placeholder="0,00" style="width:110px;text-align:right"></td>' +
+        '<td class="num" data-sub>' + moeda((Number(l.preco) || 0) * l.chegou) + '</td></tr>').join('')
+        : '<tr><td colspan="5" class="pc-vazio">Nada falta chegar neste pedido.</td></tr>';
+      desenharConf();
+    }
+    function totalRc() { return rc.reduce((t, l) => t + (Number(l.preco) || 0) * (Number(l.chegou) || 0), 0) + (Number($('rcFrete').value) || 0); }
+    function desenharConf() {
+      const t = Math.round(totalRc() * 100) / 100;
+      const nota = Number($('rcTotalNota').value) || 0;
+      const qr = rc.filter((l) => l.itemId && l.chegou > 0).reduce((s, l) => s + Number(l.chegou), 0);
+      $('rcQr').textContent = 'Imprimir QR Codes (' + qr + ')';
+      const c = $('rcConf');
+      if (!nota) { c.className = 'rc-conf'; c.textContent = 'Soma das peças' + (Number($('rcFrete').value) ? ' + frete' : '') + ': ' + moeda(t) + '. Digite o total da nota para conferir.'; }
+      else if (Math.abs(nota - t) < 0.01) { c.className = 'rc-conf ok'; c.textContent = '✓ Bate com o total da nota (' + moeda(t) + ').'; }
+      else { c.className = 'rc-conf dif'; c.textContent = '⚠ Soma ' + moeda(t) + ' · nota ' + moeda(nota) + ' (diferença ' + moeda(nota - t) + '). Confira preços e quantidades.'; }
+    }
+    $('rcItens').addEventListener('input', (e) => {
+      const tr = e.target.closest('[data-k]'); if (!tr) return;
+      const l = rc[Number(tr.dataset.k)];
+      if (e.target.dataset.c === 'chegou') l.chegou = Math.max(0, parseInt(e.target.value, 10) || 0);
+      else l.preco = e.target.value;
+      tr.querySelector('[data-sub]').textContent = moeda((Number(l.preco) || 0) * l.chegou);
+      desenharConf();
+    });
+    ['rcFrete', 'rcTotalNota'].forEach((id) => $(id).addEventListener('input', desenharConf));
+    busca($('rcBusca'), $('rcSug'), (i) => {
+      if (rc.some((l) => l.itemId === i.id)) return alert('Esta peça já está na lista.');
+      rc.push({ itemId: i.id, nome: i.nome, codigo: i.codigo, falta: 0, chegou: 1, preco: '', extra: true });
+      desenharRc();
+    });
+    // Fornecedor (cliente cadastrado) do boleto
+    let fornTimer = null;
+    $('rcForn').addEventListener('input', () => {
+      rcFornId = null;
+      clearTimeout(fornTimer);
+      const q = $('rcForn').value.trim();
+      if (q.length < 2) { $('rcFornSug').hidden = true; return; }
+      fornTimer = setTimeout(async () => {
+        try {
+          const l = await api('GET', '/api/clientes?q=' + encodeURIComponent(q));
+          const lista = (Array.isArray(l) ? l : l.clientes || []).filter((c) => !c.seguradora).slice(0, 8);
+          $('rcFornSug')._l = lista;
+          $('rcFornSug').innerHTML = lista.map((c, k) => '<button type="button" data-k="' + k + '">' + esc(c.nome_razao_social) + '</button>').join('') +
+            '<button type="button" data-novo="1"><strong>+ Cadastrar "' + esc(q) + '" como fornecedor</strong></button>';
+          $('rcFornSug').hidden = false;
+        } catch (e) { /* ok */ }
+      }, 250);
+    });
+    $('rcFornSug').addEventListener('click', async (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      try {
+        if (b.dataset.novo) {
+          const c = await api('POST', '/api/clientes', { nome_razao_social: $('rcForn').value.trim() });
+          rcFornId = c.id; $('rcForn').value = c.nome_razao_social;
+        } else {
+          const c = $('rcFornSug')._l[Number(b.dataset.k)];
+          rcFornId = c.id; $('rcForn').value = c.nome_razao_social;
+        }
+      } catch (er) { alert(er.message); }
+      $('rcFornSug').hidden = true;
+    });
+    $('rcFechar').addEventListener('click', () => $('dlgReceber').close());
+    $('rcQr').addEventListener('click', () => abrirEtiquetas(rc.filter((l) => l.itemId && l.chegou > 0).map((l) => ({ id: l.itemId, copias: Number(l.chegou) }))));
+    $('rcSalvar').addEventListener('click', async () => {
+      const vieram = rc.filter((l) => Number(l.chegou) > 0);
+      if (!vieram.length) return alert('Nenhuma peça com quantidade em "Chegou".');
+      if (!rcFornId) { $('rcForn').focus(); return alert('Escolha o fornecedor (o boleto fica no nome dele).'); }
+      if (!$('rcVenc').value) { $('rcVenc').focus(); return alert('Informe o vencimento.'); }
+      const semPreco = vieram.filter((l) => !(Number(l.preco) > 0)).length;
+      if (semPreco && !confirm(semPreco + ' peça(s) sem preço. Salvar assim mesmo? (dá para corrigir depois no boleto)')) return;
+      const n = Number($('rcParcelas').value) || 1;
+      const total = Math.round(totalRc() * 100) / 100;
+      const corpo = {
+        cliente_id: rcFornId, nota_fiscal: $('rcNF').value, data_emissao: $('rcEmissao').value || null,
+        valor_frete: $('rcFrete').value || null, valor_nota: $('rcTotalNota').value || null,
+        observacoes: 'Pedido de compra nº ' + pedido.id,
+        itens: vieram.map((l) => l.itemId ? { item_id: l.itemId, quantidade: Number(l.chegou), preco_unitario: Number(l.preco) || 0 }
+          : { nome_novo: l.nome, quantidade: Number(l.chegou), preco_unitario: Number(l.preco) || 0 }),
+      };
+      if (n > 1) {
+        const parte = Math.floor((total / n) * 100) / 100;
+        corpo.parcelas = Array.from({ length: n }, (_, k) => {
+          const d = new Date($('rcVenc').value + 'T12:00:00'); d.setDate(d.getDate() + 30 * k);
+          return { data_vencimento: d.toLocaleDateString('en-CA'), valor: k === n - 1 ? Math.round((total - parte * (n - 1)) * 100) / 100 : parte };
+        });
+      } else corpo.data_vencimento = $('rcVenc').value;
+      const btn = $('rcSalvar');
+      btn.disabled = true;
+      try {
+        const bol = await api('POST', '/api/boletos', corpo);
+        const p = await api('POST', '/api/pedidos/' + pedido.id + '/notas', { boleto_id: bol.id });
+        $('dlgReceber').close();
+        abrir(p);
+        mostrarMensagem('✓ Nota cadastrada (boleto nº ' + esc(bol.codigo) + '). As peças estão na <a href="/entrada-estoque.html">Entrada de estoque</a> esperando para guardar.' +
+          (p.fase === 'parcial' ? ' Ainda faltam ' + p.resumo.faltam + ' peça(s) deste pedido.' : ''), 'ok');
+      } catch (er) { alert(er.message); }
+      btn.disabled = false;
+    });
+
+    // Boleto já lançado em Despesas
+    let bolLista = [];
+    async function carregarBoletos() {
+      try {
+        const d = await api('GET', '/api/pedidos/boletos' + ($('bolBusca').value.trim() ? '?q=' + encodeURIComponent($('bolBusca').value.trim()) : ''));
+        bolLista = d.boletos;
+        $('bolLista').innerHTML = bolLista.length ? bolLista.map((b, k) => {
+          const deOutro = b.pedidoId && b.pedidoId !== pedido.id;
+          return '<button type="button" class="pc-bol" data-bol="' + k + '"' + (deOutro || b.pedidoId === pedido.id ? ' disabled' : '') + '>' +
+            '<strong>Boleto nº ' + esc(b.codigo) + '</strong> · ' + esc(b.fornecedor || 'sem fornecedor') + (b.notaFiscal ? ' · NF ' + esc(b.notaFiscal) : '') +
+            '<small>' + dataBR(b.data) + ' · ' + b.linhas + ' peça(s), ' + b.unidades + ' un.' + (deOutro ? ' · já está no pedido nº ' + b.pedidoId : b.pedidoId ? ' · já é deste pedido' : '') + '</small></button>';
+        }).join('') : '<p class="aviso-vazio">Nenhum boleto encontrado.</p>';
+      } catch (e) { $('bolLista').innerHTML = '<div class="erro">' + esc(e.message) + '</div>'; }
+    }
+    $('rcExistente').addEventListener('click', () => { $('dlgReceber').close(); $('bolBusca').value = ''; $('dlgBoleto').showModal(); carregarBoletos(); });
+    let bolTimer = null;
+    $('bolBusca').addEventListener('input', () => { clearTimeout(bolTimer); bolTimer = setTimeout(carregarBoletos, 250); });
+    $('bolFechar').addEventListener('click', () => $('dlgBoleto').close());
+    $('bolLista').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-bol]');
+      if (!b || b.disabled) return;
+      const bol = bolLista[Number(b.dataset.bol)];
+      if (!confirm('Ligar o boleto nº ' + bol.codigo + ' ao pedido nº ' + pedido.id + '?')) return;
+      try {
+        const p = await api('POST', '/api/pedidos/' + pedido.id + '/notas', { boleto_id: bol.id });
+        $('dlgBoleto').close();
+        abrir(p);
+        mostrarMensagem('Boleto nº ' + esc(bol.codigo) + ' ligado ao pedido.', 'ok');
+      } catch (er) { alert(er.message); }
+    });
+
+    // ================= contato novo =================
     function preencherContatos() {
       const atual = $('edContato').value;
       $('edContato').innerHTML = '<option value="">— escolher —</option>' + contatos
         .sort((a, b) => (b.email ? 1 : 0) - (a.email ? 1 : 0) || a.nome.localeCompare(b.nome, 'pt-BR'))
         .map((x) => '<option value="' + x.id + '">' + esc(x.nome) + (x.empresa && x.empresa !== x.nome ? ' · ' + esc(x.empresa) : '') + (x.email ? '' : ' (sem e-mail)') + '</option>').join('');
-      $('edContato').value = atual;
+      $('edContato').value = atual || (pedido && pedido.contatoId ? String(pedido.contatoId) : '');
     }
-
-    // ---------- novo contato (vendedor) sem sair do pedido ----------
     $('btnNovoContato').addEventListener('click', () => {
       $('formContato').reset();
-      // Já sugere a empresa que está no campo Fornecedor.
       if ($('edFornecedor').value && !$('edContato').value) $('ncEmpresa').value = $('edFornecedor').value;
       $('dlgContato').showModal();
       $('ncNome').focus();
@@ -718,39 +964,44 @@
       try {
         const novo = await api('POST', '/api/contatos', {
           nome: $('ncNome').value, empresa: $('ncEmpresa').value, email: $('ncEmail').value,
-          telefones: $('ncFone').value.trim() ? [{ tipo: 'Celular', numero: $('ncFone').value }] : [],
-          etiquetas: ['Fornecedor'],
+          telefones: $('ncFone').value.trim() ? [{ tipo: 'Celular', numero: $('ncFone').value }] : [], etiquetas: ['Fornecedor'],
         });
         contatos = (await api('GET', '/api/contatos')).contatos;
         preencherContatos();
         $('edContato').value = String(novo.id);
         $('edContato').dispatchEvent(new Event('change'));
         $('dlgContato').close();
-        mostrarMensagem('Contato "' + (novo.nome || '') + '" cadastrado e escolhido neste pedido.', 'ok');
+        mostrarMensagem('Contato "' + esc(novo.nome || '') + '" cadastrado e escolhido neste pedido.', 'ok');
       } catch (er) { alert(er.message); }
       $('ncSalvar').disabled = false;
     });
 
-    // ---------- início ----------
-    async function iniciar() {
+    // ================= início =================
+    // Contatos e marcas são do gerente: carregam quando o modo está ligado.
+    async function carregarDoGerente() {
+      if (!ehGerente()) return;
       try {
         const [c, m] = await Promise.all([api('GET', '/api/contatos'), api('GET', '/api/pedidos/marcas')]);
         contatos = c.contatos;
         preencherContatos();
         $('edMarca').innerHTML = '<option value="">Todas as marcas (' + m.marcas.reduce((t, x) => t + x.quantidade, 0) + ')</option>' +
           m.marcas.map((x) => '<option value="' + esc(x.marca) + '">' + esc(x.marca) + ' (' + x.quantidade + ')</option>').join('');
-        await carregarLista();
-        const id = new URLSearchParams(location.search).get('id');
-        if (id) abrir(await api('GET', '/api/pedidos/' + id));
-        else {
-          const marca = new URLSearchParams(location.search).get('marca');
-          if (marca !== null) { abrir(null); $('edMarca').value = marca; $('btnPuxar').click(); }
-        }
-      } catch (e) {
-        // Fora do Modo Gerenciador o servidor recusa; a página mostra o aviso.
-      }
+      } catch (e) { /* fora do modo */ }
     }
-    iniciar();
+    window.addEventListener('gerente:mudou', async () => {
+      await carregarDoGerente();
+      if (pedido) abrir(await api('GET', '/api/pedidos/' + pedido.id)); else if (!$('secEditor').hidden) desenharTudo();
+    });
+    (async () => {
+      try {
+        await carregarLista();
+        await carregarDoGerente();
+        const q = new URLSearchParams(location.search);
+        if (q.get('id')) abrir(await api('GET', '/api/pedidos/' + q.get('id')));
+        else if (q.get('marca') !== null && ehGerente()) { abrir(null); $('edMarca').value = q.get('marca'); $('btnPuxar').click(); }
+        else if (q.get('receber')) { filtro = 'receber'; desenharLista(); }
+      } catch (e) { mostrarMensagem(esc(e.message), 'erro'); }
+    })();
   </script>
 </body>
 </html>
