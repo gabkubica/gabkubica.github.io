@@ -88,6 +88,14 @@
             <button id="btnLimpar" class="secundario">Limpar</button>
           </div>
         </div>
+        <!-- Período (dia da abertura). Abre com os últimos 3 dias; ao buscar
+             por texto, as datas saem sozinhas (procura em todas as datas). -->
+        <div class="periodo-linha">
+          <label>De <input type="date" id="filtroDe"></label>
+          <label>Até <input type="date" id="filtroAte"></label>
+          <button type="button" class="pc-chip" id="btn3dias">Últimos 3 dias</button>
+          <button type="button" class="pc-chip" id="btnTodasDatas">Todas as datas</button>
+        </div>
       </div>
       <div class="os-secao" style="padding:0;overflow:hidden">
         <div style="overflow:auto;max-height:calc(100vh - 320px)">
@@ -211,6 +219,26 @@
       ['placa', 'nova', 'antiga'].forEach(n => {
         document.getElementById('aba-' + n).classList.toggle('oculto', n !== nome);
       });
+      // Primeira vez na aba: já mostra os últimos 3 dias.
+      if (nome === 'antiga' && !antigaCarregada) { antigaCarregada = true; ultimos3Dias(); }
+    }
+    let antigaCarregada = false;
+
+    function diaIso(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function marcarPeriodo() {
+      const de = document.getElementById('filtroDe').value, ate = document.getElementById('filtroAte').value;
+      const hoje = diaIso(new Date());
+      const d = new Date(); d.setDate(d.getDate() - 2);
+      document.getElementById('btn3dias').classList.toggle('ativo', de === diaIso(d) && ate === hoje);
+      document.getElementById('btnTodasDatas').classList.toggle('ativo', !de && !ate);
+    }
+    function ultimos3Dias() {
+      const d = new Date(); d.setDate(d.getDate() - 2);
+      document.getElementById('filtroDe').value = diaIso(d);
+      document.getElementById('filtroAte').value = diaIso(new Date());
+      buscarOs(true);
     }
 
     document.querySelectorAll('.aba').forEach(botao => {
@@ -520,6 +548,12 @@
       if (tipo) params.append('tipo', tipo);
       const status = document.getElementById('filtroStatus').value;
       if (status) params.append('status', status);
+      // Procurou um nome/número/placa: procura em todas as datas.
+      if (q && reset) { document.getElementById('filtroDe').value = ''; document.getElementById('filtroAte').value = ''; }
+      const de = document.getElementById('filtroDe').value, ate = document.getElementById('filtroAte').value;
+      if (de) params.append('de', de);
+      if (ate) params.append('ate', ate);
+      marcarPeriodo();
       if (ordemCampo) {
         params.append('ordem', ordemCampo);
         params.append('dir', ordemDirecao);
@@ -538,7 +572,7 @@
       totalRegistros = dados.total;
       cache = cache.concat(dados.ordens);
       if (dados.ordens.length === 0 && paginaAtual === 0) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhum documento encontrado.</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7"><div class="sem-resultados">Nenhum documento encontrado' + (de || ate ? ' nesse período' : '') + '.</div></td></tr>';
       } else {
         tbody.insertAdjacentHTML('beforeend', dados.ordens.map(montarLinhaOs).join(''));
       // "Excluir" (documento cancelado) so no Modo Gerenciador.
@@ -582,6 +616,14 @@
       document.getElementById('busca3').value = '';
       document.getElementById('filtroTipo').value = '';
       document.getElementById('filtroStatus').value = '';
+      ultimos3Dias();
+    });
+    document.getElementById('filtroDe').addEventListener('change', () => buscarOs(true));
+    document.getElementById('filtroAte').addEventListener('change', () => buscarOs(true));
+    document.getElementById('btn3dias').addEventListener('click', ultimos3Dias);
+    document.getElementById('btnTodasDatas').addEventListener('click', () => {
+      document.getElementById('filtroDe').value = '';
+      document.getElementById('filtroAte').value = '';
       buscarOs(true);
     });
     document.getElementById('btnCarregarMais').addEventListener('click', () => { paginaAtual += 1; buscarOs(false); });
@@ -594,6 +636,13 @@
     (async function iniciar() {
       const params = new URLSearchParams(location.search);
       const placa = params.get('placa');
+      // Veio do "+ Nova OS" de dentro de uma OS com placa sem cadastro.
+      const novaPlaca = params.get('nova_placa');
+      if (novaPlaca) {
+        history.replaceState(null, '', location.pathname);
+        ativarAba('nova');
+        buscarVeiculoNova(novaPlaca);
+      }
       if (placa) {
         ativarAba('placa');
         document.getElementById('placaHist').value = placa;

@@ -24,40 +24,115 @@
     <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
   </header>
 
+  <!-- Explicação do caminho da peça: do pedido ao estoque e à venda.
+       Os desenhos são SVG feitos aqui mesmo (traço = cor do texto). -->
   <main class="os-main fx-main">
     <div style="margin-bottom:10px">
       <a href="/" class="btn-voltar">← Painel</a>
     </div>
 
     <div class="os-secao">
-      <h2 class="fx-titulo">Como a peça chega no estoque</h2>
-      <p class="fx-lead">Pedido → recebe a mercadoria (nota + QR) → guarda no estoque. A regra continua: <strong>a peça só entra no estoque quando o balconista confere e dá a entrada.</strong></p>
+      <h2 class="fx-titulo">O caminho da peça</h2>
+      <p class="fx-lead">Do pedido até o carro do cliente, em 5 etapas. <strong>O número do estoque só sobe quando o balconista guarda a peça</strong> (etapa 4), e só desce quando ela é vendida ou usada (etapa 5).</p>
 
+      <ol class="fx-trilha" aria-label="Etapas">
+        <li class="fx-etapa">
+          <svg class="fx-ilu" viewBox="0 0 80 80" aria-hidden="true">
+            <rect x="18" y="12" width="44" height="58" rx="5" class="fx-papel"/>
+            <rect x="30" y="7" width="20" height="10" rx="3" class="fx-cor"/>
+            <path d="M26 30l4 4 7-8M26 44l4 4 7-8M26 58l4 4 7-8" class="fx-ok"/>
+            <path d="M42 31h13M42 45h13M42 59h10"/>
+          </svg>
+          <b>1. Pedir</b>
+          <span>Monta a lista de peças e manda ao vendedor.</span>
+          <em class="fx-onde">Pedido de compra</em>
+          <span class="fx-est fx-est-igual">Estoque não muda</span>
+        </li>
+        <li class="fx-etapa">
+          <svg class="fx-ilu" viewBox="0 0 80 80" aria-hidden="true">
+            <path d="M6 22h38v32H6z" class="fx-papel"/>
+            <path d="M44 32h14l10 11v11H44z" class="fx-papel"/>
+            <path d="M48 36h8l6 7h-14z" class="fx-vidro"/>
+            <circle cx="18" cy="56" r="7" class="fx-roda"/><circle cx="56" cy="56" r="7" class="fx-roda"/>
+            <rect x="14" y="28" width="12" height="10" class="fx-cor"/><rect x="28" y="30" width="10" height="8" class="fx-cor"/>
+          </svg>
+          <b>2. Chegou</b>
+          <span>A mercadoria chega com a nota do fornecedor.</span>
+          <em class="fx-onde">Pedido → <span class="fx-botao fx-botao-verde">Receber mercadoria</span></em>
+          <span class="fx-est fx-est-igual">Estoque não muda</span>
+        </li>
+        <li class="fx-etapa">
+          <svg class="fx-ilu" viewBox="0 0 80 80" aria-hidden="true">
+            <path d="M8 10h34v56l-6-4-5 4-6-4-5 4-6-4-6 4z" class="fx-papel"/>
+            <path d="M14 22h22M14 30h22M14 38h14M14 50h10"/>
+            <rect x="42" y="30" width="32" height="32" rx="3" class="fx-papel"/>
+            <path d="M47 35h8v8h-8zM61 35h8v8h-8zM47 49h8v8h-8z" class="fx-cheio"/>
+            <path d="M61 49h3v3h-3zM66 54h3v3h-3zM61 54h3v3h-3z" class="fx-cheio"/>
+          </svg>
+          <b>3. Nota + QR</b>
+          <span>Digita o preço da nota e cola a etiqueta QR em cada peça.</span>
+          <em class="fx-onde">Na mesma janela do "Receber"</em>
+          <span class="fx-est fx-est-igual">Estoque não muda</span>
+        </li>
+        <li class="fx-etapa fx-etapa-chave">
+          <svg class="fx-ilu" viewBox="0 0 80 80" aria-hidden="true">
+            <path d="M8 8v66M72 8v66M8 30h64M8 54h64"/>
+            <rect x="14" y="16" width="16" height="14" class="fx-cor"/><rect x="34" y="20" width="12" height="10" class="fx-papel"/>
+            <rect x="14" y="40" width="12" height="14" class="fx-papel"/><rect x="30" y="42" width="18" height="12" class="fx-cor"/>
+            <path d="M52 62l10-22 8 4-10 22z" class="fx-papel"/><path d="M58 44l-6-3" class="fx-ok"/>
+          </svg>
+          <b>4. Guardar</b>
+          <span>O balconista bipa a etiqueta, confere e guarda no lugar.</span>
+          <em class="fx-onde">Entrada de estoque → <span class="fx-botao fx-botao-verde">Dar entrada</span></em>
+          <span class="fx-est fx-est-sobe">Estoque SOBE</span>
+        </li>
+        <li class="fx-etapa">
+          <svg class="fx-ilu" viewBox="0 0 80 80" aria-hidden="true">
+            <path d="M6 52v-9l7-3 9-13c1-2 3-3 5-3h22c2 0 4 1 5 3l7 11 9 3c2 1 3 2 3 4v7" class="fx-papel"/>
+            <path d="M27 29h9v10H19zM40 29h11l5 10H40z" class="fx-vidro"/>
+            <circle cx="20" cy="54" r="7" class="fx-roda"/><circle cx="60" cy="54" r="7" class="fx-roda"/>
+            <path d="M27 54h26"/>
+          </svg>
+          <b>5. Vender</b>
+          <span>A peça vai para uma OS, venda de balcão ou externo.</span>
+          <em class="fx-onde">OS · Balcão · Externo</em>
+          <span class="fx-est fx-est-desce">Estoque desce</span>
+        </li>
+      </ol>
+    </div>
+
+    <div class="os-secao">
+      <h2 class="fx-titulo">Passo a passo, com os botões</h2>
       <ol class="fx-passos">
         <li class="fx-passo">
           <span class="fx-num">1</span>
           <div>
-            <h3>Pedir ao fornecedor</h3>
-            <p>O gerente monta o <a href="/pedidos.html">Pedido de compra</a> (peças e quantidades, sem preço) e manda para o vendedor por e-mail.</p>
-            <p class="fx-efeito">O pedido fica "Esperando chegar". Ele é a central da mercadoria: mostra o que já chegou, o que falta e o que já foi guardado.</p>
+            <h3>Pedir ao fornecedor <small class="fx-quem">gerente</small></h3>
+            <p>Abra o <a href="/pedidos.html">Pedido de compra</a>, aperte <span class="fx-botao fx-botao-verde">+ Novo pedido</span>, escolha as peças e as quantidades (não precisa de preço: o preço vem na nota). Depois aperte <span class="fx-botao">Enviar por e-mail</span>.</p>
+            <p class="fx-efeito">O pedido fica <span class="fx-selo fx-selo-azul">Esperando chegar</span>. Ele passa a ser a central da mercadoria: mostra o que já chegou, o que falta e o que já foi guardado.</p>
           </div>
         </li>
         <li class="fx-passo">
           <span class="fx-num">2</span>
           <div>
-            <h3>Receber a mercadoria</h3>
-            <p>Chegou a mercadoria: abra o pedido (na Entrada de estoque, botão <strong>Pedidos a receber</strong>) e aperte <strong>Receber mercadoria</strong>.
-              Confira quantas vieram, digite o preço de cada peça como está na nota, o nº da NF e o vencimento, e imprima os <strong>QR Codes</strong> para colar nas peças.</p>
-            <p class="fx-efeito">O boleto é criado sozinho em Despesas, ligado ao pedido. O estoque <strong>ainda não muda</strong>: as peças vão para a lista da <a href="/entrada-estoque.html">Entrada de estoque</a>.
-              Compra sem pedido? Lance o boleto direto em <a href="/despesas.html">Despesas</a>, como sempre.</p>
+            <h3>Receber a mercadoria <small class="fx-quem">qualquer funcionário</small></h3>
+            <p>Chegou a caixa? Na <a href="/entrada-estoque.html">Entrada de estoque</a> aperte <span class="fx-botao fx-botao-azul">Pedidos a receber</span>, abra o pedido e aperte <span class="fx-botao fx-botao-verde">Receber mercadoria</span>.</p>
+            <div class="fx-janela" aria-hidden="true">
+              <div class="fx-janela-topo">Receber mercadoria</div>
+              <div class="fx-janela-linha"><span>Para-brisa Onix</span><span class="fx-campo">Chegou <b>2</b></span><span class="fx-campo">Preço <b>780,00</b></span></div>
+              <div class="fx-janela-linha"><span>Cola PU 310 ml</span><span class="fx-campo">Chegou <b>6</b></span><span class="fx-campo">Preço <b>48,00</b></span></div>
+              <div class="fx-janela-linha"><span class="fx-campo">NF <b>12345</b></span><span class="fx-campo">Vencimento <b>18/12</b></span></div>
+              <div class="fx-janela-rodape"><span class="fx-botao">Imprimir QR Codes (8)</span><span class="fx-botao fx-botao-verde">Salvar nota e mandar para guardar</span></div>
+            </div>
+            <p class="fx-efeito">Confira quantas vieram, digite o preço como está na nota, o nº da NF e o vencimento, e imprima os QR Codes para colar nas peças. O boleto é criado sozinho em Despesas, ligado ao pedido. <strong>O estoque ainda não muda.</strong></p>
           </div>
         </li>
         <li class="fx-passo">
           <span class="fx-num">3</span>
           <div>
-            <h3>Guardar (dar entrada)</h3>
-            <p>Na <a href="/entrada-estoque.html">Entrada de estoque</a> o balconista escolhe o nome dele, acha a peça (procura ou bipa a etiqueta) e aperta <strong>Dar entrada</strong>, dizendo quantas chegaram.</p>
-            <p class="fx-efeito">Agora sim a peça entra no estoque. Quando tudo do pedido estiver guardado, o pedido fica <strong>Concluído</strong> sozinho.</p>
+            <h3>Guardar (dar entrada) <small class="fx-quem">balconista</small></h3>
+            <p>Na <a href="/entrada-estoque.html">Entrada de estoque</a> escolha o seu nome, bipe a etiqueta (ou procure a peça), confira quantas tem e aperte <span class="fx-botao fx-botao-verde">Dar entrada</span>.</p>
+            <p class="fx-efeito">Agora sim a peça entra no estoque. Quando tudo do pedido estiver guardado, o pedido fica <span class="fx-selo fx-selo-verde">Concluído</span> sozinho.</p>
           </div>
         </li>
         <li class="fx-passo">
@@ -73,11 +148,15 @@
     <div class="fx-grade">
       <div class="os-secao">
         <h3>Chegou só uma parte?</h3>
-        <p>No pedido, coloque em “Chegou” só o que veio. O pedido fica “Chegou parte · faltam X” e, quando o resto chegar, é só apertar <strong>Receber o restante</strong>. Se o resto não vier, o gerente encerra o pedido.</p>
+        <p>No "Receber", coloque em “Chegou” só o que veio. O pedido fica <span class="fx-selo fx-selo-laranja">Chegou parte</span> e, quando o resto chegar, é só apertar <strong>Receber o restante</strong>. Se o resto não vier, o gerente encerra o pedido.</p>
+      </div>
+      <div class="os-secao">
+        <h3>Compra sem pedido?</h3>
+        <p>Lance o boleto direto em <a href="/despesas.html">Despesas</a>, como sempre. As peças vão para a Entrada de estoque do mesmo jeito.</p>
       </div>
       <div class="os-secao">
         <h3>Peça nova?</h3>
-        <p>Se a peça ainda não tem cadastro, ela é cadastrada na hora da entrada e o sistema oferece imprimir a etiqueta.</p>
+        <p>Se a peça ainda não tem cadastro, ela é cadastrada na hora e o sistema oferece imprimir a etiqueta.</p>
       </div>
       <div class="os-secao">
         <h3>Atalho do gerente</h3>

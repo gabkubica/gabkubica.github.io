@@ -34,6 +34,7 @@
     '/usuarios.html',
     '/comissoes.html', // comissões dos funcionários
     '/importar.html', // importar tabela de itens
+    '/ficha-modelo.html', // modelo da ficha de OS de papel
     '/contatos.html', // agenda escondida: só se chega pela faixa do gerente
   ];
   const AVISO_TRAVA = 'Editável no modo gerenciador';

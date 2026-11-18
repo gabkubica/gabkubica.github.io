@@ -33,6 +33,48 @@
     </div>
     <div id="mensagens"></div>
 
+    <div class="abas">
+      <button class="aba ativa" data-aba="patio" type="button">Carros no pátio</button>
+      <button class="aba" data-aba="dia" type="button">Todas as OS do dia</button>
+    </div>
+
+    <!-- ============ Aba: Todas as OS do dia ============ -->
+    <!-- OS, serviços externos e vendas de balcão abertos no dia escolhido
+         (qualquer dia), com status: aberta, concluída, cancelada. -->
+    <section id="aba-dia" class="oculto">
+      <div class="os-secao">
+        <div class="dia-barra">
+          <button type="button" class="secundario dia-seta" id="diaAntes" title="Dia anterior" aria-label="Dia anterior">◀</button>
+          <input type="date" id="diaEscolhido" aria-label="Dia">
+          <button type="button" class="secundario dia-seta" id="diaDepois" title="Próximo dia" aria-label="Próximo dia">▶</button>
+          <button type="button" class="secundario" id="diaHoje">Hoje</button>
+          <strong id="diaNome" class="dia-nome"></strong>
+        </div>
+        <div class="dia-filtros" id="diaFiltros"></div>
+      </div>
+      <div class="os-secao" style="padding:0;overflow:hidden">
+        <div style="overflow:auto">
+          <table class="planilha-tabela dia-tabela">
+            <thead>
+              <tr>
+                <th style="width:60px">Hora</th>
+                <th style="width:95px">Número</th>
+                <th style="width:80px">Tipo</th>
+                <th style="width:150px">Placa / veículo</th>
+                <th>Cliente</th>
+                <th style="width:110px">Status</th>
+                <th style="width:100px">Valor</th>
+                <th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody id="diaCorpo"></tbody>
+          </table>
+        </div>
+        <div class="planilha-rodape"><span id="diaRodape"></span></div>
+      </div>
+    </section>
+
+    <section id="aba-patio">
     <div class="os-secao">
       <div class="patio-topo">
         <h2>Pátio — carros ainda não liberados</h2>
@@ -41,6 +83,7 @@
       <div id="patioResumo" class="patio-resumo"></div>
     </div>
     <div id="patioLista"></div>
+    </section>
   </main>
 
   <script>
@@ -319,10 +362,129 @@
       if (b) location.href = '/os.html?id=' + encodeURIComponent(b.dataset.id);
     });
 
-    // Voltou para a aba depois de um tempo (ex.: estava na OS): atualiza.
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) carregarPatio(); });
+    // =====================================================
+    // Aba: Todas as OS do dia
+    // =====================================================
+    const ROTULO_DIA = Object.assign({}, ROTULO_STATUS, { aguardando_pagamento: 'Balcão (a pagar)' });
+    const ABERTOS = ['recepcao', 'orcamento', 'execucao', 'aguardando_pagamento'];
+    const FILTROS_DIA = [
+      ['todas', 'Todas', () => true],
+      ['abertas', 'Abertas', (o) => ABERTOS.includes(o.status)],
+      ['concluidas', 'Concluídas', (o) => o.status === 'concluida' || o.status === 'paga'],
+      ['canceladas', 'Canceladas', (o) => o.status === 'cancelada'],
+    ];
+    let diaDocs = [];
+    let diaFiltro = 'todas';
+    let abaAtual = 'patio';
 
-    carregarPatio();
+    function hojeLocal() { return diaLocal(new Date()); }
+    function somarDias(dia, n) {
+      const d = new Date(dia + 'T12:00:00');
+      d.setDate(d.getDate() + n);
+      return diaLocal(d);
+    }
+    function tipoDoc(o) {
+      if (o.origem === 'venda' || o.venda_balcao_id) return 'Balcão';
+      if (o.origem === 'externo' || o.tipo === 'externo') return 'Externo';
+      return 'OS';
+    }
+    function linkDoc(o) {
+      if (o.origem === 'venda' || o.venda_balcao_id) return '/venda.html?id=' + encodeURIComponent(o.venda_balcao_id || o.id);
+      if (o.origem === 'externo' || o.tipo === 'externo') return '/externa.html?id=' + encodeURIComponent(o.id);
+      return '/os.html?id=' + encodeURIComponent(o.id);
+    }
+    function moeda(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+    async function carregarDia() {
+      const input = document.getElementById('diaEscolhido');
+      if (!input.value) input.value = hojeLocal();
+      const dia = input.value;
+      const d = new Date(dia + 'T12:00:00');
+      const hoje = hojeLocal();
+      document.getElementById('diaNome').textContent =
+        (dia === hoje ? 'Hoje, ' : dia === somarDias(hoje, -1) ? 'Ontem, ' : '') +
+        d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).replace(/^./, (c) => c.toUpperCase());
+      document.getElementById('diaDepois').disabled = dia >= hoje;
+      const corpo = document.getElementById('diaCorpo');
+      corpo.innerHTML = '<tr><td colspan="8"><div class="aviso-vazio">Carregando...</div></td></tr>';
+      try {
+        let docs = [];
+        let total = Infinity;
+        // Dia cheio de movimento: busca de 500 em 500.
+        while (docs.length < total) {
+          const r = await lerJson(await fetch('/api/ordens-servico?de=' + dia + '&ate=' + dia + '&limite=500&inicio=' + docs.length, { cache: 'no-store' }));
+          docs = docs.concat(r.ordens);
+          total = r.total;
+          if (!r.ordens.length) break;
+        }
+        if (document.getElementById('diaEscolhido').value !== dia) return; // trocou de dia no meio
+        diaDocs = docs.sort((a, b) => new Date(a.data_abertura) - new Date(b.data_abertura));
+        renderDia();
+      } catch (e) {
+        corpo.innerHTML = '<tr><td colspan="8"><div class="aviso-vazio">' + escapeHtml(e.message) + '</div></td></tr>';
+      }
+    }
+
+    function renderDia() {
+      document.getElementById('diaFiltros').innerHTML = FILTROS_DIA.map(([k, rot, f]) =>
+        '<button type="button" class="pc-chip' + (diaFiltro === k ? ' ativo' : '') + '" aria-pressed="' + (diaFiltro === k) + '" data-f="' + k + '">' +
+        rot + ' <span class="dia-conta">' + diaDocs.filter(f).length + '</span></button>').join('');
+      const f = FILTROS_DIA.find((x) => x[0] === diaFiltro)[2];
+      const lista = diaDocs.filter(f);
+      const corpo = document.getElementById('diaCorpo');
+      corpo.innerHTML = lista.length ? lista.map((o) => {
+        const veiculo = [o.marca, o.modelo].filter(Boolean).join(' ');
+        const hora = new Date(o.data_abertura).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return '<tr class="dia-linha' + (o.status === 'cancelada' ? ' dia-cancelada' : '') + '" data-href="' + escapeHtml(linkDoc(o)) + '">' +
+          '<td>' + hora + '</td>' +
+          '<td><strong>' + escapeHtml(o.codigo) + '</strong></td>' +
+          '<td><span class="dia-tipo dia-tipo-' + tipoDoc(o).toLowerCase().replace('ã', 'a') + '">' + tipoDoc(o) + '</span></td>' +
+          '<td>' + (o.placa ? '<strong>' + escapeHtml(o.placa) + '</strong>' + (veiculo ? '<div class="patio-tel">' + escapeHtml(veiculo) + '</div>' : '') : '—') + '</td>' +
+          '<td>' + escapeHtml(o.cliente_nome || '—') + '</td>' +
+          '<td><span class="status-os ' + escapeHtml(o.status) + '">' + escapeHtml(ROTULO_DIA[o.status] || o.status) + '</span></td>' +
+          '<td>' + moeda(o.valor_total) + '</td>' +
+          '<td><a class="btn-mini azul" href="' + escapeHtml(linkDoc(o)) + '">Abrir</a></td></tr>';
+      }).join('') : '<tr><td colspan="8"><div class="aviso-vazio">' +
+        (diaDocs.length ? 'Nada com esse filtro neste dia.' : 'Nenhuma OS, venda ou externo aberto neste dia.') + '</div></td></tr>';
+      const valer = diaDocs.filter((o) => o.status !== 'cancelada');
+      document.getElementById('diaRodape').textContent = diaDocs.length
+        ? diaDocs.length + ' documento(s) abertos neste dia · ' + moeda(valer.reduce((s, o) => s + Number(o.valor_total || 0), 0)) + ' sem contar os cancelados'
+        : '';
+    }
+
+    document.getElementById('diaFiltros').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-f]');
+      if (b) { diaFiltro = b.dataset.f; renderDia(); }
+    });
+    document.getElementById('diaCorpo').addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const tr = e.target.closest('tr[data-href]');
+      if (tr) location.href = tr.dataset.href;
+    });
+    const campoDia = document.getElementById('diaEscolhido');
+    campoDia.max = hojeLocal();
+    campoDia.addEventListener('change', carregarDia);
+    document.getElementById('diaAntes').addEventListener('click', () => { campoDia.value = somarDias(campoDia.value || hojeLocal(), -1); carregarDia(); });
+    document.getElementById('diaDepois').addEventListener('click', () => { campoDia.value = somarDias(campoDia.value || hojeLocal(), 1); carregarDia(); });
+    document.getElementById('diaHoje').addEventListener('click', () => { campoDia.value = hojeLocal(); carregarDia(); });
+
+    function ativarAba(nome) {
+      abaAtual = nome;
+      document.querySelectorAll('.abas .aba').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === nome));
+      document.getElementById('aba-patio').classList.toggle('oculto', nome !== 'patio');
+      document.getElementById('aba-dia').classList.toggle('oculto', nome !== 'dia');
+      history.replaceState(null, '', nome === 'dia' ? '#dia' : location.pathname);
+      if (nome === 'dia') carregarDia(); else carregarPatio();
+    }
+    document.querySelectorAll('.abas .aba').forEach((b) => b.addEventListener('click', () => ativarAba(b.dataset.aba)));
+
+    // Voltou para a aba depois de um tempo (ex.: estava na OS): atualiza.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      if (abaAtual === 'dia') carregarDia(); else carregarPatio();
+    });
+
+    if (location.hash === '#dia') ativarAba('dia'); else carregarPatio();
   </script>
 </body>
 </html>

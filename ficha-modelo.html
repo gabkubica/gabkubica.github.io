@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script src="/demo/demo.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modelo da ficha - Auto Vidros Sport</title>
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="icon" href="/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icone-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#c62828">
+  <script src="/js/tema.js"></script>
+  <script src="/js/celular.js"></script>
+  <script src="/js/atalhos.js"></script>
+  <script src="/js/gerente.js"></script>
+  <style>
+    .fm-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px; align-items: start; }
+    .fm-previa { position: sticky; top: 10px; }
+    .fm-previa iframe { width: 100%; height: calc(100vh - 150px); min-height: 520px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; }
+    .fm-bloco { margin-bottom: 12px; }
+    .fm-bloco h2 { font-size: 16px; margin: 0 0 8px; }
+    .fm-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; }
+    .fm-campos label { display: block; font-size: 12px; font-weight: 600; color: var(--texto-suave); }
+    .fm-campos input { width: 100%; }
+    .fm-checks { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+    .fm-checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+    .fm-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .fm-dica { font-size: 13px; color: var(--texto-suave); margin: 0 0 10px; }
+    @media (max-width: 1000px) { .fm-grade { grid-template-columns: minmax(0, 1fr); } .fm-previa { position: static; } .fm-previa iframe { height: 70vh; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="marca">
+      <div class="logo">AV</div>
+      <h1>Auto Vidros Sport<small>MODELO DA FICHA</small></h1>
+    </a>
+    <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
+  </header>
+
+  <!-- Modelo da ficha de OS de papel: os textos, as opções e quantas linhas
+       cada parte tem. A folha (A4, preto e branco) continua no mesmo lugar;
+       a prévia ao lado mostra como fica antes de salvar. -->
+  <main class="os-main">
+    <div style="margin-bottom:10px"><a href="/ordens-servico.html" class="btn-voltar">← Ordens de serviço</a></div>
+    <div id="mensagens"></div>
+    <div class="os-secao fm-acoes">
+      <button type="button" class="sucesso" id="btnSalvar">Salvar modelo</button>
+      <button type="button" class="secundario" id="btnImprimir">Imprimir em branco</button>
+      <button type="button" class="secundario" id="btnPadrao">Voltar ao original</button>
+      <span class="fm-dica" id="estado" style="margin:0"></span>
+    </div>
+
+    <div class="fm-grade">
+      <form id="form" class="fm-form" autocomplete="off" onsubmit="return false">
+        <div class="os-secao fm-bloco">
+          <h2>O que aparece</h2>
+          <div class="fm-checks">
+            <label><input type="checkbox" name="mostrar.dataImpressao"> Data da impressão no canto</label>
+            <label><input type="checkbox" name="mostrar.prismas"> Prismas</label>
+            <label><input type="checkbox" name="mostrar.carro"> Desenho do carro</label>
+            <label><input type="checkbox" name="mostrar.combustivel"> Marcador de combustível</label>
+          </div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Cabeçalho</h2>
+          <div class="fm-campos" id="camposCabecalho"></div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Prismas</h2>
+          <div class="fm-campos">
+            <div><label>1º</label><input name="prismas.0" maxlength="20"></div>
+            <div><label>2º</label><input name="prismas.1" maxlength="20"></div>
+            <div><label>3º</label><input name="prismas.2" maxlength="20"></div>
+          </div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Serviços a verificar</h2>
+          <div class="fm-campos">
+            <div><label>Título</label><input name="verificar.titulo" maxlength="40"></div>
+            <div><label>Quadradinho 1</label><input name="verificar.opcoes.0" maxlength="24"></div>
+            <div><label>Quadradinho 2</label><input name="verificar.opcoes.1" maxlength="24"></div>
+            <div><label>Quadradinho 3</label><input name="verificar.opcoes.2" maxlength="24"></div>
+            <div><label>Linhas para escrever (2 a 12)</label><input name="verificar.linhas" type="number" min="2" max="12"></div>
+          </div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Pessoas</h2>
+          <div class="fm-campos" id="camposPessoas"></div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Tabela de peças e serviços</h2>
+          <div class="fm-campos">
+            <div><label>Título</label><input name="tabela.titulo" maxlength="40"></div>
+            <div><label>Coluna 1</label><input name="tabela.colunas.0" maxlength="20"></div>
+            <div><label>Coluna 2</label><input name="tabela.colunas.1" maxlength="20"></div>
+            <div><label>Coluna 3</label><input name="tabela.colunas.2" maxlength="20"></div>
+            <div><label>Coluna 4</label><input name="tabela.colunas.3" maxlength="20"></div>
+            <div><label>Coluna 5</label><input name="tabela.colunas.4" maxlength="20"></div>
+            <div><label>Linhas da tabela (6 a 24)</label><input name="tabela.linhas" type="number" min="6" max="24"></div>
+            <div><label>Quadro de observação</label><input name="rotulos.obs" maxlength="30"></div>
+          </div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Forma de pagamento</h2>
+          <p class="fm-dica">Deixe em branco a opção que não quer na ficha (até 6).</p>
+          <div class="fm-campos">
+            <div><label>Título</label><input name="pagamento.titulo" maxlength="30"></div>
+            <div><label>Opção 1</label><input name="pagamento.opcoes.0" maxlength="16"></div>
+            <div><label>Opção 2</label><input name="pagamento.opcoes.1" maxlength="16"></div>
+            <div><label>Opção 3</label><input name="pagamento.opcoes.2" maxlength="16"></div>
+            <div><label>Opção 4</label><input name="pagamento.opcoes.3" maxlength="16"></div>
+            <div><label>Opção 5</label><input name="pagamento.opcoes.4" maxlength="16"></div>
+            <div><label>Opção 6</label><input name="pagamento.opcoes.5" maxlength="16"></div>
+          </div>
+        </div>
+        <div class="os-secao fm-bloco">
+          <h2>Parte de baixo (carro e assinatura)</h2>
+          <div class="fm-campos" id="camposRodape"></div>
+        </div>
+      </form>
+
+      <div class="os-secao fm-previa">
+        <h2 style="font-size:16px;margin:0 0 8px">Prévia (A4)</h2>
+        <iframe id="previa" title="Prévia da ficha"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const CABECALHO = [['nome', 'Nome'], ['carro', 'Carro'], ['placa', 'Placa'], ['data', 'Data'], ['hora', 'Hora'], ['fone', 'Fone'], ['previsao', 'Previsão de entrega'], ['seguradora', 'Seguradora']];
+    const PESSOAS = [['atendente', 'Atendente'], ['balconista', 'Balconista'], ['osnum', 'Nº da OS'], ['executores', 'Executores'], ['auxiliares', 'Auxiliares']];
+    const RODAPE = [['obsCarro', 'Obs. ao lado do carro'], ['combustivel', 'Combustível'], ['reserva', 'Reserva'], ['cheio', 'Cheio'], ['nomeAssina', 'Nome (assinatura)'], ['cpf', 'CPF'], ['assinatura', 'Assinatura']];
+    const campos = (lista) => lista.map(([k, r]) => '<div><label>' + r + '</label><input name="rotulos.' + k + '" maxlength="30"></div>').join('');
+    $('camposCabecalho').innerHTML = campos(CABECALHO);
+    $('camposPessoas').innerHTML = campos(PESSOAS);
+    $('camposRodape').innerHTML = campos(RODAPE);
+
+    function mostrarMensagem(texto, tipo) {
+      const m = $('mensagens');
+      m.innerHTML = '';
+      const d = document.createElement('div'); d.className = tipo; d.textContent = texto; m.appendChild(d);
+      setTimeout(() => { if (m.contains(d)) d.remove(); }, tipo === 'erro' ? 9000 : 4000);
+    }
+
+    // Caminho "a.b.0" dentro do objeto.
+    function pegar(obj, caminho) { return caminho.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+    function colocar(obj, caminho, valor) {
+      const ks = caminho.split('.');
+      let o = obj;
+      ks.slice(0, -1).forEach((k, i) => { if (o[k] == null) o[k] = /^\d+$/.test(ks[i + 1]) ? [] : {}; o = o[k]; });
+      o[ks[ks.length - 1]] = valor;
+    }
+    function preencherForm(modelo) {
+      for (const el of $('form').elements) {
+        if (!el.name) continue;
+        const v = pegar(modelo, el.name);
+        if (el.type === 'checkbox') el.checked = !!v; else el.value = v === undefined ? '' : v;
+      }
+    }
+    function lerForm() {
+      const m = {};
+      for (const el of $('form').elements) {
+        if (!el.name) continue;
+        colocar(m, el.name, el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value);
+      }
+      // listas: tira os buracos (opção em branco = não aparece)
+      m.prismas = (m.prismas || []).filter((x) => x && x.trim());
+      m.verificar.opcoes = (m.verificar.opcoes || []).filter((x) => x && x.trim());
+      m.pagamento.opcoes = (m.pagamento.opcoes || []).filter((x) => x && x.trim());
+      return m;
+    }
+
+    let urlPrevia = null, espera = null, mudou = false;
+    async function atualizarPrevia() {
+      try {
+        const r = await fetch('/api/fichas/previa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelo: lerForm() }) });
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Não deu para montar a prévia.');
+        const blob = await r.blob();
+        if (urlPrevia) URL.revokeObjectURL(urlPrevia);
+        urlPrevia = URL.createObjectURL(blob);
+        $('previa').src = urlPrevia + '#toolbar=0&view=FitH';
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    }
+    function marcarMudou() {
+      mudou = true;
+      $('estado').textContent = 'Mudanças ainda não salvas.';
+      clearTimeout(espera);
+      espera = setTimeout(atualizarPrevia, 600);
+    }
+    $('form').addEventListener('input', marcarMudou);
+    $('form').addEventListener('change', marcarMudou);
+
+    async function carregar() {
+      const d = await (await fetch('/api/fichas/modelo', { cache: 'no-store' })).json();
+      preencherForm(d.modelo);
+      mudou = false;
+      $('estado').textContent = '';
+      if (window.Gerente && Gerente.ativo()) atualizarPrevia();
+      else $('previa').src = '/api/fichas/branco.pdf#toolbar=0&view=FitH';
+    }
+    $('btnSalvar').addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/fichas/modelo', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelo: lerForm() }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Não deu para salvar.');
+        preencherForm(d.modelo);
+        mudou = false;
+        $('estado').textContent = 'Salvo. A próxima ficha impressa já sai assim.';
+        mostrarMensagem('Modelo da ficha salvo.', 'ok');
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+    $('btnImprimir').addEventListener('click', () => window.open('/api/fichas/branco.pdf', '_blank'));
+    $('btnPadrao').addEventListener('click', async () => {
+      if (!confirm('Voltar a ficha para o modelo original (igual ao papel de hoje)?')) return;
+      const r = await fetch('/api/fichas/modelo', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ padrao: true }) });
+      if (!r.ok) { mostrarMensagem('Não deu para voltar ao original.', 'erro'); return; }
+      await carregar();
+      atualizarPrevia();
+      mostrarMensagem('A ficha voltou ao modelo original.', 'ok');
+    });
+    window.addEventListener('beforeunload', (e) => { if (mudou) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('gerente:mudou', carregar);
+    carregar();
+  </script>
+</body>
+</html>

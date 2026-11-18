@@ -18,6 +18,7 @@
   <script src="/js/estoque-aviso.js"></script>
   <script src="/js/os-cliente-carro.js"></script>
   <script src="/js/modo-orcamento.js"></script>
+  <script src="/js/carro-desenho.js"></script>
 </head>
 <body>
   <header>
@@ -29,8 +30,11 @@
   </header>
 
   <main class="os-main">
-    <div style="margin-bottom:10px">
+    <!-- Barra de cima: voltar e "+ Nova OS" (abrir outra OS rápido, sem
+         sair procurando). Fica presa no alto ao rolar a página. -->
+    <div class="os-barra-topo">
       <a href="/ordens-servico.html" class="btn-voltar">← Ordens de serviço</a>
+      <button type="button" id="btnOutraOs" class="sucesso os-outra" title="Abrir outra OS agora (a atual é salva antes)">+ Nova OS</button>
     </div>
 
     <div id="mensagens"></div>
@@ -70,7 +74,10 @@
           </div>
         </div>
         <div class="os-acoes">
+          <!-- Vistoria: fica colorido quando tem alguma anotação. -->
+          <button id="btnVistoria" class="btn-vistoria" type="button"><svg class="ico-carro" viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 11.5V9l2-1 2.5-4.2c.4-.6 1-.8 1.7-.8h6.3c.7 0 1.3.3 1.7.9L19 8l2.6.8c.6.2.9.7.9 1.3v1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="6.5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 12h7" stroke="currentColor" stroke-width="1.6"/></svg><span id="vistoriaRotulo">Vistoria</span></button>
           <button id="btnImprimir" class="secundario" type="button">Imprimir folha (PDF)</button>
+          <button id="btnFichaPapel" class="secundario" type="button" title="A ficha de papel da oficina, já preenchida com esta OS">Imprimir ficha (papel)</button>
         </div>
       </div>
 
@@ -167,8 +174,13 @@
       </div>
 
       <div class="os-secao">
-        <h2>Serviços executados</h2>
-        <textarea id="executados" class="campo-grande"></textarea>
+        <!-- "Serviços executados" saiu: o serviço é lançado como item da
+             tabela de serviços. O campo só aparece em OS antigas que já
+             tinham algo escrito nele (para não sumir a anotação). -->
+        <div id="blocoExecutados" class="oculto">
+          <h2>Serviços executados <small class="texto-suave">(anotação antiga)</small></h2>
+          <textarea id="executados" class="campo-grande"></textarea>
+        </div>
         <h2 style="margin-top:16px">Observações</h2>
         <textarea id="observacoes" style="min-height:80px"></textarea>
       </div>
@@ -188,6 +200,40 @@
     </div>
     </article>
   </main>
+
+  <!-- Vistoria do carro: toca no desenho e escreve o que tem ali. -->
+  <dialog id="dlgVistoria" class="dlg-vistoria" aria-labelledby="vsTitulo">
+    <div class="vs-topo">
+      <h3 id="vsTitulo">Vistoria do carro</h3>
+      <button type="button" class="vs-x" id="vsX" aria-label="Fechar">✕</button>
+    </div>
+    <p class="vs-dica">Toque no desenho onde tem risco, amassado, trinca ou peça faltando. Aparece um número; escreva ao lado o que é.</p>
+    <div id="vsDesenho" class="vs-desenho"></div>
+    <ol id="vsLista" class="vs-lista"></ol>
+    <div class="vs-linha">
+      <span class="vs-rot">Combustível</span>
+      <div id="vsComb" class="vs-comb" role="group" aria-label="Combustível"></div>
+    </div>
+    <label class="vs-rot" for="vsObs">Observação da vistoria</label>
+    <textarea id="vsObs" rows="2" maxlength="2000" placeholder="Ex.: cliente deixou objetos no porta-malas; carro chegou sujo"></textarea>
+    <div class="vs-acoes">
+      <button type="button" class="sucesso" id="vsSalvar">Salvar vistoria</button>
+      <button type="button" class="secundario" id="vsApagar">Apagar tudo</button>
+    </div>
+  </dialog>
+
+  <!-- + Nova OS (abrir outra rápido) -->
+  <dialog id="dlgOutraOs" class="dialog-tipos dlg-outra">
+    <h3>Nova OS</h3>
+    <p class="vs-dica">Digite a placa e aperte Enter. A OS que está aberta agora é salva antes.</p>
+    <input type="text" id="outraPlaca" class="outra-placa" maxlength="10" autocomplete="off" placeholder="Placa" aria-label="Placa">
+    <div class="vs-acoes">
+      <button type="button" class="sucesso" id="outraAbrir">Abrir OS</button>
+      <button type="button" class="secundario" id="outraSemPlaca">Sem placa</button>
+      <button type="button" class="secundario" id="outraCancelar">Cancelar</button>
+    </div>
+    <div id="outraAviso"></div>
+  </dialog>
 
   <dialog id="dialogConcluir" class="dialog-tipos">
     <h3>Concluir OS</h3>
@@ -458,6 +504,8 @@
 
       document.getElementById('apontamento').value = os.apontamento_cliente || '';
       document.getElementById('executados').value = os.servicos_executados || '';
+      document.getElementById('blocoExecutados').classList.toggle('oculto', !(os.servicos_executados || '').trim());
+      pintarBotaoVistoria();
       document.getElementById('observacoes').value = os.observacoes || '';
 
       atualizarMarcacao('btnClienteAvisado', 'dataClienteAvisado', os.cliente_avisado_em, 'Cliente avisado');
@@ -1126,6 +1174,195 @@
     document.getElementById('btnImprimir').addEventListener('click', () => {
       window.open('/api/ordens-servico/' + osId + '/pdf', '_blank');
     });
+    document.getElementById('btnFichaPapel').addEventListener('click', async () => {
+      try {
+        await salvarPendente();
+        window.open(osId ? '/api/ordens-servico/' + osId + '/ficha.pdf' : '/api/fichas/branco.pdf', '_blank');
+      } catch (e) { mostrarMensagem(e.message, 'erro'); }
+    });
+
+    // =====================================================
+    // Vistoria do carro
+    // =====================================================
+    const COMBUSTIVEL = [['reserva', 'Reserva'], ['1/4', '1/4'], ['1/2', '1/2'], ['3/4', '3/4'], ['cheio', 'Cheio']];
+    let vs = null;         // cópia sendo editada
+    let vsMudou = false;
+
+    function pintarBotaoVistoria() {
+      const v = osAtual && osAtual.vistoria;
+      const btn = document.getElementById('btnVistoria');
+      const n = v && v.marcas ? v.marcas.length : 0;
+      btn.classList.toggle('vistoria-com', !!v);
+      document.getElementById('vistoriaRotulo').textContent = !v ? 'Vistoria' :
+        'Vistoria' + (n ? ' · ' + n + (n === 1 ? ' marca' : ' marcas') : ' ✓');
+      btn.title = v ? 'Tem vistoria anotada: clique para ver ou mudar' : 'Anotar a vistoria do carro (riscos, amassados, combustível)';
+    }
+
+    function desenharVistoria(focar) {
+      document.getElementById('vsDesenho').innerHTML = CarroDesenho.svg({ marcas: vs.marcas });
+      document.getElementById('vsLista').innerHTML = vs.marcas.length ? vs.marcas.map((m, i) =>
+        '<li data-i="' + i + '"><span class="vs-num">' + (i + 1) + '</span>' +
+        '<input type="text" maxlength="300" value="' + escapeHtml(m.texto) + '" placeholder="O que tem aqui? (ex.: risco na porta)" aria-label="Marca ' + (i + 1) + '">' +
+        '<button type="button" class="vs-tirar" aria-label="Tirar a marca ' + (i + 1) + '" title="Tirar esta marca">✕</button></li>').join('')
+        : '<li class="vs-vazio">Nenhuma marca ainda.</li>';
+      document.getElementById('vsComb').innerHTML = COMBUSTIVEL.map(([v, r]) =>
+        '<button type="button" class="pc-chip' + (vs.combustivel === v ? ' ativo' : '') + '" aria-pressed="' + (vs.combustivel === v) + '" data-c="' + v + '">' + r + '</button>').join('');
+      if (focar !== undefined) {
+        const campo = document.querySelector('#vsLista li[data-i="' + focar + '"] input');
+        if (campo) campo.focus();
+      }
+    }
+
+    function abrirVistoria() {
+      const v = osAtual.vistoria || {};
+      vs = { marcas: (v.marcas || []).map((m) => ({ x: m.x, y: m.y, texto: m.texto || '' })), combustivel: v.combustivel || null, obs: v.obs || '' };
+      vsMudou = false;
+      document.getElementById('vsObs').value = vs.obs;
+      desenharVistoria();
+      document.getElementById('dlgVistoria').showModal();
+    }
+
+    async function salvarVistoria(fechar) {
+      vs.obs = document.getElementById('vsObs').value;
+      try {
+        await garantirOs();
+        osAtual = await lerJson(await fetch('/api/ordens-servico/' + osId + '/vistoria', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(vs),
+        }));
+        vsMudou = false;
+        pintarBotaoVistoria();
+        if (fechar) document.getElementById('dlgVistoria').close();
+        mostrarMensagem('Vistoria salva.', 'ok');
+      } catch (e) {
+        mostrarMensagem(e.message, 'erro');
+      }
+    }
+
+    document.getElementById('btnVistoria').addEventListener('click', abrirVistoria);
+    document.getElementById('vsDesenho').addEventListener('click', (e) => {
+      const svg = e.currentTarget.querySelector('svg');
+      if (!svg) return;
+      const marca = e.target.closest('.cd-marca');
+      if (marca) { desenharVistoria(Number(marca.dataset.i)); return; }
+      if (vs.marcas.length >= 40) { mostrarMensagem('No máximo 40 marcas.', 'erro'); return; }
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      vs.marcas.push({ x: Math.max(0, Math.min(640, Math.round(p.x))), y: Math.max(0, Math.min(300, Math.round(p.y))), texto: '' });
+      vsMudou = true;
+      desenharVistoria(vs.marcas.length - 1);
+    });
+    document.getElementById('vsLista').addEventListener('input', (e) => {
+      const li = e.target.closest('li[data-i]');
+      if (li) { vs.marcas[Number(li.dataset.i)].texto = e.target.value; vsMudou = true; }
+    });
+    document.getElementById('vsLista').addEventListener('click', (e) => {
+      const b = e.target.closest('.vs-tirar');
+      if (!b) return;
+      vs.marcas.splice(Number(b.closest('li').dataset.i), 1);
+      vsMudou = true;
+      desenharVistoria();
+    });
+    document.getElementById('vsLista').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    });
+    document.getElementById('vsComb').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-c]');
+      if (!b) return;
+      vs.combustivel = vs.combustivel === b.dataset.c ? null : b.dataset.c;
+      vsMudou = true;
+      desenharVistoria();
+    });
+    document.getElementById('vsObs').addEventListener('input', () => { vsMudou = true; });
+    document.getElementById('vsSalvar').addEventListener('click', () => salvarVistoria(true));
+    document.getElementById('vsApagar').addEventListener('click', () => {
+      if (!confirm('Apagar toda a vistoria desta OS?')) return;
+      vs = { marcas: [], combustivel: null, obs: '' };
+      document.getElementById('vsObs').value = '';
+      salvarVistoria(true);
+    });
+    // Fechar (✕ ou Esc) com mudança: salva sozinho, para não perder.
+    function fecharVistoria(e) {
+      if (e) e.preventDefault();
+      if (vsMudou) salvarVistoria(true); else document.getElementById('dlgVistoria').close();
+    }
+    document.getElementById('vsX').addEventListener('click', () => fecharVistoria());
+    document.getElementById('dlgVistoria').addEventListener('cancel', fecharVistoria);
+
+    // =====================================================
+    // + Nova OS (abrir outra rápido)
+    // =====================================================
+    // Salva os textos da OS atual se mudaram (relato, observações...).
+    async function salvarPendente() {
+      const corpo = {
+        apontamento_cliente: document.getElementById('apontamento').value,
+        servicos_executados: document.getElementById('executados').value,
+        observacoes: document.getElementById('observacoes').value,
+        atendente_id: document.getElementById('atendente').value || null,
+      };
+      const igual = (a, b) => String(a || '').trim() === String(b || '').trim();
+      const mudou = !igual(corpo.apontamento_cliente, osAtual.apontamento_cliente) ||
+        !igual(corpo.servicos_executados, osAtual.servicos_executados) ||
+        !igual(corpo.observacoes, osAtual.observacoes) ||
+        String(corpo.atendente_id || '') !== String(osAtual.atendente_id || '');
+      if (!mudou) return;
+      if (!osId && !(corpo.apontamento_cliente.trim() || corpo.observacoes.trim() || corpo.atendente_id)) return;
+      await garantirOs();
+      osAtual = await lerJson(await fetch('/api/ordens-servico/' + osId, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+      }));
+    }
+
+    const dlgOutra = document.getElementById('dlgOutraOs');
+    function avisoOutra(html) { document.getElementById('outraAviso').innerHTML = html ? '<div class="aviso-bloco">' + html + '</div>' : ''; }
+    document.getElementById('btnOutraOs').addEventListener('click', () => {
+      document.getElementById('outraPlaca').value = '';
+      avisoOutra('');
+      dlgOutra.showModal();
+      document.getElementById('outraPlaca').focus();
+    });
+    document.getElementById('outraCancelar').addEventListener('click', () => dlgOutra.close());
+    // Rolou a página: o '+ Nova OS' acompanha, no canto de cima.
+    window.addEventListener('scroll', () => {
+      document.getElementById('btnOutraOs').classList.toggle('flutuando', window.scrollY > 70);
+    }, { passive: true });
+    async function irPara(url) {
+      try { await salvarPendente(); } catch (e) {
+        if (!confirm('Não deu para salvar a OS atual (' + e.message + '). Abrir a nova mesmo assim?')) return;
+      }
+      location.href = url;
+    }
+    document.getElementById('outraSemPlaca').addEventListener('click', () => irPara('/os.html'));
+    async function abrirOutra() {
+      const placa = document.getElementById('outraPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!placa) { document.getElementById('outraPlaca').focus(); return; }
+      const botao = document.getElementById('outraAbrir');
+      botao.disabled = true;
+      try {
+        const rc = await fetch('/api/carros/' + encodeURIComponent(placa));
+        if (rc.status === 404) { await irPara('/ordens-servico.html?nova_placa=' + encodeURIComponent(placa)); return; }
+        await lerJson(rc);
+        const hist = await lerJson(await fetch('/api/ordens-servico/por-placa/' + encodeURIComponent(placa)));
+        if (hist.os_aberta) {
+          if (String(hist.os_aberta.id) === String(osId)) { avisoOutra('Esta já é a OS aberta da placa ' + escapeHtml(placa) + '.'); return; }
+          avisoOutra('A placa <strong>' + escapeHtml(placa) + '</strong> já tem a OS nº <strong>' + escapeHtml(hist.os_aberta.codigo) + '</strong> aberta. ' +
+            '<button type="button" class="btn-mini azul" id="outraIrAberta">Abrir a OS nº ' + escapeHtml(hist.os_aberta.codigo) + '</button>');
+          document.getElementById('outraIrAberta').addEventListener('click', () => irPara('/os.html?id=' + hist.os_aberta.id));
+          return;
+        }
+        try { await salvarPendente(); } catch (e) { /* segue: a nova OS abre mesmo assim */ }
+        const nova = await lerJson(await fetch('/api/ordens-servico', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ placa }),
+        }));
+        location.href = '/os.html?id=' + nova.id;
+      } catch (e) {
+        avisoOutra(escapeHtml(e.message));
+      } finally {
+        botao.disabled = false;
+      }
+    }
+    document.getElementById('outraAbrir').addEventListener('click', abrirOutra);
+    document.getElementById('outraPlaca').addEventListener('keydown', (e) => { if (e.key === 'Enter') abrirOutra(); });
     document.getElementById('btnSalvar').addEventListener('click', () => salvarTextos());
     document.getElementById('btnClienteAvisado').addEventListener('click', () => alternarMarcacao('cliente_avisado', 'cliente_avisado_em'));
     document.getElementById('btnVemBuscar').addEventListener('click', () => alternarRetirada('vem_buscar'));

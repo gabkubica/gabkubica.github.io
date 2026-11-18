@@ -19,8 +19,6 @@
     .pc-topo h2 { margin: 0; font-size: 22px; }
     /* Lista de pedidos */
     .pc-filtros { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
-    .pc-filtros button { font-size: 13px; padding: 6px 12px; border-radius: 999px; }
-    .pc-filtros button.ativo { outline: 2px solid var(--vermelho); }
     .pc-lista { width: 100%; border-collapse: collapse; font-size: 14px; }
     .pc-lista th { text-align: left; font-size: 12px; color: var(--texto-suave); padding: 6px; border-bottom: 1px solid var(--borda); }
     .pc-lista td { padding: 9px 6px; border-bottom: 1px solid var(--borda); }
@@ -393,7 +391,7 @@
       desenharLista();
     }
     function desenharLista() {
-      $('filtros').innerHTML = FILTROS.map(([k, rot, f]) => '<button type="button" class="secundario' + (filtro === k ? ' ativo' : '') + '" data-f="' + k + '">' +
+      $('filtros').innerHTML = FILTROS.map(([k, rot, f]) => '<button type="button" class="pc-chip' + (filtro === k ? ' ativo' : '') + '" aria-pressed="' + (filtro === k) + '" data-f="' + k + '">' +
         rot + ' (' + pedidos.filter(f).length + ')</button>').join('');
       const f = FILTROS.find((x) => x[0] === filtro)[2];
       const lista = pedidos.filter(f);

@@ -19,6 +19,7 @@
     { texto: 'Serviço externo', href: '/externa.html' },
     // Ficha de OS física (papel), para preencher à caneta. Abre o PDF.
     { texto: 'Imprimir ficha de OS', href: '/api/fichas/branco.pdf', novaAba: true, separado: true },
+    { texto: 'Mudar o modelo da ficha', href: '/ficha-modelo.html' },
   ];
 
   // "+" desenhado em vez de digitado: o caractere "+" de texto fica sentado um
