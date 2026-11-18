@@ -3004,7 +3004,11 @@ html[data-gerente="sim"] .barra-gerente .faixa-sair:hover { background: #ffc61a;
 html[data-gerente="sim"] .btn-gerente { background: var(--gerente-cor); color: var(--gerente-escuro); border-color: var(--gerente-cor); }
 /* Celular: nome + contador na 1ª linha, botões na 2ª (rolam de lado se faltar espaço). */
 @media (max-width: 640px) {
-  html[data-gerente="sim"] .barra-gerente { flex-wrap: wrap; padding: 5px 10px; }
+  /* O seletor do modo escuro repetido aqui é de propósito: a regra geral do
+     escuro tem mais "peso" e mantinha tudo numa linha só, com os botões
+     escondidos numa tirinha que rolava de lado. */
+  html[data-gerente="sim"] .barra-gerente,
+  [data-tema="escuro"][data-gerente="sim"] .barra-gerente { flex-wrap: wrap; padding: 5px 10px; }
   html[data-gerente="sim"] .barra-gerente .faixa-tempo { margin-left: auto; }
   html[data-gerente="sim"] .barra-gerente .faixa-acoes { flex-basis: 100%; margin-left: 0; overflow-x: auto; scrollbar-width: none; }
   .barra-gerente .faixa-longo { display: none; }
@@ -3361,7 +3365,8 @@ button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !imp
   .cf-tabela td[data-rot] .er-sub { display: inline; margin-left: 4px; }
   .cf-acoes { display: flex !important; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .cf-acoes .btn-mini { display: inline-block; width: auto; margin: 0; }
-  .cf-envolve { max-height: none; }
+  .cf-envolve { max-height: none; overflow: visible; }
+  .cf-tabela td { white-space: normal !important; max-width: 100%; }
 }
 .cf-dif { display: inline-block; min-width: 42px; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 13px; }
 .cf-dif.cf-mais { background: #e0ecff; color: #1e40af; }
@@ -3484,4 +3489,165 @@ button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !imp
 @media (max-width: 900px) {
   #tabelaItens tbody td.nome-longo { white-space: normal; overflow-x: hidden; cursor: default; }
   #tabelaItens th, #tabelaItens td { padding-left: 6px; padding-right: 6px; }
+}
+
+/* ============================================================
+   Celular (até 700px) — 2026-11-17
+   ============================================================
+   As tabelas já viravam cartões no celular, mas com valores soltos sem nome
+   e um embaixo do outro (cartão enorme). js/celular.js põe o nome da coluna
+   em cada célula e marca a tabela com .cel-cartoes; aqui o nome fica pequeno
+   em cima do valor e as células curtas ficam lado a lado (2 colunas). */
+@media (max-width: 700px) {
+  table.cel-cartoes { table-layout: auto !important; }
+  table.cel-cartoes tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: var(--card-bg);
+  }
+  table.cel-cartoes tbody td {
+    display: block;
+    width: auto !important;
+    min-width: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: break-word;
+    text-align: left !important;
+  }
+  table.cel-cartoes tbody td.cel-larga,
+  table.cel-cartoes tbody td.cel-titulo { grid-column: 1 / -1; }
+  table.cel-cartoes tbody td.cel-titulo { font-weight: 700; font-size: 15px; }
+  table.cel-cartoes tbody td:empty { display: none; }
+  table.cel-cartoes tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--texto-suave);
+    margin-bottom: 2px;
+  }
+  table.cel-cartoes tbody td.cel-titulo[data-label]::before { font-size: 10px; }
+  /* Botões da linha: maiores para o dedo, lado a lado. */
+  table.cel-cartoes tbody td .btn-mini,
+  table.cel-cartoes tbody td button {
+    min-height: 36px;
+    padding: 7px 12px;
+    font-size: 14px;
+    margin: 2px 6px 2px 0;
+  }
+  table.cel-cartoes tbody td input:not([type=checkbox]):not([type=radio]),
+  table.cel-cartoes tbody td select { width: 100%; max-width: none; }
+
+  /* Os 3 campos de busca numa linha só (empilhados ocupavam meia tela). */
+  .busca-3linhas,
+  .planilha-toolbar .busca-3linhas { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px; }
+  .busca-3linhas input.busca { padding-left: 8px; padding-right: 8px; }
+
+  /* Itens/Serviços: a lista rola junto com a página (antes era uma caixinha
+     com rolagem própria, que sobrava pouca altura embaixo dos botões). */
+  .planilha-main { height: auto; min-height: 0; }
+  .planilha-envolve { overflow: visible; border: 0; background: transparent; flex: none; }
+  .planilha-tabela thead { display: none; }
+
+  /* OS: cliente/telefone, placa/veículo, abertura/conclusão lado a lado. */
+  #dadosCarro { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+  #dadosCarro .valor { overflow-wrap: anywhere; }
+
+  /* OS / externo / venda: cada peça ou serviço num cartão de 4 faixas. */
+  #corpoPecas tr, #corpoServicos tr {
+    display: grid; align-items: end; gap: 8px 12px; padding: 10px 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "item rem" "cod sub" "qtd preco" "func assist";
+  }
+  #corpoPecas td, #corpoServicos td { display: block; padding: 0 !important; border: 0 !important; width: auto !important; min-width: 0; }
+  #corpoPecas td[colspan], #corpoServicos td[colspan] { grid-column: 1 / -1; grid-area: auto; }
+  #corpoPecas td:nth-child(1), #corpoServicos td:nth-child(1) { grid-area: cod; color: var(--texto-suave); font-size: 13px; }
+  #corpoPecas td.rolavel, #corpoServicos td.rolavel { grid-area: item; font-weight: 700; font-size: 15px; white-space: normal; overflow: visible; align-self: start; }
+  #corpoPecas td.col-qtd, #corpoServicos td.col-qtd { grid-area: qtd; }
+  #corpoPecas td.col-preco, #corpoServicos td.col-preco { grid-area: preco; }
+  #corpoPecas td.col-func, #corpoServicos td.col-func { grid-area: func; }
+  #corpoPecas td.col-assist, #corpoServicos td.col-assist { grid-area: assist; }
+  #corpoPecas td.subtotal, #corpoServicos td.subtotal { grid-area: sub; text-align: right !important; font-size: 15px; font-weight: 700; }
+  #corpoPecas td.col-remover, #corpoServicos td.col-remover { grid-area: rem; justify-self: end; align-self: start; }
+  #corpoPecas td[data-label]::before, #corpoServicos td[data-label]::before { content: none; }
+  #corpoPecas td.col-qtd::before { content: "Qtd"; }
+  #corpoPecas td.col-preco::before { content: "Preço unit. (R$)"; }
+  #corpoServicos td.col-preco::before { content: "Valor (R$)"; }
+  #corpoPecas td.col-func::before, #corpoServicos td.col-func::before { content: "Responsável"; }
+  #corpoPecas td.col-assist::before, #corpoServicos td.col-assist::before { content: "Assistente"; }
+  #corpoPecas td.col-qtd::before, #corpoPecas td.col-preco::before, #corpoServicos td.col-preco::before,
+  #corpoPecas td.col-func::before, #corpoServicos td.col-func::before,
+  #corpoPecas td.col-assist::before, #corpoServicos td.col-assist::before {
+    display: block; font-size: 11px; font-weight: 700; color: var(--texto-suave); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em;
+  }
+  #corpoPecas input, #corpoPecas select, #corpoServicos input, #corpoServicos select { width: 100%; padding: 8px; font-size: 15px; }
+}
+@media (max-width: 700px) {
+  #corpoServicos tr { grid-template-areas: "item rem" "cod sub" "preco preco" "func assist"; }
+}
+@media (max-width: 700px) {
+  /* Etiquetas de status dentro dos cartões quebram linha em vez de vazar. */
+  table.cel-cartoes tbody td span,
+  table.cel-cartoes tbody td small { white-space: normal; max-width: 100%; }
+  /* Itens: as células tinham fundo próprio (coluna fixa da planilha). */
+  .planilha-tabela.cel-cartoes tbody td { background: transparent !important; position: static !important; }
+
+  /* Totais do caixa/relatórios: 2 por linha (o 1º, principal, na linha toda). */
+  .resumos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .resumos > .card-resumo { max-width: none; min-width: 0; padding: 12px 14px; }
+  .resumos > .card-resumo:first-child { grid-column: 1 / -1; }
+  .resumos .card-resumo .valor { font-size: 20px; }
+  .resumos .card-resumo .rotulo { font-size: 11px; }
+
+  /* Abas: dividem a largura; o botão extra (ex.: Imprimir ficha) vai embaixo. */
+  .abas { gap: 4px; }
+  .abas > .aba { flex: 1 1 auto; text-align: center; padding: 9px 10px; font-size: 14px; }
+  .abas > span[style*="flex"] { display: none; }
+  .abas > :not(.aba):not(span) { flex: 1 1 100%; text-align: center; margin-bottom: 6px; }
+  .nu-periodo { display: flex; width: 100%; }
+  .nu-periodo button { flex: 1 1 auto; padding: 9px 10px; }
+}
+@media (max-width: 700px) {
+  /* O 1º campo é o "título" do cartão: não precisa do nome da coluna. */
+  table.cel-cartoes tbody td.cel-titulo[data-label]::before { content: none; }
+}
+@media (max-width: 700px) {
+  .cm-tab.cel-cartoes td, .cm-tab.cel-cartoes th { position: static !important; }
+}
+@media (max-width: 700px) {
+  /* Indicadores (Comissões, Números, Seguradoras, Relatório): 2 por linha. */
+  .nu-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .nu-kpi { padding: 12px; min-width: 0; }
+  .nu-kpi-val { font-size: 18px !important; }
+  .nu-kpi-rot { font-size: 11px; }
+  .nu-kpi-sub { font-size: 12px; }
+  /* Comissões: cada faixa do cartão é um grupo (Vendido · % · Comissão). */
+  .cm-tab.cel-cartoes tbody tr { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+  .cm-tab.cel-cartoes tbody td { text-align: left !important; }
+  .cm-tab.cel-cartoes tbody td input { width: 100%; }
+}
+@media (max-width: 700px) {
+  /* Nenhum campo mais largo que a tela (a busca do Balcão vazava no celular pequeno). */
+  main input, main select, main textarea { max-width: 100%; }
+}
+/* Celular pequeno (até 400px): o nome da loja quebra em 2 linhas em vez de
+   ficar por baixo dos botões do topo. */
+@media (max-width: 400px) {
+  header { padding: 8px 12px; }
+  header .marca h1 { font-size: 15px; white-space: normal; line-height: 1.15; overflow-wrap: normal; }
+  header .logo { width: 30px; height: 30px; font-size: 12px; }
+}
+@media (max-width: 700px) {
+  .busca-acoes > input:not([type=checkbox]):not([type=radio]) { flex: 1 1 100%; min-width: 0 !important; }
+  /* Lista em cartões rola junto com a página, sem caixinha com rolagem própria. */
+  .tabela-envolve:has(> table.cel-cartoes) { max-height: none; overflow: visible; }
+  table.cel-cartoes tbody td [class^="status"] { font-size: 12px; padding: 2px 8px; }
 }
