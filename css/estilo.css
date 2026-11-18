@@ -3768,3 +3768,71 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .en-compacta tr.en-grupo td { border: 0 !important; border-top: 2px solid var(--borda) !important; }
   .cf-dialog .dialog-acoes > :not(#cfEnviar) { white-space: normal; }
 }
+
+/* Entrada de estoque no PAPEL: ~55 peças por folha A4. O boleto vira uma
+   coluna estreita à esquerda (uma célula para as peças dele), cada peça
+   numa linha só e altura de ~4,5 mm para escrever à caneta. */
+@media print {
+  .en-compacta { table-layout: fixed !important; width: 100% !important; }
+  .en-compacta tr.en-grupo { display: none !important; }
+  .en-compacta th, .en-compacta td { padding: 1px 4px !important; font-size: 10px !important; line-height: 1.15 !important; height: 17px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .en-compacta th { white-space: normal; height: auto; font-size: 9px !important; }
+  .en-compacta .en-p-bol { width: 110px !important; white-space: normal !important; vertical-align: top; font-size: 9px !important; line-height: 1.2 !important; }
+  .en-compacta .en-c-num { width: 46px !important; }
+  .en-compacta .en-c-local { width: 44px !important; }
+  .en-compacta .en-c-qtd { width: 36px !important; }
+  .en-compacta .en-escrever { width: 50px !important; }
+  .en-compacta .en-ok { width: 18px !important; }
+  .en-compacta td.en-escrever, .en-compacta td.en-ok { height: 17px !important; }
+  .en-compacta .en-qtd, .en-compacta .en-saldo { font-size: 10.5px !important; font-weight: 700; text-align: center; }
+  .en-compacta .en-c-peca .er-sub { display: inline !important; font-size: 9px; margin-left: 4px; }
+  .en-compacta .mini-selo { font-size: 8px; padding: 0 4px; }
+  .en-compacta tbody.en-boleto { border-top: 2px solid #000 !important; }
+  .en-compacta .en-p-bol.en-p-uma { white-space: nowrap !important; vertical-align: middle; }
+  .en-papel-topo { font-size: 11px !important; margin-bottom: 4px !important; }
+}
+
+/* Conferência de estoque: janela em passos (quem -> peça -> quantas). */
+.cf-dialog { width: min(560px, calc(100vw - 24px)) !important; padding: 16px 18px !important; }
+.cf-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cf-topo h3 { margin: 0; font-size: 19px; }
+.cf-x { background: none !important; border: 0 !important; color: var(--texto-suave) !important; font-size: 20px; padding: 4px 8px; cursor: pointer; }
+.cf-dialog .cf-quem { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; font-weight: 700; font-size: 14px; flex-wrap: wrap; }
+.cf-dialog .cf-quem select { flex: 1 1 200px; font-size: 15px; padding: 7px 10px; max-width: none; }
+.cf-dialog .cf-busca { display: flex; gap: 6px; margin-top: 12px; flex-wrap: nowrap; }
+.cf-dialog .cf-busca input { flex: 1 1 auto; min-width: 0; font-size: 17px; padding: 11px 12px; }
+.cf-cartao { margin-top: 12px; border: 2px solid var(--vermelho); border-radius: 12px; padding: 12px 14px; }
+.cf-cartao .cf-peca { margin: 0; padding: 0; border: 0; }
+.cf-peca-nome { font-size: 17px; font-weight: 800; line-height: 1.25; }
+.cf-peca-dados { font-size: 13px; margin: 3px 0 2px; }
+.cf-conta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.cf-conta-rot { font-weight: 800; font-size: 16px; }
+.cf-conta-rot small { display: block; font-weight: 400; font-size: 12px; color: var(--texto-suave); }
+.cf-passo { display: flex; align-items: center; gap: 6px; }
+.cf-passo button { width: 48px; height: 48px; font-size: 26px; line-height: 1; padding: 0; border-radius: 10px; }
+.cf-passo input { width: 92px; height: 48px; font-size: 26px; font-weight: 800; text-align: center; padding: 0 4px; }
+.cf-dupla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px; margin-top: 12px; }
+.cf-dupla label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
+.cf-dupla small { font-weight: 400; color: var(--texto-suave); }
+.cf-dupla input { font-size: 15px; padding: 8px 10px; }
+.cf-enviar { width: 100%; margin-top: 14px; font-size: 17px !important; padding: 13px !important; }
+.cf-links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.cf-link { background: none !important; border: 0 !important; color: var(--texto-suave) !important; text-decoration: underline; padding: 2px 0 !important; font-size: 13px; cursor: pointer; }
+.cf-link[disabled] { opacity: .5; }
+.cf-rodape-ajuda { font-size: 12.5px; color: var(--texto-suave); margin: 12px 0 0; }
+.cf-feitas { margin-top: 10px; border-top: 1px solid var(--borda); padding-top: 8px; font-size: 13.5px; max-height: 180px; overflow: auto; }
+.cf-feita { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--borda); }
+.cf-feita strong { font-size: 15px; }
+@media (max-width: 480px) {
+  .cf-dupla { grid-template-columns: minmax(0, 1fr); }
+  .cf-dialog .cf-busca { flex-wrap: wrap; }
+  .cf-dialog .cf-busca input { flex-basis: 100%; }
+}
+.cf-passo input::-webkit-inner-spin-button, .cf-passo input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.cf-passo input { -moz-appearance: textfield; appearance: textfield; }
+
+/* Sub-abas (ex.: Usuários > Gerentes | Funcionários) */
+.abas.abas-sub { margin-top: 8px; }
+.abas.abas-sub .aba { font-size: 13px; padding: 6px 12px; }
+.abas.abas-sub .aba small { font-weight: 400; opacity: .75; }

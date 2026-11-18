@@ -90,6 +90,13 @@
     .pc-bol[disabled] { opacity: .55; cursor: not-allowed; }
     .pc-bol small { display: block; color: var(--texto-suave); }
     .pc-bol.pc-provavel { border-left: 4px solid #1e40af; }
+    .pc-contato-linha { display: flex; gap: 6px; }
+    .pc-contato-linha select { flex: 1 1 auto; min-width: 0; }
+    .pc-contato-linha button { flex: none; white-space: nowrap; padding: 6px 10px; font-size: 13px; }
+    .pc-form-contato { display: flex; flex-direction: column; gap: 10px; }
+    .pc-form-contato label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
+    .pc-form-contato small { font-weight: 400; color: var(--texto-suave); }
+    .pc-form-contato input { font-size: 15px; padding: 8px 10px; }
     @media (max-width: 760px) { .pc-grade { grid-template-columns: minmax(0, 1fr); } .pc-col-est { display: none; } }
   </style>
 </head>
@@ -122,7 +129,10 @@
 
       <div class="pc-grade" style="margin-top:12px">
         <label>Vendedor (da agenda de Contatos)
-          <select id="edContato"><option value="">— escolher —</option></select>
+          <span class="pc-contato-linha">
+            <select id="edContato"><option value="">— escolher —</option></select>
+            <button type="button" class="secundario" id="btnNovoContato" title="Cadastrar um vendedor novo na agenda">+ Novo contato</button>
+          </span>
         </label>
         <label>Fornecedor (como sai no pedido)
           <input type="text" id="edFornecedor" maxlength="160" placeholder="Ex.: Saint-Gobain Sekurit">
@@ -223,6 +233,30 @@
       <span id="tbInfo"></span>
       <button type="button" class="secundario" id="tbMais" hidden>Carregar mais</button>
     </div>
+  </dialog>
+
+  <!-- Cadastrar um vendedor novo (vai para a agenda de Contatos) -->
+  <dialog id="dlgContato" class="dialog-tipos" style="width:min(460px, calc(100vw - 24px))">
+    <h3 style="margin-top:0">Novo contato (vendedor)</h3>
+    <form id="formContato" class="pc-form-contato">
+      <label>Nome do vendedor
+        <input type="text" id="ncNome" maxlength="120" autocomplete="off" placeholder="Ex.: Ricardo">
+      </label>
+      <label>Empresa (fornecedor)
+        <input type="text" id="ncEmpresa" maxlength="120" autocomplete="off" placeholder="Ex.: Saint-Gobain Sekurit">
+      </label>
+      <label>E-mail <small>(para mandar o pedido)</small>
+        <input type="email" id="ncEmail" maxlength="160" autocomplete="off" placeholder="vendedor@empresa.com.br">
+      </label>
+      <label>Celular / WhatsApp
+        <input type="tel" id="ncFone" maxlength="40" autocomplete="off" placeholder="(48) 99999-9999">
+      </label>
+      <p class="aviso-vazio" style="margin:0;font-size:12.5px">Fica salvo na agenda de Contatos (etiqueta "Fornecedor") e já é escolhido neste pedido.</p>
+      <div class="dialog-acoes">
+        <button type="submit" class="sucesso" id="ncSalvar">Salvar contato</button>
+        <button type="button" class="secundario" id="ncCancelar">Cancelar</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Ligar a nota (boleto) que chegou -->
@@ -660,14 +694,49 @@
     });
     window.addEventListener('beforeunload', (e) => { if (mudou) { e.preventDefault(); e.returnValue = ''; } });
 
+    function preencherContatos() {
+      const atual = $('edContato').value;
+      $('edContato').innerHTML = '<option value="">— escolher —</option>' + contatos
+        .sort((a, b) => (b.email ? 1 : 0) - (a.email ? 1 : 0) || a.nome.localeCompare(b.nome, 'pt-BR'))
+        .map((x) => '<option value="' + x.id + '">' + esc(x.nome) + (x.empresa && x.empresa !== x.nome ? ' · ' + esc(x.empresa) : '') + (x.email ? '' : ' (sem e-mail)') + '</option>').join('');
+      $('edContato').value = atual;
+    }
+
+    // ---------- novo contato (vendedor) sem sair do pedido ----------
+    $('btnNovoContato').addEventListener('click', () => {
+      $('formContato').reset();
+      // Já sugere a empresa que está no campo Fornecedor.
+      if ($('edFornecedor').value && !$('edContato').value) $('ncEmpresa').value = $('edFornecedor').value;
+      $('dlgContato').showModal();
+      $('ncNome').focus();
+    });
+    $('ncCancelar').addEventListener('click', () => $('dlgContato').close());
+    $('formContato').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!$('ncNome').value.trim() && !$('ncEmpresa').value.trim()) { $('ncNome').focus(); return alert('Preencha o nome do vendedor ou a empresa.'); }
+      $('ncSalvar').disabled = true;
+      try {
+        const novo = await api('POST', '/api/contatos', {
+          nome: $('ncNome').value, empresa: $('ncEmpresa').value, email: $('ncEmail').value,
+          telefones: $('ncFone').value.trim() ? [{ tipo: 'Celular', numero: $('ncFone').value }] : [],
+          etiquetas: ['Fornecedor'],
+        });
+        contatos = (await api('GET', '/api/contatos')).contatos;
+        preencherContatos();
+        $('edContato').value = String(novo.id);
+        $('edContato').dispatchEvent(new Event('change'));
+        $('dlgContato').close();
+        mostrarMensagem('Contato "' + (novo.nome || '') + '" cadastrado e escolhido neste pedido.', 'ok');
+      } catch (er) { alert(er.message); }
+      $('ncSalvar').disabled = false;
+    });
+
     // ---------- início ----------
     async function iniciar() {
       try {
         const [c, m] = await Promise.all([api('GET', '/api/contatos'), api('GET', '/api/pedidos/marcas')]);
         contatos = c.contatos;
-        $('edContato').innerHTML = '<option value="">— escolher —</option>' + contatos
-          .sort((a, b) => (b.email ? 1 : 0) - (a.email ? 1 : 0) || a.nome.localeCompare(b.nome, 'pt-BR'))
-          .map((x) => '<option value="' + x.id + '">' + esc(x.nome) + (x.empresa && x.empresa !== x.nome ? ' · ' + esc(x.empresa) : '') + (x.email ? '' : ' (sem e-mail)') + '</option>').join('');
+        preencherContatos();
         $('edMarca').innerHTML = '<option value="">Todas as marcas (' + m.marcas.reduce((t, x) => t + x.quantidade, 0) + ')</option>' +
           m.marcas.map((x) => '<option value="' + esc(x.marca) + '">' + esc(x.marca) + ' (' + x.quantidade + ')</option>').join('');
         await carregarLista();

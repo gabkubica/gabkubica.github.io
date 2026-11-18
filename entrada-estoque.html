@@ -14,6 +14,10 @@
   <script src="/js/celular.js"></script>
   <script src="/js/atalhos.js"></script>
   <script src="/js/gerente.js"></script>
+  <style>
+    /* Papel: A4 com margem pequena (cabe mais peça por folha). */
+    @page { size: A4 portrait; margin: 8mm; }
+  </style>
 </head>
 <body>
   <header>
@@ -95,47 +99,53 @@
   </main>
 
   <!-- Conferência de estoque: contar uma peça e mandar para o gerente aprovar -->
-  <dialog id="dialogConf" class="dialog-tipos en-dialog cf-dialog">
-    <h3>Conferência de estoque</h3>
-    <p class="en-ajuda" style="margin:2px 0 0">Bipe a etiqueta (ou digite o nº, o código ou o nome), conte quantas tem e diga o local.
-      O estoque só muda quando o gerente aprovar.</p>
-    <label class="en-campo cf-quem">Quem está contando?
+  <dialog id="dialogConf" class="dialog-tipos cf-dialog">
+    <div class="cf-topo">
+      <h3>Conferência de estoque</h3>
+      <button id="cfFechar" class="cf-x" type="button" title="Fechar" aria-label="Fechar">✕</button>
+    </div>
+    <label class="cf-quem">Quem está contando?
       <select id="cfQuem"><option value="">— escolha seu nome —</option></select>
     </label>
 
     <div id="cfPedidos"></div>
 
-    <label class="en-campo">Peça
-      <span class="cf-busca">
-        <input type="text" id="cfBusca" autocomplete="off" spellcheck="false" placeholder="Nº da etiqueta, código ou nome">
-        <button type="button" class="secundario" id="cfBuscar">Buscar</button>
-        <button type="button" class="secundario" id="cfCamera" hidden title="Ler o QR Code com a câmera">Câmera</button>
-      </span>
-    </label>
+    <div class="cf-busca">
+      <input type="text" id="cfBusca" autocomplete="off" spellcheck="false" placeholder="Bipe a etiqueta ou digite o nº, código ou nome">
+      <button type="button" class="secundario" id="cfBuscar">Buscar</button>
+      <button type="button" class="secundario" id="cfCamera" hidden title="Ler o QR Code com a câmera">Câmera</button>
+    </div>
     <video id="cfVideo" class="cf-video" playsinline muted hidden></video>
     <div id="cfOpcoes"></div>
 
-    <div id="cfPeca" hidden>
+    <div id="cfPeca" class="cf-cartao" hidden>
       <div id="cfPecaInfo" class="cf-peca"></div>
-      <label class="en-campo">Quantas tem?
-        <input type="number" id="cfContado" min="0" step="1" inputmode="numeric">
-        <span class="en-ajuda">Conte todas as unidades desta peça (todas as prateleiras).</span>
-      </label>
-      <label class="en-campo">Local
-        <input type="text" id="cfLocal" class="en-local" maxlength="50" placeholder="Ex.: A-12">
-      </label>
-      <label class="en-campo">Observação <span class="en-ajuda">(opcional)</span>
-        <input type="text" id="cfObs" class="en-local" maxlength="500" style="max-width:100%" placeholder="Ex.: 2 com a borda lascada">
-      </label>
+      <div class="cf-conta">
+        <span class="cf-conta-rot">Quantas tem?<small>todas as unidades, de todas as prateleiras</small></span>
+        <div class="cf-passo">
+          <button type="button" class="secundario" data-passo="-1" aria-label="Menos um">−</button>
+          <input type="number" id="cfContado" min="0" step="1" inputmode="numeric" placeholder="0">
+          <button type="button" class="secundario" data-passo="1" aria-label="Mais um">+</button>
+        </div>
+      </div>
+      <div class="cf-dupla">
+        <label>Local
+          <input type="text" id="cfLocal" maxlength="50" placeholder="Ex.: A-12">
+        </label>
+        <label>Observação <small>(opcional)</small>
+          <input type="text" id="cfObs" maxlength="500" placeholder="Ex.: 2 com a borda lascada">
+        </label>
+      </div>
+      <button id="cfEnviar" class="sucesso cf-enviar" type="button" disabled>Enviar e contar a próxima</button>
+      <div class="cf-links">
+        <button id="cfEtiqueta" class="cf-link" type="button" disabled title="Imprime 1 etiqueta com QR Code desta peça">Imprimir etiqueta QR desta peça</button>
+        <button id="cfOutra" class="cf-link" type="button">Trocar de peça</button>
+      </div>
     </div>
 
-    <div class="dialog-acoes">
-      <button id="cfEnviar" class="sucesso" type="button" disabled>Enviar para aprovação</button>
-      <button id="cfEtiqueta" class="secundario" type="button" disabled title="Imprime 1 etiqueta com QR Code desta peça">Imprimir etiqueta QR</button>
-      <a id="cfNovoItem" class="secundario" href="/itens.html?novo=1" target="_blank" title="Peça que não está cadastrada: cadastre e depois bipe aqui">Cadastrar item novo</a>
-      <button id="cfFechar" class="secundario" type="button">Fechar</button>
-    </div>
-    <div id="cfFeitas" class="en-ajuda"></div>
+    <p class="cf-rodape-ajuda">O estoque só muda quando o gerente aprovar. Peça que não está cadastrada?
+      <a id="cfNovoItem" href="/itens.html?novo=1" target="_blank">Cadastrar item novo</a></p>
+    <div id="cfFeitas"></div>
   </dialog>
 
   <dialog id="dialogEntrada" class="dialog-tipos en-dialog">
@@ -275,13 +285,14 @@
         <div class="tabela-envolve en-envolve">
           <table class="en-tabela en-compacta sem-cartoes">
             <thead><tr>
+              <th class="so-imp en-p-bol">Boleto</th>
               <th class="en-c-num">Nº</th>
-              <th>Peça</th>
+              <th class="en-c-peca">Peça</th>
               <th class="en-c-local">Local</th>
               <th class="en-c-qtd">Na nota</th>
               <th class="en-c-qtd">Saldo hoje</th>
               <th class="so-imp en-escrever">Chegou</th>
-              <th class="so-imp en-escrever">Saldo contado</th>
+              <th class="so-imp en-escrever">Contado</th>
               <th class="so-imp en-ok">✓</th>
               <th class="sem-imp en-c-acao"></th>
             </tr></thead>
@@ -289,7 +300,7 @@
               const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
               return `
             <tbody class="en-boleto" data-boleto="${b.id}">
-              <tr class="en-grupo"><td colspan="9">
+              <tr class="en-grupo"><td colspan="10">
                 <div class="en-grupo-linha">
                   <span><strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
                     <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>
@@ -300,8 +311,10 @@
                   </span>
                 </div>
               </td></tr>
-              ${b.linhas.map(l => `
+              ${b.linhas.map((l, k) => `
               <tr class="${l.novo ? 'en-novo' : ''}">
+                ${k === 0 ? '<td class="so-imp en-p-bol' + (b.linhas.length === 1 ? ' en-p-uma' : '') + '" rowspan="' + b.linhas.length + '"><strong>nº ' + escapeHtml(b.codigo) + '</strong>' +
+                  (b.nf ? ' NF ' + escapeHtml(b.nf) : '') + (b.linhas.length === 1 ? ' · ' : '<br>') + escapeHtml(b.fornecedor || '') + '</td>' : ''}
                 <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
                 <td class="en-c-peca"><strong>${escapeHtml(l.nome)}</strong>
                   <span class="er-sub">${l.novo ? 'peça nova: é cadastrada quando der entrada' : escapeHtml(l.codigo || '')}</span></td>
@@ -639,7 +652,20 @@
     const cfBusca = document.getElementById('cfBusca');
     const cfOpcoes = document.getElementById('cfOpcoes');
     let cfItem = null; // { item, aberta }
-    let feitasAgora = 0;
+    let feitasAgora = [];
+    function desenharFeitas() {
+      document.getElementById('cfFeitas').innerHTML = feitasAgora.length
+        ? '<div class="cf-feitas"><strong>Contadas agora (' + feitasAgora.length + ')</strong>' + feitasAgora.map(f =>
+            '<div class="cf-feita"><span>✓ ' + escapeHtml(f.nome) + (f.substituiu ? ' <small>(substituiu a anterior)</small>' : '') + '</span><strong>' + f.contado + '</strong></div>').join('') + '</div>'
+        : '';
+    }
+    // Botões − e + do "Quantas tem?" (fácil no tablet).
+    document.getElementById('dialogConf').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-passo]');
+      if (!b) return;
+      const inp = document.getElementById('cfContado');
+      inp.value = Math.max(0, (Number(inp.value) || 0) + Number(b.dataset.passo));
+    });
 
     function quemNome() {
       const o = campoQuem.selectedOptions[0];
@@ -649,8 +675,8 @@
       const cfQuem = document.getElementById('cfQuem');
       cfQuem.value = campoQuem.value;
       cfQuem.classList.remove('er-falta');
-      feitasAgora = 0;
-      document.getElementById('cfFeitas').textContent = '';
+      feitasAgora = [];
+      desenharFeitas();
       limparPeca();
       dConf.showModal();
       if (cfQuem.value) cfBusca.focus(); else cfQuem.focus();
@@ -736,9 +762,10 @@
           aviso = '<div class="cf-aviso">O gerente pediu para contar de novo' + (d.aberta.motivo ? ': <em>' + escapeHtml(d.aberta.motivo) + '</em>' : '.') + '</div>';
         }
         document.getElementById('cfPecaInfo').innerHTML =
-          '<strong>' + escapeHtml(it.nome) + '</strong> <span class="er-num">' + numeroEtiqueta(it.numeroInterno) + '</span>' +
-          '<span class="er-sub">' + escapeHtml(it.codigo || '') + (it.marca ? ' · ' + escapeHtml(it.marca) : '') + ' · local: ' + escapeHtml(it.localizacao || '—') + '</span>' +
-          '<span class="er-sub">' + ultima + '</span>' + aviso;
+          '<div class="cf-peca-nome">' + escapeHtml(it.nome) + '</div>' +
+          '<div class="cf-peca-dados"><span class="er-num">' + numeroEtiqueta(it.numeroInterno) + '</span> ' + escapeHtml(it.codigo || '') + (it.marca ? ' · ' + escapeHtml(it.marca) : '') +
+          ' · <strong>local ' + escapeHtml(it.localizacao || '—') + '</strong></div>' +
+          '<div class="er-sub">' + ultima + '</div>' + aviso;
         document.getElementById('cfContado').value = '';
         document.getElementById('cfLocal').value = it.localizacao || '';
         document.getElementById('cfObs').value = '';
@@ -778,9 +805,8 @@
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(d.erro || 'Erro ao enviar.');
-        feitasAgora += 1;
-        document.getElementById('cfFeitas').innerHTML = '✓ <strong>' + escapeHtml(d.nome) + '</strong>: ' + d.contado + ' enviado para aprovação' +
-          (d.substituiu ? ' (substituiu a contagem anterior)' : '') + '. Enviadas agora: ' + feitasAgora + '. Pode bipar a próxima.';
+        feitasAgora.unshift({ nome: d.nome, contado: d.contado, substituiu: d.substituiu });
+        desenharFeitas();
         limparPeca();
         await carregarConferencias();
         desenharPedidos();
@@ -798,6 +824,7 @@
       if (cfItem) abrirEtiquetas([{ id: cfItem.item.id, copias: 1 }]);
     });
     document.getElementById('cfFechar').addEventListener('click', () => dConf.close());
+    document.getElementById('cfOutra').addEventListener('click', () => { limparPeca(); cfBusca.focus(); });
     dConf.addEventListener('close', () => { pararCamera(); if (!document.getElementById('areaAprovar').hidden) carregarConferencias(); });
 
     // Câmera (celular): lê o QR da etiqueta, onde o navegador permite (BarcodeDetector).
