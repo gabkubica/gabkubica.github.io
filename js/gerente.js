@@ -481,8 +481,9 @@
         if (v.senha !== v.confirma) throw new Error('As duas senhas não são iguais.');
         const d = await postar('primeiro-acesso', { nome: v.nome, login: v.login, senha: v.senha });
         temUsuarios = true;
-        fecharDialogo(true);
+        // Liga o modo ANTES de fechar: quem chamou pedir() recebe true.
         aplicar(true, d.usuario);
+        fecharDialogo(true);
       }
     );
   }
@@ -505,8 +506,9 @@
           if (err.codigo === 'SEM_USUARIOS') { temUsuarios = false; telaPrimeiroAcesso(); return; }
           throw err;
         }
-        fecharDialogo(true);
+        // Liga o modo ANTES de fechar: quem chamou pedir() recebe true.
         aplicar(true, d.usuario);
+        fecharDialogo(true);
       }
     );
   }

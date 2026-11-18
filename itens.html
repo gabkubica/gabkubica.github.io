@@ -205,9 +205,10 @@
         <label for="dataConferencia">Última conferência — data</label>
         <input type="date" id="dataConferencia">
       </div>
-      <!-- Custo e margem: só no Modo Gerenciador, numa barra que abre para
-           baixo (pedido do Gabriel, 2026-11-17). -->
-      <details class="form-full recolhivel" id="secMargem" data-somente-gerente>
+      <!-- Custo e margem: barra que abre para baixo. Todo mundo vê a barra,
+           mas para abrir pede a senha do Modo Gerenciador (pedido do Gabriel,
+           2026-11-17). -->
+      <details class="form-full recolhivel" id="secMargem" data-pede-gerente>
         <summary>Preço de custo e margem <small>(opcional — calcula uma sugestão de preço)</small></summary>
       <div class="calculadora-margem">
         <div class="calculadora-margem-linha">
@@ -239,9 +240,9 @@
     </div>
 
     <!-- Histórico de notas do item: em quais boletos ele foi comprado e por
-         qual preço em cada um. Só no Modo Gerenciador e só para item que já
-         existe; é uma barra fechada que carrega as notas quando é aberta. -->
-    <details id="secNotas" class="recolhivel oculto" data-somente-gerente>
+         qual preço em cada um. Só para item que já existe; é uma barra fechada
+         que pede a senha de gerente e carrega as notas quando é aberta. -->
+    <details id="secNotas" class="recolhivel oculto" data-pede-gerente>
       <summary>Histórico de notas</summary>
       <div id="historicoNotas"></div>
     </details>
@@ -541,7 +542,7 @@
           ${celula(textoConferencia(i), 'col-conferencia rolavel')}
           <td class="celula col-acoes">
             <button class="btn-mini" data-acoes="editar">Editar</button>
-            <button class="btn-mini" data-acoes="historico" data-somente-gerente>Histórico</button>
+            <button class="btn-mini" data-acoes="historico">Histórico</button>
             <button class="btn-mini secundario" data-acoes="excluir" data-trava-gerente>Excluir</button>
           </td>
         </tr>`;
@@ -614,17 +615,54 @@
       secNotas.open = false;
       secNotas.classList.toggle('oculto', !item);
       document.getElementById('historicoNotas').innerHTML = '';
+      // A lista pode ter vindo de antes de entrar no Modo Gerenciador (sem
+      // custo/margem): busca o item de novo para preencher a barra.
+      if (item && !('preco_custo' in item)) preencherCusto();
     }
 
+    // Custo e margem só chegam do servidor no Modo Gerenciador.
+    async function preencherCusto() {
+      const item = itemEmEdicao;
+      if (!item || !window.Gerente || !Gerente.ativo()) return;
+      try {
+        const r = await fetch('/api/itens/' + item.id, { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (itemEmEdicao !== item || !('preco_custo' in d)) return;
+        item.preco_custo = d.preco_custo;
+        item.margem_percentual = d.margem_percentual;
+        document.getElementById('precoCusto').value = d.preco_custo ?? '';
+        document.getElementById('margemPercentual').value = d.margem_percentual ?? '';
+        atualizarPrecoSugerido();
+      } catch (e) { /* fica em branco */ }
+    }
+
+    // Barras de gerente: fora do modo, clicar pede a senha; se entrar, abre.
+    document.querySelectorAll('details[data-pede-gerente] > summary').forEach((s) => {
+      s.addEventListener('click', async (e) => {
+        if (!window.Gerente || Gerente.ativo()) return;
+        e.preventDefault();
+        if (await Gerente.pedir()) s.parentElement.open = true;
+      });
+    });
+    // Só abre de verdade com o modo ligado (por garantia).
+    document.querySelectorAll('details[data-pede-gerente]').forEach((d) => {
+      d.addEventListener('toggle', () => {
+        if (d.open && window.Gerente && !Gerente.ativo()) d.open = false;
+      });
+    });
     // As notas só são buscadas quando o gerente abre a barra.
     document.getElementById('secNotas').addEventListener('toggle', (e) => {
-      if (e.target.open && itemEmEdicao) carregarHistoricoNotas(itemEmEdicao);
+      if (e.target.open && itemEmEdicao && (!window.Gerente || Gerente.ativo())) carregarHistoricoNotas(itemEmEdicao);
     });
     // Saiu do Modo Gerenciador com o item aberto: fecha as barras e apaga as
     // notas que já estavam na tela.
     window.addEventListener('gerente:mudou', (e) => {
-      if (e.detail.ativo) return;
+      if (e.detail.ativo) { preencherCusto(); return; }
       document.getElementById('secMargem').open = false;
+      document.getElementById('precoCusto').value = '';
+      document.getElementById('margemPercentual').value = '';
+      atualizarPrecoSugerido();
       document.getElementById('secNotas').open = false;
       document.getElementById('historicoNotas').innerHTML = '';
       const dlg = document.getElementById('dialogHistorico');
@@ -1280,7 +1318,12 @@
         const item = acharItem(id);
         if (item) abrirFormulario(item);
       } else if (acao === 'historico') {
-        abrirHistorico(id);
+        // Preço pago em cada nota: pede a senha de gerente antes.
+        if (window.Gerente && !Gerente.ativo()) {
+          Gerente.pedir().then((ok) => { if (ok) abrirHistorico(id); });
+        } else {
+          abrirHistorico(id);
+        }
       } else if (acao === 'excluir') {
         excluirItem(id);
       }

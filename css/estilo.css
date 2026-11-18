@@ -3688,8 +3688,9 @@ details.recolhivel > summary::before {
 details.recolhivel[open] > summary::before { transform: rotate(45deg); }
 details.recolhivel > summary:hover { background: var(--tabela-hover); }
 details.recolhivel > summary small { font-weight: 400; color: var(--texto-suave); font-size: 12px; }
-/* Barra só do Modo Gerenciador: etiqueta "Gerente" dourada no fim. */
-details.recolhivel[data-somente-gerente] > summary::after {
+/* Barra que pede a senha de gerente: etiqueta "Gerente" dourada no fim
+   (com cadeado enquanto o modo está desligado). */
+details.recolhivel[data-pede-gerente] > summary::after {
   content: "Gerente";
   margin-left: auto;
   font-size: 11px;
@@ -3701,7 +3702,12 @@ details.recolhivel[data-somente-gerente] > summary::after {
   border-radius: 999px;
   padding: 2px 8px;
 }
-[data-tema="escuro"] details.recolhivel[data-somente-gerente] > summary::after { color: #f5b301; background: #3b2f12; }
+[data-tema="escuro"] details.recolhivel[data-pede-gerente] > summary::after { color: #f5b301; background: #3b2f12; }
+html:not([data-gerente="sim"]) details.recolhivel[data-pede-gerente] > summary::after { content: "\1F512\00A0 Gerente"; }
 details.recolhivel[open] > summary { border-bottom: 1px solid var(--borda); border-radius: 8px 8px 0 0; }
 details.recolhivel > :not(summary) { padding: 12px 14px; }
 details.recolhivel .calculadora-margem { border: 0; background: none; padding: 12px 14px; }
+/* No celular, a barra mostra só o título (a explicação miúda quebrava em 3 linhas). */
+@media (max-width: 700px) {
+  details.recolhivel > summary small { display: none; }
+}
