@@ -98,7 +98,7 @@
             <div><label>Coluna 3</label><input name="tabela.colunas.2" maxlength="20"></div>
             <div><label>Coluna 4</label><input name="tabela.colunas.3" maxlength="20"></div>
             <div><label>Coluna 5</label><input name="tabela.colunas.4" maxlength="20"></div>
-            <div><label>Linhas da tabela (6 a 24)</label><input name="tabela.linhas" type="number" min="6" max="24"></div>
+            <div><label>Linhas da tabela (6 a 24, padrão 16)</label><input name="tabela.linhas" type="number" min="6" max="24"></div>
             <div><label>Quadro de observação</label><input name="rotulos.obs" maxlength="30"></div>
           </div>
         </div>
@@ -130,8 +130,8 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const CABECALHO = [['nome', 'Nome'], ['carro', 'Carro'], ['placa', 'Placa'], ['data', 'Data'], ['hora', 'Hora'], ['fone', 'Fone'], ['previsao', 'Previsão de entrega'], ['seguradora', 'Seguradora']];
-    const PESSOAS = [['atendente', 'Atendente'], ['balconista', 'Balconista'], ['osnum', 'Nº da OS'], ['executores', 'Executores'], ['auxiliares', 'Auxiliares']];
+    const CABECALHO = [['nome', 'Nome'], ['carro', 'Carro'], ['placa', 'Placa'], ['fone', 'Fone'], ['data', 'Data'], ['hora', 'Hora'], ['osnum', 'Quadro do nº da OS']];
+    const PESSOAS = [['atendente', 'Atendente'], ['balconista', 'Balconista'], ['executores', 'Executores'], ['auxiliares', 'Auxiliares']];
     const RODAPE = [['obsCarro', 'Obs. ao lado do carro'], ['combustivel', 'Combustível'], ['reserva', 'Reserva'], ['cheio', 'Cheio'], ['nomeAssina', 'Nome (assinatura)'], ['cpf', 'CPF'], ['assinatura', 'Assinatura']];
     const campos = (lista) => lista.map(([k, r]) => '<div><label>' + r + '</label><input name="rotulos.' + k + '" maxlength="30"></div>').join('');
     $('camposCabecalho').innerHTML = campos(CABECALHO);
