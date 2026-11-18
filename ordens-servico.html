@@ -161,9 +161,10 @@
       aguardando_pagamento: 'Balcão (a pagar)',
     };
 
-    function statusBadge(status) {
+    // doc (opcional): orçamento recusado e volta de garantia têm selo próprio.
+    function statusBadge(status, doc) {
       const rotulo = ROTULO_STATUS[status] || status;
-      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(rotulo) + '</span>';
+      return (doc && doc.recusado ? '<span class="status-os recusado">Orçamento recusado</span>' : '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(rotulo) + '</span>') + (doc && (doc.garantia || doc.garantia_origem_id) ? '<span class="tag-garantia" title="Volta de garantia">garantia</span>' : '');
     }
 
     function mostrarMensagem(texto, tipo) {
@@ -430,7 +431,7 @@
           <tr>
             <td><strong>${escapeHtml(o.codigo)}</strong></td>
             <td>${formatarData(o.data_abertura)}</td>
-            <td>${statusBadge(o.status)}</td>
+            <td>${statusBadge(o.status, o)}</td>
             <td>${formatarMoeda(o.valor_total)}</td>
             <td class="rolavel" title="${escapeHtml(o.servicos_executados || '')}">${escapeHtml(o.servicos_executados || '—')}</td>
             <td>${escapeHtml(o.apontamento_cliente || '—')}</td>
@@ -588,7 +589,7 @@
           <td><strong>${escapeHtml(o.codigo)}</strong></td>
           <td>${o.placa ? escapeHtml(o.placa) : o.venda_balcao_id ? '— balcão —' : (o.origem === 'externo' || o.tipo === 'externo') ? '— externo —' : '— sem placa —'}</td>
           <td class="rolavel" title="${escapeHtml(o.cliente_nome || '')}">${o.cliente_nome ? (o.cliente_id ? '<a href="/clientes.html?id=' + o.cliente_id + '">' + escapeHtml(o.cliente_nome) + '</a>' : escapeHtml(o.cliente_nome)) : '—'}</td>
-          <td>${statusBadge(o.status)}</td>
+          <td>${statusBadge(o.status, o)}</td>
           <td>${formatarMoeda(o.valor_total)}</td>
           <td>${formatarData(o.data_abertura)}</td>
           <td>${acoesDocumento(o)}</td>

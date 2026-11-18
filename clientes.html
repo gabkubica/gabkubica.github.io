@@ -330,7 +330,7 @@
           <td>${t.nome}${d.via_seguro ? ' <span class="tag-seguradora" title="OS de outro cliente, paga por esta seguradora">seguro</span>' : ''}${d.so_nome ? ' <span class="tag-so-nome" title="Feito só com o nome digitado (' + escapeHtml(d.cliente_nome) + '), sem escolher o cadastro">só nome</span>' : ''}</td>
           <td>${formatarData(d.data_abertura)}</td>
           <td>${escapeHtml(d.placa || '—')}</td>
-          <td><span class="status-os ${escapeHtml(d.status)}">${escapeHtml(ROTULO_STATUS[d.status] || d.status)}</span></td>
+          <td>${d.recusado ? '<span class="status-os recusado">Orçamento recusado</span>' : '<span class="status-os ' + escapeHtml(d.status) + '">' + escapeHtml(ROTULO_STATUS[d.status] || d.status) + '</span>'}${d.garantia ? '<span class="tag-garantia" title="Volta de garantia">garantia</span>' : ''}</td>
           <td>${formatarMoeda(d.valor_total)}</td>
           <td><button type="button" class="btn-mini" data-abrir="${escapeHtml(t.url)}">Abrir</button></td>
         </tr>`;

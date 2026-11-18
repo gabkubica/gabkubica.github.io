@@ -673,7 +673,7 @@
         return '<tr class="ct-abre" data-ir="' + escapeHtml(t.url) + '"><td><strong>' + escapeHtml(d.codigo) + '</strong></td>' +
           '<td>' + t.nome + '</td><td>' + dataBr(d.data_abertura) + '</td><td>' + escapeHtml(d.placa || '') + '</td>' +
           '<td class="ct-num">' + moeda(d.valor_total) + '</td>' +
-          '<td><span class="status-os ' + escapeHtml(d.status) + '">' + escapeHtml(ROTULO_STATUS_OS[d.status] || d.status) + '</span></td></tr>';
+          '<td>' + (d.recusado ? '<span class="status-os recusado">Orçamento recusado</span>' : '<span class="status-os ' + escapeHtml(d.status) + '">' + escapeHtml(ROTULO_STATUS_OS[d.status] || d.status) + '</span>') + (d && (d.garantia || d.garantia_origem_id) ? '<span class="tag-garantia" title="Volta de garantia">garantia</span>' : '') + '</td></tr>';
       }).join('');
       const blocoOs = '<div class="ct-hist"><div class="ct-hist-topo"><h4>Serviços (OS, vendas, externos)</h4>' +
         '<span><strong>' + os.total + '</strong> no total</span>' +

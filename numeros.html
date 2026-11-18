@@ -156,6 +156,15 @@
           <p class="nu-explica">Clique para abrir a lista.</p>
           <div class="nu-kpis" id="kAtencao" style="margin:0"></div>
         </div>
+        <div class="nu-cartao nu-largo">
+          <h3>Preço por fornecedor</h3>
+          <p class="nu-explica">Quanto cada fornecedor cobrou por uma peça, pelas notas lançadas. Usa a peça do nosso cadastro, então código igual de fornecedores diferentes não confunde.</p>
+          <div class="nu-busca-preco">
+            <input type="search" id="buscaPreco" placeholder="Procurar peça: nome, código ou nº da etiqueta" autocomplete="off" aria-label="Procurar peça">
+            <div id="sugPreco" class="nu-sugestoes oculto"></div>
+          </div>
+          <div id="gPrecos"></div>
+        </div>
       </div>
     </section>
 
@@ -179,6 +188,39 @@
           <h3>Serviços mais feitos</h3>
           <p class="nu-explica">Quantas vezes cada serviço foi feito no período.</p>
           <div id="gServicos"></div>
+        </div>
+        <div class="nu-cartao">
+          <h3>Tempo no pátio</h3>
+          <p class="nu-explica" id="explicaPatio">Carros entregues no período: quantos dias ficaram na loja.</p>
+          <div id="gPatio"></div>
+        </div>
+        <div class="nu-cartao">
+          <div class="nu-cartao-topo"><div><h3 id="tituloParadosPatio">Carros parados</h3>
+            <p class="nu-explica">Abertos agora, do mais antigo para o mais novo (não depende do período). Clique para abrir a OS.</p></div>
+            <a href="/patio.html">Pátio →</a></div>
+          <div id="gParadosPatio"></div>
+        </div>
+        <div class="nu-cartao nu-largo">
+          <h3>Orçamentos</h3>
+          <p class="nu-explica">Pela data em que o cliente respondeu. Os recusados contam a partir de 18/11/2026, quando o botão "Orçamento recusado" foi criado.</p>
+          <div class="nu-kpis nu-kpis-dentro" id="kOrc"></div>
+          <div class="nu-grade nu-grade-dentro">
+            <div><h4 class="nu-sub">Aprovados × recusados, mês a mês</h4><div id="gOrcMes"></div></div>
+            <div><h4 class="nu-sub">Recusados no período</h4><div id="gRecusados"></div></div>
+          </div>
+        </div>
+        <div class="nu-cartao nu-largo">
+          <h3>Garantias e retrabalho</h3>
+          <p class="nu-explica">Voltas de garantia abertas no período (botão "Iniciar garantia" na OS concluída). As canceladas não contam.</p>
+          <div class="nu-kpis nu-kpis-dentro" id="kGar"></div>
+          <div class="nu-grade nu-grade-dentro">
+            <div><h4 class="nu-sub">Por motivo</h4><div id="gGarMotivo"></div></div>
+            <div><h4 class="nu-sub">Peças que mais voltaram</h4><div id="gGarPeca"></div></div>
+            <div><h4 class="nu-sub">Defeito da peça · por fornecedor</h4><div id="gGarForn"></div></div>
+            <div><h4 class="nu-sub">Defeito da peça · por marca</h4><div id="gGarMarca"></div></div>
+            <div><h4 class="nu-sub">Erro na instalação · por funcionário</h4><div id="gGarFunc"></div></div>
+            <div><h4 class="nu-sub">Últimas voltas de garantia</h4><div id="gGarRecentes"></div></div>
+          </div>
         </div>
       </div>
     </section>
@@ -358,13 +400,14 @@
         kpi('Estoque negativo', e.negativos, 'saiu mais do que entrou: conferir', { alerta: e.negativos > 0, href: '/itens.html' });
     }
 
-    function abaServicos(n, prod) {
+    function abaServicos(n, prod, sv) {
       const o = n.os;
       const abertas = o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros;
       $('kServ').innerHTML =
         kpi('OS em aberto', abertas, 'agora, sem contar externos', { href: '/patio.html' }) +
         kpi('Concluídas', o.concluidas, 'no período' + (o.concluidas ? ' · ' + o.concluidas_no_dia + ' no mesmo dia' : '')) +
         kpi('Tempo até concluir', o.tempo_medio_dias === null ? '—' : G.fmt(o.tempo_medio_dias, 'dias'), 'média, da abertura à conclusão') +
+        kpi('Orçamentos aprovados', sv.orcamentos.taxa_aprovacao === null ? '—' : sv.orcamentos.taxa_aprovacao + '%', sv.orcamentos.aprovados + ' aprovado(s), ' + sv.orcamentos.recusados + ' recusado(s)') +
         kpi('Externos em aberto', o.externos_abertos, 'serviços fora da loja', { href: '/externos.html' });
       const meses = mesesUteis(n.mensal, ['os_abertas', 'os_concluidas']);
       G.barras($('gOsMes'), {
@@ -385,7 +428,154 @@
         itens: prod.por_servico.slice(0, 10).map((s) => ({ nome: s.nome, valor: s.quantidade, sub: moeda(s.valor_total) })),
         formato: 'numero', cor: 3, vazio: 'Nenhum serviço feito no período.',
       });
+      blocosNovosServicos(sv);
     }
+
+    // ----- Tempo no pátio, orçamentos e garantias (/api/analises/servicos) -----
+    const ROTULO_ETAPA = { recepcao: 'recepção', orcamento: 'orçamento', execucao: 'execução' };
+    const dataBr = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR'); };
+    const isoBr = (s) => String(s || '').slice(0, 10).split('-').reverse().join('/');
+    function blocosNovosServicos(sv) {
+      const pt = sv.patio;
+      $('explicaPatio').textContent = 'Carros entregues no período (' + pt.concluidos + '): quantos dias ficaram na loja' +
+        (pt.media_dias === null ? '.' : ', ' + G.fmt(pt.media_dias, 'dias') + ' em média.');
+      G.ranking($('gPatio'), {
+        itens: pt.faixas.map((f, i) => ({ nome: f.nome, valor: f.quantidade, cor: i >= 3 ? 2 : i === 2 ? 4 : 3 })),
+        formato: 'numero', porcentagem: true, vazio: 'Nenhum carro entregue no período.',
+      });
+      $('tituloParadosPatio').textContent = 'Carros parados há ' + pt.dias_parada + ' dias ou mais' + (pt.paradas.quantidade ? ' (' + pt.paradas.quantidade + ')' : '');
+      G.ranking($('gParadosPatio'), {
+        itens: pt.paradas.itens.map((p) => ({
+          nome: p.placa + ' · ' + p.codigo, valor: p.dias, cor: p.dias > 7 ? 2 : 4, href: '/os.html?id=' + p.id,
+          sub: [[p.marca, p.modelo].filter(Boolean).join(' '), p.cliente_nome, ROTULO_ETAPA[p.status] || p.status].filter(Boolean).join(' · '),
+        })),
+        formato: 'dias', vazio: 'Nenhum carro parado. Ótimo!',
+      });
+      if (pt.paradas.quantidade > pt.paradas.itens.length) {
+        $('gParadosPatio').insertAdjacentHTML('beforeend', '<div class="nu-aviso">Mostrando os ' + pt.paradas.itens.length + ' mais antigos de ' + pt.paradas.quantidade + '.</div>');
+      }
+
+      const orc = sv.orcamentos;
+      $('kOrc').innerHTML =
+        kpi('Aprovados', orc.aprovados, moeda(orc.valor_aprovados)) +
+        kpi('Recusados', orc.recusados, moeda(orc.valor_recusados) + ' que não entraram', { alerta: orc.recusados > 0 }) +
+        kpi('Taxa de aprovação', orc.taxa_aprovacao === null ? '—' : orc.taxa_aprovacao + '%',
+          orc.taxa_aprovacao === null ? 'nenhum orçamento respondido' : 'de cada 10 respondidos, ' + Math.round(orc.taxa_aprovacao / 10) + ' viram serviço') +
+        kpi('Esperando resposta', orc.aguardando, moeda(orc.valor_aguardando) + ' em orçamento agora');
+      const meses = mesesUteis(orc.mensal, ['aprovados', 'recusados']);
+      G.barras($('gOrcMes'), {
+        rotulos: meses.map((m) => m.rotulo),
+        series: [{ nome: 'Aprovados', valores: meses.map((m) => m.aprovados), cor: 3 }, { nome: 'Recusados', valores: meses.map((m) => m.recusados), cor: 2 }],
+        formato: 'numero', altura: 200, vazio: 'Ainda não há orçamentos respondidos.',
+      });
+      G.ranking($('gRecusados'), {
+        itens: orc.recusados_lista.map((x) => ({
+          nome: x.codigo + (x.placa ? ' · ' + x.placa : ''), valor: x.valor_total, cor: 2, href: '/os.html?id=' + x.id,
+          sub: [x.cliente_nome, dataBr(x.orcamento_recusado_em)].filter(Boolean).join(' · '),
+        })),
+        formato: 'moeda', vazio: 'Nenhum orçamento recusado no período.',
+      });
+
+      const g = sv.garantias;
+      $('kGar').innerHTML =
+        kpi('Voltas de garantia', g.quantidade, 'no período', { alerta: g.quantidade > 0 }) +
+        kpi('Taxa de retorno', g.taxa_retorno === null ? '—' : String(g.taxa_retorno).replace('.', ',') + '%', 'das ' + g.os_concluidas + ' OS concluídas no período') +
+        kpi('Peças gastas', moeda(g.custo_pecas), 'nas garantias, pelo custo' + (g.pecas_sem_custo ? ' (' + g.pecas_sem_custo + ' sem custo)' : ''));
+      const porMotivo = (x) => [x.peca ? x.peca + ' defeito' : '', x.instalacao ? x.instalacao + ' instalação' : '', x.outro ? x.outro + ' outro' : ''].filter(Boolean).join(' · ');
+      G.ranking($('gGarMotivo'), {
+        itens: g.por_motivo.map((m) => ({ nome: m.nome, valor: m.quantidade, cor: m.motivo === 'peca' ? 1 : m.motivo === 'instalacao' ? 2 : 4 })),
+        formato: 'numero', porcentagem: true, vazio: 'Nenhuma volta de garantia no período.',
+      });
+      G.ranking($('gGarPeca'), { itens: g.por_peca.map((x) => ({ nome: x.nome, valor: x.quantidade, sub: porMotivo(x) })), formato: 'numero', cor: 1, vazio: 'Nenhuma peça voltou.' });
+      G.ranking($('gGarForn'), { itens: g.por_fornecedor.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 1, vazio: 'Nenhum defeito de peça.' });
+      G.ranking($('gGarMarca'), { itens: g.por_marca.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 1, vazio: 'Nenhum defeito de peça.' });
+      G.ranking($('gGarFunc'), { itens: g.por_funcionario.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 2, vazio: 'Nenhum erro de instalação.' });
+      $('gGarRecentes').innerHTML = g.recentes.length
+        ? '<ul class="nu-lista">' + g.recentes.map((x) => '<li><a href="/os.html?id=' + x.id + '">' + esc(x.codigo) + '</a> <small>(da <a href="/os.html?id=' + x.origem_id + '">' + esc(x.origem_codigo) + '</a>)</small> · ' +
+            esc(x.motivo_nome) + (x.item_nome ? ' · ' + esc(x.item_nome) : '') + '<small> · ' + dataBr(x.data_abertura) + '</small>' +
+            (x.obs ? '<div class="nu-lista-obs">' + esc(x.obs) + '</div>' : '') + '</li>').join('') + '</ul>'
+        : '<div class="gr-vazio">Nenhuma volta de garantia no período.</div>';
+    }
+
+    // ----- Preço por fornecedor (/api/analises/precos-fornecedor) -----
+    let precosPadrao = null;
+    function mostrarDiferencas() {
+      const p = precosPadrao;
+      if (!p) return;
+      $('gPrecos').innerHTML = '<h4 class="nu-sub">Maior diferença de preço entre fornecedores (últimos 12 meses)</h4><div id="gDifPrecos"></div>';
+      G.ranking($('gDifPrecos'), {
+        itens: p.maiores_diferencas.map((x) => ({
+          nome: x.nome, valor: x.diferenca_pct, cor: 2,
+          sub: x.mais_barato + ' ' + moeda(x.preco_barato) + ' → ' + x.mais_caro + ' ' + moeda(x.preco_caro),
+          href: '#preco-' + x.item_id,
+        })),
+        formato: 'pct',
+        vazio: 'Nenhuma peça foi comprada de mais de um fornecedor com preço diferente no último ano. Procure uma peça acima para ver o histórico dela.',
+      });
+    }
+    async function mostrarPrecoPeca(id) {
+      $('gPrecos').innerHTML = '<div class="gr-vazio">Carregando...</div>';
+      try {
+        const d = await api('/api/analises/precos-fornecedor?item_id=' + encodeURIComponent(id));
+        const it = d.item;
+        const varios = d.fornecedores.length > 1;
+        const barato = d.fornecedores[0];
+        let h = '<div class="nu-preco-topo"><strong>' + esc(it.nome) + '</strong> <small>' + esc([it.codigo, it.marca].filter(Boolean).join(' · ')) + '</small>' +
+          ' <button type="button" class="btn-mini secundario" id="btnVoltarPrecos">← Maiores diferenças</button></div>';
+        if (!d.fornecedores.length) {
+          h += '<div class="gr-vazio">Esta peça ainda não apareceu em nenhuma nota com preço.</div>';
+        } else {
+          h += '<div class="tabela-rolavel"><table class="nu-tabela"><thead><tr><th>Fornecedor</th><th>Último preço</th><th>Menor</th><th>Média</th><th>Notas</th><th>Última compra</th></tr></thead><tbody>' +
+            d.fornecedores.map((f) => '<tr' + (varios && f === barato ? ' class="nu-melhor"' : '') + '><td>' + esc(f.fornecedor) +
+              (varios && f === barato ? ' <span class="nu-selo-barato">mais barato</span>' : '') + '</td>' +
+              '<td><strong>' + moeda(f.ultimo) + '</strong></td><td>' + moeda(f.menor) + '</td><td>' + moeda(f.media) + '</td>' +
+              '<td>' + f.notas + ' (' + f.unidades + ' un.)</td><td>' + esc(isoBr(f.ultima_data)) + '</td></tr>').join('') +
+            '</tbody></table></div>' +
+            '<h4 class="nu-sub" style="margin-top:14px">Notas desta peça</h4>' +
+            '<div class="tabela-rolavel"><table class="nu-tabela"><thead><tr><th>Data</th><th>Fornecedor</th><th>Nota</th><th>Qtd</th><th>Preço</th></tr></thead><tbody>' +
+            d.notas.slice(0, 20).map((x) => '<tr><td>' + esc(isoBr(x.data)) + '</td><td>' + esc(x.fornecedor) + '</td>' +
+              '<td><a href="/despesas.html?boleto=' + x.boleto_id + '">' + esc(x.nota_fiscal ? 'NF ' + x.nota_fiscal : 'Boleto ' + x.boleto_codigo) + '</a></td>' +
+              '<td>' + x.quantidade + '</td><td>' + moeda(x.preco_unitario) + '</td></tr>').join('') +
+            '</tbody></table></div>';
+        }
+        $('gPrecos').innerHTML = h;
+        $('btnVoltarPrecos').addEventListener('click', mostrarDiferencas);
+      } catch (e) {
+        $('gPrecos').innerHTML = '<div class="gr-vazio">' + esc(e.message) + '</div>';
+      }
+    }
+    $('gPrecos').addEventListener('click', (e) => {
+      const a = e.target.closest('a[href^="#preco-"]');
+      if (!a) return;
+      e.preventDefault();
+      mostrarPrecoPeca(a.getAttribute('href').slice(7));
+    });
+    let tempoBusca = null;
+    $('buscaPreco').addEventListener('input', () => {
+      clearTimeout(tempoBusca);
+      const q = $('buscaPreco').value.trim();
+      const sug = $('sugPreco');
+      if (q.length < 2) { sug.classList.add('oculto'); return; }
+      tempoBusca = setTimeout(async () => {
+        try {
+          const d = await api('/api/itens?limite=8&q=' + encodeURIComponent(q));
+          sug.innerHTML = d.itens.length
+            ? d.itens.map((i) => '<button type="button" data-item="' + i.id + '"><strong>' + esc(i.nome) + '</strong><small>' +
+                esc([i.codigo, i.marca, i.numero_interno ? 'etiqueta ' + i.numero_interno : ''].filter(Boolean).join(' · ')) + '</small></button>').join('')
+            : '<div class="gr-vazio">Nenhuma peça encontrada.</div>';
+          sug.classList.remove('oculto');
+        } catch (e) { sug.classList.add('oculto'); }
+      }, 250);
+    });
+    $('sugPreco').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-item]');
+      if (!b) return;
+      $('sugPreco').classList.add('oculto');
+      $('buscaPreco').value = '';
+      mostrarPrecoPeca(b.dataset.item);
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.nu-busca-preco')) $('sugPreco').classList.add('oculto'); });
+
 
     let periodoAtual = null;
     function abaEquipe(prod) {
@@ -441,21 +631,26 @@
       document.querySelector('main').classList.add('nu-carregando');
       try {
         const q = '?inicio=' + p.inicio + '&fim=' + p.fim;
-        const [n, v, prod, dash, est] = await Promise.all([
+        const [n, v, prod, dash, est, sv, precos] = await Promise.all([
           api('/api/numeros' + q),
           api('/api/analises/vendas' + q),
           api('/api/produtividade' + q),
           api('/api/dashboard'),
           estoqueCache ? Promise.resolve(estoqueCache) : api('/api/analises/estoque'),
+          api('/api/analises/servicos' + q),
+          precosPadrao ? Promise.resolve(precosPadrao) : api('/api/analises/precos-fornecedor'),
         ]);
         estoqueCache = est;
-        ultimo = { p, n, v, prod, est, dash };
+        const primeiraVezPrecos = !precosPadrao;
+        precosPadrao = precos;
+        ultimo = { p, n, v, prod, est, dash, sv };
         $('periodoImp').textContent = 'Período: ' + $('datas').textContent + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         $('mensagens').replaceChildren();
         abaVendas(n, v);
         abaFinanceiro(n);
         abaEstoque(est, dash);
-        abaServicos(n, prod);
+        abaServicos(n, prod, sv);
+        if (primeiraVezPrecos) mostrarDiferencas();
         abaEquipe(prod);
       } catch (e) {
         // Fora do Modo Gerenciador o servidor recusa; a página já mostra o aviso.
@@ -481,7 +676,7 @@
     // Planilha: todos os números do período, uma tabela embaixo da outra.
     $('btnPlanilha').addEventListener('click', () => {
       if (!ultimo) return;
-      const { n, v, prod, est, dash } = ultimo;
+      const { n, v, prod, est, dash, sv } = ultimo;
       const p = n.periodo, o = n.os, b = n.boletos;
       Exportar.planilha(nomeArquivo(), [
         { titulo: 'Análises · Auto Vidros Sport · período ' + $('datas').textContent },
@@ -509,6 +704,27 @@
         { titulo: 'Onde está o dinheiro', colunas: ['Código', 'Peça', 'Local', 'Quantidade', 'Valor (R$)'], linhas: est.maiores.map((x) => [x.codigo, x.nome, x.localizacao || '', x.estoque, x.valor]) },
         { titulo: 'Dinheiro parado (' + est.dias_parado + ' dias)', colunas: ['Código', 'Peça', 'Local', 'Quantidade', 'Valor (R$)'], linhas: est.parados.itens.map((x) => [x.codigo, x.nome, x.localizacao || '', x.estoque, x.valor]) },
         { titulo: 'Serviços mais feitos', colunas: ['Serviço', 'Vezes', 'Valor (R$)'], linhas: prod.por_servico.map((x) => [x.nome, x.quantidade, x.valor_total]) },
+        { titulo: 'Tempo no pátio (carros entregues no período)', colunas: ['Ficou', 'Carros'], linhas: sv.patio.faixas.map((x) => [x.nome, x.quantidade]) },
+        { titulo: 'Carros parados há ' + sv.patio.dias_parada + ' dias ou mais (agora)', colunas: ['OS', 'Placa', 'Cliente', 'Dias', 'Valor (R$)'],
+          linhas: sv.patio.paradas.itens.map((x) => [x.codigo, x.placa, x.cliente_nome || '', x.dias, x.valor_total]) },
+        { titulo: 'Orçamentos', colunas: ['', 'Quantidade', 'Valor (R$)'], linhas: [
+          ['Aprovados', sv.orcamentos.aprovados, sv.orcamentos.valor_aprovados],
+          ['Recusados', sv.orcamentos.recusados, sv.orcamentos.valor_recusados],
+          ['Esperando resposta (agora)', sv.orcamentos.aguardando, sv.orcamentos.valor_aguardando],
+          ['Taxa de aprovação (%)', sv.orcamentos.taxa_aprovacao, ''],
+        ] },
+        { titulo: 'Orçamentos recusados', colunas: ['OS', 'Placa', 'Cliente', 'Valor (R$)'],
+          linhas: sv.orcamentos.recusados_lista.map((x) => [x.codigo, x.placa || '', x.cliente_nome || '', x.valor_total]) },
+        { titulo: 'Garantias', colunas: ['', 'Valor'], linhas: [
+          ['Voltas de garantia', sv.garantias.quantidade],
+          ['Taxa de retorno (%)', sv.garantias.taxa_retorno],
+          ['Peças gastas, pelo custo (R$)', sv.garantias.custo_pecas],
+          ...sv.garantias.por_motivo.map((m) => ['Motivo: ' + m.nome, m.quantidade]),
+        ] },
+        { titulo: 'Garantias por peça', colunas: ['Peça', 'Voltas', 'Defeito', 'Instalação', 'Outro'],
+          linhas: sv.garantias.por_peca.map((x) => [x.nome, x.quantidade, x.peca, x.instalacao, x.outro]) },
+        { titulo: 'Defeito da peça por fornecedor', colunas: ['Fornecedor', 'Voltas'], linhas: sv.garantias.por_fornecedor.map((x) => [x.nome, x.quantidade]) },
+        { titulo: 'Erro na instalação por funcionário', colunas: ['Funcionário', 'Voltas'], linhas: sv.garantias.por_funcionario.map((x) => [x.nome, x.quantidade]) },
         { titulo: 'Equipe', colunas: ['Funcionário', 'Cargo', 'Peças (R$)', 'Serviços (R$)', 'Total (R$)'], linhas: prod.por_funcionario.map((x) => [x.nome, x.cargo, x.pecas_valor, x.servicos_valor, x.total_valor]) },
       ]);
     });

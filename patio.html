@@ -104,8 +104,9 @@
       }[m]));
     }
 
-    function statusBadge(status) {
-      return '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>';
+    // doc (opcional): orçamento recusado e volta de garantia têm selo próprio.
+    function statusBadge(status, doc) {
+      return (doc && doc.recusado ? '<span class="status-os recusado">Orçamento recusado</span>' : '<span class="status-os ' + escapeHtml(status) + '">' + escapeHtml(ROTULO_STATUS[status] || status) + '</span>') + (doc && (doc.garantia || doc.garantia_origem_id) ? '<span class="tag-garantia" title="Volta de garantia">garantia</span>' : '');
     }
 
     function mostrarMensagem(texto, tipo) {
@@ -239,7 +240,7 @@
           <td class="pt-veiculo">${escapeHtml([c.marca, c.modelo].filter(Boolean).join(' ')) || '—'}${c.ano ? ' ' + escapeHtml(c.ano) : ''}</td>
           <td class="patio-contato pt-contato">${contato(c.cliente_nome, c.cliente_id, c.cliente_telefone, c.cliente_email, c.cliente_cpf_cnpj)}${dono}</td>
           <td class="pt-os"><strong>${escapeHtml(c.codigo)}</strong><div class="patio-tel">${escapeHtml(tempoNoPatio(c.data_abertura))}</div></td>
-          <td class="pt-status">${statusBadge(c.status)}</td>
+          <td class="pt-status">${statusBadge(c.status, c)}</td>
           <td class="pt-aviso">
             <button type="button" class="btn-mini ${avisado ? 'sucesso' : 'secundario'}" data-patio-avisado="${c.id}"
               title="${avisado ? 'Clique para desmarcar' : 'Clique para marcar'}">${avisado ? '✓ ' : ''}Cliente avisado</button>
@@ -441,7 +442,7 @@
           '<td><span class="dia-tipo dia-tipo-' + tipoDoc(o).toLowerCase().replace('ã', 'a') + '">' + tipoDoc(o) + '</span></td>' +
           '<td>' + (o.placa ? '<strong>' + escapeHtml(o.placa) + '</strong>' + (veiculo ? '<div class="patio-tel">' + escapeHtml(veiculo) + '</div>' : '') : '—') + '</td>' +
           '<td>' + escapeHtml(o.cliente_nome || '—') + '</td>' +
-          '<td><span class="status-os ' + escapeHtml(o.status) + '">' + escapeHtml(ROTULO_DIA[o.status] || o.status) + '</span></td>' +
+          '<td>' + (o.recusado ? '<span class="status-os recusado">Orçamento recusado</span>' : '<span class="status-os ' + escapeHtml(o.status) + '">' + escapeHtml(ROTULO_DIA[o.status] || o.status) + '</span>') + (o && (o.garantia || o.garantia_origem_id) ? '<span class="tag-garantia" title="Volta de garantia">garantia</span>' : '') + '</td>' +
           '<td>' + moeda(o.valor_total) + '</td>' +
           '<td><a class="btn-mini azul" href="' + escapeHtml(linkDoc(o)) + '">Abrir</a></td></tr>';
       }).join('') : '<tr><td colspan="8"><div class="aviso-vazio">' +

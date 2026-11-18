@@ -18,6 +18,7 @@
   <script src="/js/estoque-aviso.js"></script>
   <script src="/js/os-cliente-carro.js"></script>
   <script src="/js/modo-orcamento.js"></script>
+  <script src="/js/garantia-os.js"></script>
   <script src="/js/carro-desenho.js"></script>
 </head>
 <body>
@@ -443,6 +444,7 @@
         ? statusBadge(os.status)
         : '<span class="status-os recepcao">Nova (não salva)</span>';
       ModoOrcamento.atualizar(os);
+      GarantiaOs.atualizar(os);
     }
 
     async function carregarOs() {
@@ -1394,6 +1396,8 @@
         mostrarMensagem(mensagem, tipo);
       },
     });
+    // Orçamento recusado (aviso) e "Iniciar garantia" (js/garantia-os.js).
+    GarantiaOs.iniciar({ osAtual: () => osAtual });
 
     (async function iniciar() {
       await carregarFuncionarios();

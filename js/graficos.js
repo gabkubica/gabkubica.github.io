@@ -28,6 +28,7 @@
   function fmt(v, formato, curto) {
     if (formato === 'moeda') return curto ? moedaCurta(v) : moeda(v);
     if (formato === 'dias') return numero(v) + (Number(v) === 1 ? ' dia' : ' dias');
+    if (formato === 'pct') return numero(v) + '%';
     return numero(v);
   }
   function cor(n) { return 'var(--serie-' + (n || 1) + ')'; }

@@ -7,7 +7,10 @@
 //   - Mensagem para o WhatsApp (texto pronto, dá para editar antes)
 //   - PDF do orçamento (para mandar ao cliente)
 //   - Aprovar orçamento: sai do modo e TODAS as peças saem do estoque.
-// Cliente não quis? Cancela a OS normalmente (nada para devolver).
+//   - Orçamento recusado: o cliente não quis. Fecha a OS (fica no histórico
+//     em vermelho; nada para devolver ao estoque). "Reabrir" volta ao orçamento.
+// Para ninguém esquecer que está no modo: faixa presa no alto da tela,
+// ficha listrada e cada peça/serviço marcado "orçamento".
 //
 // A página chama:
 //   ModoOrcamento.iniciar({ osAtual(), garantirOs(), aoMudar(os, msg, tipo) })
@@ -52,12 +55,13 @@
     faixa.id = 'faixaOrcamento';
     faixa.className = 'faixa-orcamento oculto';
     faixa.innerHTML =
-      '<div class="faixa-orcamento-texto"><strong>Modo orçamento.</strong> As peças lançadas aqui <strong>não saem do estoque</strong>. ' +
-        'Quando o cliente aprovar, clique em "Aprovar orçamento": aí tudo é baixado. Não aprovou? Cancele a OS.</div>' +
+      '<div class="faixa-orcamento-texto"><span class="selo-orcamento">MODO ORÇAMENTO</span> ' +
+        'Nada do que está aqui <strong>sai do estoque</strong> ainda. Cliente aprovou? "Aprovar orçamento". Não quis? "Orçamento recusado".</div>' +
       '<div class="faixa-orcamento-acoes">' +
         '<button type="button" class="secundario" data-orc="mensagem">Mensagem para o WhatsApp</button>' +
         '<button type="button" class="secundario" data-orc="pdf">PDF do orçamento</button>' +
         '<button type="button" class="sucesso" data-orc="aprovar">Aprovar orçamento</button>' +
+        '<button type="button" class="perigo" data-orc="recusar">Orçamento recusado</button>' +
       '</div>';
     const conteudo = document.getElementById('conteudo');
     conteudo.insertBefore(faixa, conteudo.firstChild);
@@ -67,6 +71,7 @@
       if (b.dataset.orc === 'mensagem') abrirMensagem();
       if (b.dataset.orc === 'pdf') abrirPdf();
       if (b.dataset.orc === 'aprovar') aprovar();
+      if (b.dataset.orc === 'recusar') recusar();
     });
 
     const dialogo = document.createElement('dialog');
@@ -94,6 +99,8 @@
     const ficha = document.querySelector('.ficha');
     const liga = ativo(os);
     ficha.classList.toggle('modo-orcamento', liga);
+    // A página inteira sabe do modo (faixa presa no alto, linhas marcadas).
+    document.body.classList.toggle('em-orcamento', liga);
     const tipo = document.querySelector('.ficha-tipo');
     if (tipo) tipo.textContent = liga ? 'Orçamento' : tipoOriginal;
     document.getElementById('faixaOrcamento').classList.toggle('oculto', !liga);
@@ -154,6 +161,19 @@
       }));
       cfg.aoMudar(nova, 'Orçamento aprovado: peças baixadas do estoque.' + (nova.aviso ? ' ' + nova.aviso : ''),
         nova.aviso ? 'erro' : 'ok');
+    } catch (e) {
+      cfg.aoMudar(null, e.message, 'erro');
+    }
+  }
+
+  async function recusar() {
+    const os = cfg.osAtual();
+    if (!confirm('O cliente recusou o orçamento ' + os.codigo + '?\n\n' +
+        'A OS será fechada e ficará no histórico em vermelho, como "Orçamento recusado". ' +
+        'Nada sai do estoque. Se o cliente mudar de ideia, é só clicar em "Reabrir".')) return;
+    try {
+      const nova = await lerJson(await fetch('/api/ordens-servico/' + os.id + '/recusar-orcamento', { method: 'POST' }));
+      cfg.aoMudar(nova, 'Orçamento recusado. A OS foi fechada e ficou no histórico.', 'ok');
     } catch (e) {
       cfg.aoMudar(null, e.message, 'erro');
     }

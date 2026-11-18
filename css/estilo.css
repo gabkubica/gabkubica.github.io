@@ -2817,6 +2817,51 @@ body:has(main > .ficha) { background: var(--mesa); }
   font-size: 14px;
 }
 .faixa-orcamento.oculto { display: none; }
+/* Para ninguém esquecer que está no modo orçamento (2026-11-18):
+   1) barra laranja listrada presa no alto da tela, sempre visível ao rolar;
+   2) ficha com listras bem leves no fundo;
+   3) cada peça/serviço com a marca "orçamento" e borda tracejada;
+   4) o total vira "Total do orçamento". */
+.selo-orcamento { display: inline-block; padding: 2px 9px; margin-right: 6px; border-radius: 4px; background: var(--orcamento); color: #fff; font-weight: 800; font-size: 12px; letter-spacing: .6px; }
+[data-tema="escuro"] .selo-orcamento { color: #1f1300; }
+body.em-orcamento { padding-top: 30px; }
+body.em-orcamento::before {
+  content: 'MODO ORÇAMENTO  ·  nada sai do estoque até aprovar';
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font: 800 13px/1 'Segoe UI', Arial, sans-serif; letter-spacing: .8px; color: #fff; white-space: nowrap; overflow: hidden;
+  background: repeating-linear-gradient(-45deg, #c26a00 0 14px, #d9820f 14px 28px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+body.em-orcamento .os-outra.flutuando { top: 40px; }
+@media (max-width: 700px) { body.em-orcamento::before { content: 'MODO ORÇAMENTO · nada sai do estoque'; font-size: 12px; letter-spacing: .4px; } }
+.ficha.modo-orcamento {
+  background-image: repeating-linear-gradient(-45deg, transparent 0 22px, color-mix(in srgb, var(--orcamento) 7%, transparent) 22px 44px);
+}
+.ficha.modo-orcamento .tabela-linhas tbody tr { box-shadow: inset 4px 0 0 var(--orcamento); }
+.ficha.modo-orcamento .tabela-linhas tbody td:nth-child(2)::after {
+  content: 'orçamento'; display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px dashed var(--orcamento); border-radius: 4px;
+  color: var(--orcamento); font-size: 11px; font-weight: 700; vertical-align: middle;
+}
+.ficha.modo-orcamento .os-total { color: var(--orcamento); }
+.ficha.modo-orcamento .os-total::before { content: 'Orçamento · '; }
+@media print { body.em-orcamento { padding-top: 0; } body.em-orcamento::before { display: none; } }
+
+/* Orçamento recusado e volta de garantia (avisos dentro da ficha) */
+.aviso-recusado, .aviso-garantia { margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 14px; line-height: 1.45; }
+.aviso-recusado { border: 1px solid #c0392b; background: #fdecea; color: #8a1d12; }
+[data-tema="escuro"] .aviso-recusado { background: #3a2020; color: #f2a597; border-color: #a83a2c; }
+.aviso-garantia { border: 1px solid #2f6fb0; background: #e8f1fb; color: #173f66; }
+[data-tema="escuro"] .aviso-garantia { background: #1a2a3c; color: #a9cdf2; border-color: #3d6f9f; }
+.aviso-recusado a, .aviso-garantia a { color: inherit; font-weight: 700; }
+.status-os.recusado { background: #c0392b; color: #fff; }
+[data-tema="escuro"] .status-os.recusado { background: #a83a2c; color: #fff; }
+.tag-garantia { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; background: #2f6fb0; color: #fff; font-size: 11px; font-weight: 700; vertical-align: middle; }
+.dlg-garantia { width: min(520px, calc(100vw - 32px)); box-sizing: border-box; }
+.dlg-garantia .gar-opcao { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 6px; margin-top: 6px; cursor: pointer; }
+.dlg-garantia .gar-opcao input { margin-top: 3px; width: auto; }
+.dlg-garantia .gar-opcao small { display: block; color: var(--texto-suave); }
+.dlg-garantia h4 { margin: 14px 0 2px; font-size: 14px; }
 .faixa-orcamento-texto { flex: 1 1 320px; min-width: 0; }
 .faixa-orcamento-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
 .dialog-mensagem-orcamento { width: min(560px, 96vw); }
@@ -3262,6 +3307,34 @@ a.a-caminho:hover { text-decoration: underline; }
 .nu-cartao-topo a, .nu-cartao-topo select { font-size: 12px; }
 .nu-carregando { opacity: .5; transition: opacity .2s; }
 .nu-aviso { padding: 10px 12px; border-radius: 8px; background: var(--tabela-th); font-size: 13px; margin-top: 10px; }
+/* Análises novas (2026-11-18): números dentro de um cartão, subtítulos,
+   lista de garantias e o Preço por fornecedor. */
+.nu-kpis.nu-kpis-dentro { margin: 4px 0 14px; }
+.nu-kpis-dentro .nu-kpi { box-shadow: none; }
+.nu-grade.nu-grade-dentro { gap: 18px 22px; }
+.nu-sub { margin: 0 0 8px; font-size: 13px; color: var(--texto-suave); font-weight: 700; }
+.nu-lista { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.nu-lista li { padding: 6px 0; border-bottom: 1px solid var(--borda); }
+.nu-lista li:last-child { border-bottom: 0; }
+.nu-lista small { color: var(--texto-suave); }
+.nu-lista-obs { color: var(--texto-suave); font-size: 12px; margin-top: 2px; }
+.nu-busca-preco { position: relative; max-width: 520px; margin-bottom: 14px; }
+.nu-busca-preco input { width: 100%; box-sizing: border-box; }
+.nu-sugestoes { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); background: var(--card-bg); border: 1px solid var(--borda); border-radius: 8px; box-shadow: var(--sombra); max-height: 320px; overflow: auto; }
+.nu-sugestoes.oculto { display: none; }
+.nu-sugestoes button { display: block; width: 100%; text-align: left; background: none; color: var(--texto); border: 0; border-bottom: 1px solid var(--borda); border-radius: 0; padding: 8px 12px; }
+.nu-sugestoes button:hover { background: var(--tabela-th); }
+.nu-sugestoes small { display: block; color: var(--texto-suave); font-weight: 400; }
+.nu-preco-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.nu-preco-topo small { color: var(--texto-suave); }
+.nu-preco-topo button { margin-left: auto; }
+.tabela-rolavel { overflow-x: auto; }
+.nu-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nu-tabela th, .nu-tabela td { padding: 7px 8px; border-bottom: 1px solid var(--borda); text-align: left; white-space: nowrap; }
+.nu-tabela td:first-child { white-space: normal; }
+.nu-tabela th { background: var(--tabela-th); font-size: 12px; }
+.nu-melhor td { background: color-mix(in srgb, #1e9e5a 12%, transparent); }
+.nu-selo-barato { display: inline-block; padding: 0 6px; border-radius: 4px; background: #1e9e5a; color: #fff; font-size: 11px; font-weight: 700; }
 @media (max-width: 860px) { .nu-grade { grid-template-columns: minmax(0, 1fr); } .nu-kpi-val { font-size: 22px; } }
 
 /* Painel inicial: dois grupos ("Hoje na oficina" e "Precisa de atenção") */
