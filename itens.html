@@ -91,11 +91,7 @@
 
   <style>
     /* Histórico de notas dentro do painel Editar. */
-    #historicoNotas {
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid var(--borda);
-    }
+    #secNotas { margin-top: 16px; }
     #historicoNotas .titulo-notas {
       margin: 0 0 6px;
       font-size: 1rem;
@@ -209,8 +205,11 @@
         <label for="dataConferencia">Última conferência — data</label>
         <input type="date" id="dataConferencia">
       </div>
-      <div class="form-full calculadora-margem">
-        <label>Preço de custo e margem <span style="font-weight:400;color:var(--texto-suave)">(opcional — para calcular sugestão de preço)</span></label>
+      <!-- Custo e margem: só no Modo Gerenciador, numa barra que abre para
+           baixo (pedido do Gabriel, 2026-11-17). -->
+      <details class="form-full recolhivel" id="secMargem" data-somente-gerente>
+        <summary>Preço de custo e margem <small>(opcional — calcula uma sugestão de preço)</small></summary>
+      <div class="calculadora-margem">
         <div class="calculadora-margem-linha">
           <div>
             <label for="precoCusto" style="font-size:12px">Preço de custo (sem margem, R$)</label>
@@ -231,6 +230,7 @@
           clicar em "Usar esse preço" (e depois em Salvar). Sem preço de custo, é só digitar o preço para levar manualmente, como sempre.
         </p>
       </div>
+      </details>
     </div>
     <div class="form-acoes">
       <button id="btnExcluirItem" class="perigo oculto" data-trava-gerente>Excluir produto</button>
@@ -239,9 +239,12 @@
     </div>
 
     <!-- Histórico de notas do item: em quais boletos ele foi comprado e por
-         qual preço em cada um. Fica aqui dentro do Editar, junto dos outros
-         dados do produto, e só aparece quando se abre um item existente. -->
-    <div id="historicoNotas" class="oculto"></div>
+         qual preço em cada um. Só no Modo Gerenciador e só para item que já
+         existe; é uma barra fechada que carrega as notas quando é aberta. -->
+    <details id="secNotas" class="recolhivel oculto" data-somente-gerente>
+      <summary>Histórico de notas</summary>
+      <div id="historicoNotas"></div>
+    </details>
   </aside>
 
   <!-- QR code de UM item, direto do painel do item (sem passar pela lista). -->
@@ -538,7 +541,7 @@
           ${celula(textoConferencia(i), 'col-conferencia rolavel')}
           <td class="celula col-acoes">
             <button class="btn-mini" data-acoes="editar">Editar</button>
-            <button class="btn-mini" data-acoes="historico">Histórico</button>
+            <button class="btn-mini" data-acoes="historico" data-somente-gerente>Histórico</button>
             <button class="btn-mini secundario" data-acoes="excluir" data-trava-gerente>Excluir</button>
           </td>
         </tr>`;
@@ -604,34 +607,47 @@
       const primeiroEditavel = [...cardFormulario.querySelectorAll('.form-grid input, .form-grid select')]
         .find(el => !el.readOnly && !el.disabled);
       if (primeiroEditavel) primeiroEditavel.focus();
-      carregarHistoricoNotas(item);
+      // As duas barras de gerente começam fechadas a cada item aberto.
+      // Produto novo ainda não tem nota: a barra de notas nem aparece.
+      document.getElementById('secMargem').open = false;
+      const secNotas = document.getElementById('secNotas');
+      secNotas.open = false;
+      secNotas.classList.toggle('oculto', !item);
+      document.getElementById('historicoNotas').innerHTML = '';
     }
 
+    // As notas só são buscadas quando o gerente abre a barra.
+    document.getElementById('secNotas').addEventListener('toggle', (e) => {
+      if (e.target.open && itemEmEdicao) carregarHistoricoNotas(itemEmEdicao);
+    });
+    // Saiu do Modo Gerenciador com o item aberto: fecha as barras e apaga as
+    // notas que já estavam na tela.
+    window.addEventListener('gerente:mudou', (e) => {
+      if (e.detail.ativo) return;
+      document.getElementById('secMargem').open = false;
+      document.getElementById('secNotas').open = false;
+      document.getElementById('historicoNotas').innerHTML = '';
+      const dlg = document.getElementById('dialogHistorico');
+      if (dlg.open) dlg.close();
+    });
+
     // Histórico de notas: todos os boletos em que este item aparece e o preço
-    // que ele custou em cada um. Produto novo ainda não tem nota, então a
-    // seção nem aparece.
+    // que ele custou em cada um.
     async function carregarHistoricoNotas(item) {
       const caixa = document.getElementById('historicoNotas');
-      if (!item) {
-        caixa.classList.add('oculto');
-        caixa.innerHTML = '';
-        return;
-      }
-      caixa.classList.remove('oculto');
-      caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
-        '<p class="aviso-notas">Carregando...</p>';
+      caixa.innerHTML = '<p class="aviso-notas">Carregando...</p>';
 
       let resp;
       try {
         resp = await fetch('/api/itens/' + item.id + '/historico');
       } catch (e) {
-        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+        caixa.innerHTML =
           '<p class="aviso-notas">Falha ao carregar o histórico de notas.</p>';
         return;
       }
       const dados = await resp.json();
       if (!resp.ok) {
-        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+        caixa.innerHTML =
           '<p class="aviso-notas">' + escapeHtml(dados.erro || 'Erro ao carregar.') + '</p>';
         return;
       }
@@ -639,7 +655,7 @@
       if (editandoId !== item.id) return;
 
       if (!dados.historico.length) {
-        caixa.innerHTML = '<h3 class="titulo-notas">Histórico de notas</h3>' +
+        caixa.innerHTML =
           '<p class="aviso-notas">Este item ainda não foi comprado em nenhuma nota.</p>';
         return;
       }
@@ -649,7 +665,6 @@
       const ultima = recebidas.length ? recebidas[recebidas.length - 1] : null;
 
       caixa.innerHTML =
-        '<h3 class="titulo-notas">Histórico de notas</h3>' +
         (ultima
           ? '<p class="aviso-notas">Último preço pago: <strong>' +
             formatarMoeda(ultima.precoUnitario) + '</strong> (nota ' +

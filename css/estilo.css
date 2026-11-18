@@ -3651,3 +3651,57 @@ button.ativo-filtro { background: #1e40af !important; border-color: #1e40af !imp
   .tabela-envolve:has(> table.cel-cartoes) { max-height: none; overflow: visible; }
   table.cel-cartoes tbody td [class^="status"] { font-size: 12px; padding: 2px 8px; }
 }
+
+/* ------------------------------------------------------------
+   Barra que abre para baixo (<details class="recolhivel">)
+   Usada para o que é só do Modo Gerenciador dentro de uma tela comum
+   (ex.: custo/margem e histórico de notas no Editar do item).
+   ------------------------------------------------------------ */
+details.recolhivel {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+details.recolhivel > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  border-radius: 8px;
+}
+details.recolhivel > summary::-webkit-details-marker { display: none; }
+details.recolhivel > summary::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform .15s ease;
+  flex: none;
+  margin-right: 2px;
+}
+details.recolhivel[open] > summary::before { transform: rotate(45deg); }
+details.recolhivel > summary:hover { background: var(--tabela-hover); }
+details.recolhivel > summary small { font-weight: 400; color: var(--texto-suave); font-size: 12px; }
+/* Barra só do Modo Gerenciador: etiqueta "Gerente" dourada no fim. */
+details.recolhivel[data-somente-gerente] > summary::after {
+  content: "Gerente";
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: #8a6100;
+  background: #fef3c7;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+[data-tema="escuro"] details.recolhivel[data-somente-gerente] > summary::after { color: #f5b301; background: #3b2f12; }
+details.recolhivel[open] > summary { border-bottom: 1px solid var(--borda); border-radius: 8px 8px 0 0; }
+details.recolhivel > :not(summary) { padding: 12px 14px; }
+details.recolhivel .calculadora-margem { border: 0; background: none; padding: 12px 14px; }
