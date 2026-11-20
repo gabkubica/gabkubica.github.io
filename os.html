@@ -422,7 +422,16 @@
       };
     }
 
+    // Um toque duplo (tablet) chamava isto duas vezes antes de a primeira
+    // resposta chegar e criava dois documentos. Agora a segunda chamada espera
+    // a criação que já está em andamento.
+    let criandoOs = null;
     async function garantirOs() {
+      if (osId) return;
+      if (!criandoOs) criandoOs = criarOs().finally(() => { criandoOs = null; });
+      return criandoOs;
+    }
+    async function criarOs() {
       if (osId) return;
       const apontamento = document.getElementById('apontamento').value.trim();
       const resp = await fetch('/api/ordens-servico', {
@@ -433,6 +442,9 @@
       osAtual = await lerJson(resp);
       osId = String(osAtual.id);
       history.replaceState(null, '', '/os.html?id=' + osId);
+      // O que já foi digitado (atendente, observações...) vai junto, senão
+      // ficava só na tela até alguém clicar em Salvar.
+      try { await salvarPendente(); } catch (e) { /* o Salvar normal grava depois */ }
       atualizarCabecalho();
       renderBotoes();
     }
@@ -509,6 +521,7 @@
       document.getElementById('blocoExecutados').classList.toggle('oculto', !(os.servicos_executados || '').trim());
       pintarBotaoVistoria();
       document.getElementById('observacoes').value = os.observacoes || '';
+      document.getElementById('observacoes').dataset.servidor = os.observacoes || '';
 
       atualizarMarcacao('btnClienteAvisado', 'dataClienteAvisado', os.cliente_avisado_em, 'Cliente avisado');
       atualizarMarcacao('btnOrcamentoAprovado', 'dataOrcamentoAprovado', os.orcamento_aprovado_em, 'Orçamento aprovado');
@@ -525,6 +538,22 @@
       renderPecas();
       renderServicos();
       document.getElementById('total').textContent = formatarMoeda(osAtual.valor_total);
+      sincronizarObservacoes();
+    }
+
+    // Mexer numa OS já concluída grava uma nota nas Observações (no servidor).
+    // Traz a nota para a caixa da tela, sem apagar o que a pessoa já digitou;
+    // sem isso, o próximo "Salvar" gravava a caixa antiga e a nota sumia.
+    function sincronizarObservacoes() {
+      const caixa = document.getElementById('observacoes');
+      const servidor = osAtual.observacoes || '';
+      const ultimo = caixa.dataset.servidor || '';
+      if (servidor === ultimo) return;
+      const novo = servidor.startsWith(ultimo) ? servidor.slice(ultimo.length).trim() : '';
+      if (caixa.value.trim() === servidor.trim()) { /* a caixa já tem o que foi salvo */ }
+      else if (caixa.value.trim() === ultimo.trim()) caixa.value = servidor;
+      else if (novo && !caixa.value.includes(novo)) caixa.value = caixa.value.replace(/\s+$/, '') + '\n' + novo;
+      caixa.dataset.servidor = servidor;
     }
 
     function renderPecas() {
@@ -1015,7 +1044,12 @@
       }
       document.getElementById('totalConcluir').textContent = formatarMoeda(osAtual.valor_total);
       // OS de seguradora: já vem com a forma "Seguradora" (dá para trocar).
-      document.getElementById('formaPagamento').value = osAtual.seguradora_id ? 'Seguradora' : '';
+      // OS de volta de garantia: forma "Garantia" (sem cobrança), já escolhida.
+      const selForma = document.getElementById('formaPagamento');
+      let opGarantia = selForma.querySelector('option[value="Garantia"]');
+      if (osAtual.garantia_origem_id && !opGarantia) selForma.add(new Option('Garantia (sem cobrança)', 'Garantia'));
+      if (!osAtual.garantia_origem_id && opGarantia) opGarantia.remove();
+      selForma.value = osAtual.garantia_origem_id ? 'Garantia' : osAtual.seguradora_id ? 'Seguradora' : '';
       document.getElementById('campoAnexo').classList.add('oculto');
       document.getElementById('anexoBoleto').value = '';
       document.getElementById('dialogConcluir').showModal();
@@ -1295,19 +1329,32 @@
     // + Nova OS (abrir outra rápido)
     // =====================================================
     // Salva os textos da OS atual se mudaram (relato, observações...).
-    async function salvarPendente() {
-      const corpo = {
+    // Textos da tela (relato, observações, atendente) x o que está salvo.
+    function textosDaTela() {
+      return {
         apontamento_cliente: document.getElementById('apontamento').value,
         servicos_executados: document.getElementById('executados').value,
         observacoes: document.getElementById('observacoes').value,
         atendente_id: document.getElementById('atendente').value || null,
       };
+    }
+    function textosPendentes() {
+      if (!osAtual) return false;
+      const corpo = textosDaTela();
       const igual = (a, b) => String(a || '').trim() === String(b || '').trim();
-      const mudou = !igual(corpo.apontamento_cliente, osAtual.apontamento_cliente) ||
+      return !igual(corpo.apontamento_cliente, osAtual.apontamento_cliente) ||
         !igual(corpo.servicos_executados, osAtual.servicos_executados) ||
         !igual(corpo.observacoes, osAtual.observacoes) ||
         String(corpo.atendente_id || '') !== String(osAtual.atendente_id || '');
-      if (!mudou) return;
+    }
+    // Saiu da página com texto digitado e não salvo? O navegador pergunta antes.
+    window.addEventListener('beforeunload', (e) => {
+      if (textosPendentes()) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    async function salvarPendente() {
+      const corpo = textosDaTela();
+      if (!textosPendentes()) return;
       if (!osId && !(corpo.apontamento_cliente.trim() || corpo.observacoes.trim() || corpo.atendente_id)) return;
       await garantirOs();
       osAtual = await lerJson(await fetch('/api/ordens-servico/' + osId, {

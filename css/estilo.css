@@ -3199,6 +3199,10 @@ a.a-caminho:hover { text-decoration: underline; }
 .bp-tabela tr.bp-erro td { background: rgba(198, 40, 40, 0.08); }
 .bp-tabela .tabela-envolve, .nb-editor .tabela-envolve { overflow: visible; }
 .bp-peca-wrap { position: relative; }
+/* A célula da peça não pode cortar a lista de sugestões (as tabelas-planilha
+   cortam o que passa da célula: overflow hidden). */
+.bp-tabela td.bp-peca { overflow: visible; }
+.bp-tabela .bp-sug { right: auto; min-width: 100%; width: max-content; max-width: min(560px, calc(100vw - 32px)); overflow-x: hidden; }
 .bp-tipo { display: block; font-size: 12px; min-height: 16px; margin-top: 2px; color: var(--texto-suave); }
 .bp-tipo-ok { color: #15803d; }
 .bp-tipo-nova { color: #b45309; }

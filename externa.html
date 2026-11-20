@@ -336,7 +336,16 @@
       };
     }
 
+    // Um toque duplo (tablet) chamava isto duas vezes antes de a primeira
+    // resposta chegar e criava dois documentos. Agora a segunda chamada espera
+    // a criação que já está em andamento.
+    let criandoOs = null;
     async function garantirOs() {
+      if (osId) return;
+      if (!criandoOs) criandoOs = criarOs().finally(() => { criandoOs = null; });
+      return criandoOs;
+    }
+    async function criarOs() {
       if (osId) return;
       const resp = await fetch('/api/ordens-servico', {
         method: 'POST',
@@ -420,6 +429,7 @@
       document.getElementById('apontamento').value = os.apontamento_cliente || '';
       document.getElementById('executados').value = os.servicos_executados || '';
       document.getElementById('observacoes').value = os.observacoes || '';
+      document.getElementById('observacoes').dataset.servidor = os.observacoes || '';
 
       document.getElementById('endereco').value = os.endereco || '';
       document.getElementById('dataAgenda').value = valorDataInput(os.data_agendamento);
@@ -440,6 +450,22 @@
       renderPecas();
       renderServicos();
       document.getElementById('total').textContent = formatarMoeda(osAtual.valor_total);
+      sincronizarObservacoes();
+    }
+
+    // Mexer numa OS já concluída grava uma nota nas Observações (no servidor).
+    // Traz a nota para a caixa da tela, sem apagar o que a pessoa já digitou;
+    // sem isso, o próximo "Salvar" gravava a caixa antiga e a nota sumia.
+    function sincronizarObservacoes() {
+      const caixa = document.getElementById('observacoes');
+      const servidor = osAtual.observacoes || '';
+      const ultimo = caixa.dataset.servidor || '';
+      if (servidor === ultimo) return;
+      const novo = servidor.startsWith(ultimo) ? servidor.slice(ultimo.length).trim() : '';
+      if (caixa.value.trim() === servidor.trim()) { /* a caixa já tem o que foi salvo */ }
+      else if (caixa.value.trim() === ultimo.trim()) caixa.value = servidor;
+      else if (novo && !caixa.value.includes(novo)) caixa.value = caixa.value.replace(/\s+$/, '') + '\n' + novo;
+      caixa.dataset.servidor = servidor;
     }
 
     function renderPecas() {
@@ -518,6 +544,35 @@
         document.getElementById('btnConcluir').classList.add('oculto');
       }
     }
+
+    // Campos da tela x o que está salvo (endereço, data, relato...).
+    function camposExterno() {
+      return {
+        apontamento_cliente: document.getElementById('apontamento').value,
+        servicos_executados: document.getElementById('executados').value,
+        observacoes: document.getElementById('observacoes').value,
+        atendente_id: document.getElementById('atendente').value || null,
+        endereco: document.getElementById('endereco').value,
+        data_agendamento: document.getElementById('dataAgenda').value || null,
+        periodo: document.getElementById('periodo').value || '',
+      };
+    }
+    function textosPendentes() {
+      if (!osAtual) return false;
+      const c = camposExterno();
+      const igual = (a, b) => String(a || '').trim() === String(b || '').trim();
+      return !igual(c.apontamento_cliente, osAtual.apontamento_cliente) ||
+        !igual(c.servicos_executados, osAtual.servicos_executados) ||
+        !igual(c.observacoes, osAtual.observacoes) ||
+        !igual(c.endereco, osAtual.endereco) ||
+        !igual(c.data_agendamento, valorDataInput(osAtual.data_agendamento)) ||
+        (!!c.data_agendamento && !igual(c.periodo, osAtual.periodo)) ||
+        String(c.atendente_id || '') !== String(osAtual.atendente_id || '');
+    }
+    // Saiu da página com algo digitado e não salvo? O navegador pergunta antes.
+    window.addEventListener('beforeunload', (e) => {
+      if (textosPendentes()) { e.preventDefault(); e.returnValue = ''; }
+    });
 
     async function salvarTextos(override) {
       const corpo = {
@@ -840,7 +895,12 @@
         return;
       }
       document.getElementById('totalConcluir').textContent = formatarMoeda(osAtual.valor_total);
-      document.getElementById('formaPagamento').value = '';
+      // Volta de garantia: forma "Garantia" (sem cobrança), já escolhida.
+      const selForma = document.getElementById('formaPagamento');
+      let opGarantia = selForma.querySelector('option[value="Garantia"]');
+      if (osAtual.garantia_origem_id && !opGarantia) selForma.add(new Option('Garantia (sem cobrança)', 'Garantia'));
+      if (!osAtual.garantia_origem_id && opGarantia) opGarantia.remove();
+      selForma.value = osAtual.garantia_origem_id ? 'Garantia' : '';
       document.getElementById('campoAnexo').classList.add('oculto');
       document.getElementById('anexoBoleto').value = '';
       document.getElementById('dialogConcluir').showModal();

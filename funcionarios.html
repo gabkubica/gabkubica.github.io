@@ -332,7 +332,24 @@
       }
     }
 
+    // Toque duplo no Salvar (tablet) cadastrava duas vezes: enquanto um
+    // salvamento está em andamento, os outros toques são ignorados.
+    let salvando = false;
     async function salvar() {
+      if (salvando) return;
+      salvando = true;
+      const botao = document.getElementById('btnSalvar');
+      if (botao) botao.disabled = true;
+      try {
+        await salvarAgora();
+      } catch (e) {
+        mostrarMensagem('Falha ao salvar: ' + (e.message || 'sem conexão com o servidor.'), 'erro');
+      } finally {
+        salvando = false;
+        if (botao) botao.disabled = false;
+      }
+    }
+    async function salvarAgora() {
       const dados = {
         nome: document.getElementById('nome').value,
         cargo: document.getElementById('cargo').value,

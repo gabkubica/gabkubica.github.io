@@ -462,7 +462,7 @@
         if (d.ajuste) html += ' (saldo geral corrigido ' + (d.ajuste > 0 ? '+' : '') + d.ajuste + ' pela contagem)';
         else if (d.conferido) html += ' (contagem bateu)';
         html += '.';
-        if (d.restante) html += ' As outras ' + d.restante + ' continuam aguardando.';
+        if (d.restante) html += d.restante === 1 ? ' A outra peça continua aguardando.' : ' As outras ' + d.restante + ' continuam aguardando.';
         if (d.item_novo) {
           html += '<br>Peça nova cadastrada com o nº <strong>' + numeroEtiqueta(d.numero_interno) + '</strong>. ' +
             '<button type="button" class="btn-mini secundario" id="btnEtqNova">Imprimir ' + d.entrou + (d.entrou === 1 ? ' etiqueta' : ' etiquetas') + '</button>';

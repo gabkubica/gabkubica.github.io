@@ -236,16 +236,29 @@
       };
     }
 
+    // Um toque duplo (tablet) chamava isto duas vezes antes de a primeira
+    // resposta chegar e criava dois documentos. Agora a segunda chamada espera
+    // a criação que já está em andamento.
+    let criandoVenda = null;
     async function garantirVenda() {
+      if (vendaId) return;
+      if (!criandoVenda) criandoVenda = criarVenda().finally(() => { criandoVenda = null; });
+      return criandoVenda;
+    }
+    async function criarVenda() {
       if (vendaId) return;
       const atendenteId = document.getElementById('atendente').value;
       if (!atendenteId) {
         throw new Error('Selecione o atendente antes de iniciar a venda.');
       }
+      // Leva junto o cliente já escolhido ou o nome digitado: a venda nasce
+      // ao lançar a primeira peça, e sem isso o nome ficava só na tela
+      // (não ia para o recibo nem para a lista).
+      const cliente = clienteEscolhido();
       const resp = await fetch('/api/vendas-balcao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ atendente_id: atendenteId }),
+        body: JSON.stringify({ atendente_id: atendenteId, cliente_id: cliente.id, cliente_nome: cliente.nome }),
       });
       vendaAtual = await lerJson(resp);
       vendaId = String(vendaAtual.id);
