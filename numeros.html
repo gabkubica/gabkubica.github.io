@@ -26,60 +26,103 @@
     <button id="btnTema" class="btn-tema" type="button">Modo escuro</button>
   </header>
 
-  <!-- Números da loja: tudo que antes ficava espalhado em Faturamento,
-       Análises e Produtividade, organizado em abas por assunto.
+  <!-- Análises (só gerente). Abas: Resumo (os números que mais importam, com
+       o que precisa de atenção), Vendas, Financeiro, Estoque, Serviços, Equipe.
        Servidor: /api/numeros (src/routes/numeros.js), /api/analises/*,
-       /api/produtividade, /api/dashboard. Só gerente. -->
+       /api/produtividade, /api/dashboard.
+       2026-11-20: resumo, pizzas (rosca), números escritos nas barras, mês
+       atual marcado "até dia X", tocar no mês abre o mês, datas livres,
+       comparar com o ano passado, cores com significado, textos mais claros. -->
   <main class="os-main nu-main">
     <div class="nu-topo">
       <a href="/" class="btn-voltar">← Painel</a>
       <h2>Análises</h2>
       <span class="nu-espaco"></span>
+      <span class="nu-exportar">
+        <button type="button" class="secundario" id="btnPdf" title="Relatório com todas as abas (Salvar como PDF)">PDF</button>
+        <button type="button" class="secundario" id="btnPlanilha" title="Todos os números do período, para abrir no Excel">Planilha</button>
+      </span>
+    </div>
+
+    <!-- Período: o que está sendo mostrado e com o que se compara -->
+    <div class="nu-barra-periodo">
       <div class="nu-periodo" id="periodo" role="group" aria-label="Período">
         <button type="button" data-p="hoje">Hoje</button>
         <button type="button" data-p="mes">Este mês</button>
         <button type="button" data-p="mes_passado">Mês passado</button>
         <button type="button" data-p="90">90 dias</button>
         <button type="button" data-p="ano">Este ano</button>
+        <button type="button" data-p="livre">Escolher datas</button>
       </div>
-      <span class="nu-datas" id="datas"></span>
-      <span class="nu-exportar">
-        <button type="button" class="secundario" id="btnPdf" title="Relatório com as 5 abas (Salvar como PDF)">PDF</button>
-        <button type="button" class="secundario" id="btnPlanilha" title="Todos os números do período, para abrir no Excel">Planilha</button>
-      </span>
+      <div class="nu-livre" id="livre" hidden>
+        <label>De <input type="date" id="livreDe"></label>
+        <label>Até <input type="date" id="livreAte"></label>
+        <button type="button" id="btnLivre">Ver</button>
+      </div>
+      <label class="nu-comparar">Comparar com
+        <select id="comparar">
+          <option value="anterior">o período anterior</option>
+          <option value="ano">o mesmo período do ano passado</option>
+        </select>
+      </label>
     </div>
+    <p class="nu-mostrando" id="mostrando"></p>
     <!-- Só no PDF/impressão -->
     <div class="so-imp nu-cab-imp"><strong>Auto Vidros Sport · Análises</strong><span id="periodoImp"></span></div>
 
     <nav class="nu-abas" id="abas" role="tablist">
+      <button type="button" class="nu-aba" data-aba="resumo" role="tab">Resumo</button>
       <button type="button" class="nu-aba" data-aba="vendas" role="tab">Vendas</button>
       <button type="button" class="nu-aba" data-aba="financeiro" role="tab">Financeiro</button>
       <button type="button" class="nu-aba" data-aba="estoque" role="tab">Estoque</button>
       <button type="button" class="nu-aba" data-aba="servicos" role="tab">Serviços</button>
       <button type="button" class="nu-aba" data-aba="equipe" role="tab">Equipe</button>
     </nav>
+    <p class="nu-legenda-cores">
+      <span><i class="c-bom"></i>verde: dinheiro entrando ou coisa boa</span>
+      <span><i class="c-ruim"></i>vermelho: saída ou problema</span>
+      <span><i class="c-atencao"></i>amarelo: atenção</span>
+      <span><i class="c-neutro"></i>cinza: só quantidade</span>
+      <span class="nu-legenda-obs">Nas pizzas, cada cor é um tipo e o nome está escrito ao lado.</span>
+    </p>
     <div id="mensagens"></div>
 
+    <!-- ===== RESUMO ===== -->
+    <section class="nu-painel" data-painel="resumo">
+      <h2 class="so-imp nu-tit-imp">Resumo</h2>
+      <div id="resAtencao"></div>
+      <div class="nu-resumo" id="resNumeros"></div>
+      <div class="nu-grade">
+        <div class="nu-cartao nu-largo">
+          <h3>Faturamento mês a mês</h3>
+          <p class="nu-explica">Quanto entrou em cada mês (OS, balcão e externos concluídos). Toque num mês para ver só ele.</p>
+          <div id="gResFat"></div>
+          <p class="nu-ritmo" id="resRitmo"></p>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== VENDAS ===== -->
-    <section class="nu-painel" data-painel="vendas">
+    <section class="nu-painel" data-painel="vendas" hidden>
       <h2 class="so-imp nu-tit-imp">Vendas</h2>
       <div class="nu-kpis" id="kVendas"></div>
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
           <h3>Faturamento mês a mês</h3>
-          <p class="nu-explica">OS, vendas no balcão e serviços externos concluídos em cada mês.</p>
+          <p class="nu-explica">OS, vendas no balcão e serviços externos concluídos em cada mês. Toque num mês para ver só ele.</p>
           <div id="gFatMes"></div>
+          <p class="nu-ritmo" id="ritmoVendas"></p>
         </div>
         <div class="nu-cartao">
           <h3>De onde vem o dinheiro</h3>
-          <p class="nu-explica">Faturamento do período por tipo de atendimento.</p>
+          <p class="nu-explica">Como o faturamento do período se divide por tipo de atendimento.</p>
           <div id="gTipo"></div>
-          <p class="nu-explica" style="margin:14px 0 8px">E por peça ou mão de obra:</p>
+          <h4 class="nu-sub" style="margin-top:16px">Peças × mão de obra</h4>
           <div id="gPecaServ"></div>
         </div>
         <div class="nu-cartao">
           <h3>Como o cliente paga</h3>
-          <p class="nu-explica">Formas de pagamento no período.</p>
+          <p class="nu-explica">Formas de pagamento no período (quanto de cada uma).</p>
           <div id="gFormas"></div>
         </div>
         <div class="nu-cartao">
@@ -89,12 +132,12 @@
         </div>
         <div class="nu-cartao">
           <h3>Melhores clientes</h3>
-          <p class="nu-explica">Quem mais gastou no período (clique para ver o histórico).</p>
+          <p class="nu-explica">Quem mais gastou no período (toque no nome para ver o histórico).</p>
           <div id="gClientes"></div>
         </div>
         <div class="nu-cartao nu-largo">
           <h3>Dia da semana mais forte</h3>
-          <p class="nu-explica">Média de faturamento por dia da semana, no período.</p>
+          <p class="nu-explica">Quanto entra, em média, em cada dia da semana no período.</p>
           <div id="gSemana"></div>
         </div>
       </div>
@@ -107,18 +150,18 @@
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
           <div class="nu-cartao-topo"><div><h3>Entrou × saiu, mês a mês</h3>
-            <p class="nu-explica">Faturamento contra despesas (boletos pagos e despesas avulsas).</p></div>
+            <p class="nu-explica">Verde: faturamento. Vermelho: despesas (boletos pagos e despesas avulsas). Toque num mês para ver só ele.</p></div>
             <a href="/caixa.html">Caixa do dia →</a></div>
           <div id="gEntraSai"></div>
         </div>
         <div class="nu-cartao">
-          <h3>Resultado mês a mês</h3>
-          <p class="nu-explica">O que sobrou: faturamento menos despesas.</p>
+          <h3>O que sobrou, mês a mês</h3>
+          <p class="nu-explica">Faturamento menos despesas. Verde: sobrou. Vermelho: faltou.</p>
           <div id="gResultado"></div>
         </div>
         <div class="nu-cartao">
           <div class="nu-cartao-topo"><div><h3>Boletos a pagar</h3>
-            <p class="nu-explica">O que vence em cada uma das próximas 8 semanas.</p></div>
+            <p class="nu-explica">Quanto vence em cada uma das próximas 8 semanas.</p></div>
             <a href="/despesas.html">Boletos →</a></div>
           <div id="gSemanas"></div>
           <div id="gAtrasados"></div>
@@ -130,7 +173,7 @@
         </div>
         <div class="nu-cartao">
           <h3>Despesas do período</h3>
-          <p class="nu-explica">Boletos de fornecedor e despesas avulsas (lançadas no Caixa).</p>
+          <p class="nu-explica">Como as despesas se dividem: boletos de fornecedor e despesas avulsas (lançadas no Caixa).</p>
           <div id="gTipoDespesa"></div>
         </div>
       </div>
@@ -139,11 +182,12 @@
     <!-- ===== ESTOQUE ===== -->
     <section class="nu-painel" data-painel="estoque" hidden>
       <h2 class="so-imp nu-tit-imp">Estoque</h2>
+      <p class="nu-aviso-aba">O estoque é sempre o de <strong>hoje</strong>: não muda com o período escolhido.</p>
       <div class="nu-kpis" id="kEst"></div>
       <div class="nu-grade">
         <div class="nu-cartao">
           <h3>Onde está o dinheiro</h3>
-          <p class="nu-explica">Peças com mais valor parado na prateleira hoje (pelo custo).</p>
+          <p class="nu-explica">Peças com mais valor na prateleira hoje (pelo custo).</p>
           <div id="gMaiores"></div>
         </div>
         <div class="nu-cartao">
@@ -153,7 +197,7 @@
         </div>
         <div class="nu-cartao nu-largo">
           <h3>Precisa de atenção</h3>
-          <p class="nu-explica">Clique para abrir a lista.</p>
+          <p class="nu-explica">Toque para abrir a lista.</p>
           <div class="nu-kpis" id="kAtencao" style="margin:0"></div>
         </div>
         <div class="nu-cartao nu-largo">
@@ -175,7 +219,7 @@
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
           <h3>OS abertas × concluídas, mês a mês</h3>
-          <p class="nu-explica">Se as abertas passam das concluídas por muito tempo, o pátio enche.</p>
+          <p class="nu-explica">Cinza: abertas. Verde: concluídas. Se as abertas passam das concluídas por muito tempo, o pátio enche. Toque num mês para ver só ele.</p>
           <div id="gOsMes"></div>
         </div>
         <div class="nu-cartao">
@@ -194,14 +238,22 @@
           <p class="nu-explica" id="explicaPatio">Carros entregues no período: quantos dias ficaram na loja.</p>
           <div id="gPatio"></div>
         </div>
-        <div class="nu-cartao">
+        <div class="nu-cartao" id="sec-parados">
           <div class="nu-cartao-topo"><div><h3 id="tituloParadosPatio">Carros parados</h3>
-            <p class="nu-explica">Abertos agora, do mais antigo para o mais novo (não depende do período). Clique para abrir a OS.</p></div>
+            <p class="nu-explica">Abertos agora, do mais antigo para o mais novo (não depende do período). Toque para abrir a OS.</p></div>
             <a href="/patio.html">Pátio →</a></div>
           <div id="gParadosPatio"></div>
         </div>
-        <div class="nu-cartao nu-largo">
-          <h3>Orçamentos</h3>
+      </div>
+
+      <!-- Partes que abrem e fecham: o resumo fica sempre à vista -->
+      <details class="nu-sec" id="sec-orcamentos" data-sec="orcamentos">
+        <summary>
+          <span class="nu-sec-tit">Orçamentos</span>
+          <span class="nu-sec-resumo" id="resumoOrc"></span>
+          <span class="nu-sec-abrir" aria-hidden="true"></span>
+        </summary>
+        <div class="nu-sec-corpo">
           <p class="nu-explica">Pela data em que o cliente respondeu. Os recusados contam a partir de 18/11/2026, quando o botão "Orçamento recusado" foi criado.</p>
           <div class="nu-kpis nu-kpis-dentro" id="kOrc"></div>
           <div class="nu-grade nu-grade-dentro">
@@ -209,8 +261,15 @@
             <div><h4 class="nu-sub">Recusados no período</h4><div id="gRecusados"></div></div>
           </div>
         </div>
-        <div class="nu-cartao nu-largo">
-          <h3>Garantias e retrabalho</h3>
+      </details>
+
+      <details class="nu-sec" id="sec-garantias" data-sec="garantias">
+        <summary>
+          <span class="nu-sec-tit">Garantias e retrabalho</span>
+          <span class="nu-sec-resumo" id="resumoGar"></span>
+          <span class="nu-sec-abrir" aria-hidden="true"></span>
+        </summary>
+        <div class="nu-sec-corpo">
           <p class="nu-explica">Voltas de garantia abertas no período (botão "Iniciar garantia" na OS concluída). As canceladas não contam.</p>
           <div class="nu-kpis nu-kpis-dentro" id="kGar"></div>
           <div class="nu-grade nu-grade-dentro">
@@ -222,7 +281,7 @@
             <div><h4 class="nu-sub">Últimas voltas de garantia</h4><div id="gGarRecentes"></div></div>
           </div>
         </div>
-      </div>
+      </details>
     </section>
 
     <!-- ===== EQUIPE ===== -->
@@ -232,7 +291,7 @@
       <div class="nu-grade">
         <div class="nu-cartao nu-largo">
           <div class="nu-cartao-topo"><h3>Quanto cada um lançou</h3><a href="/comissoes.html">Comissões →</a></div>
-          <p class="nu-explica">Peças e serviços em OS concluídas no período, por responsável.</p>
+          <p class="nu-explica">Peças e serviços em OS concluídas no período, por responsável. Azul: peças. Rosa: serviços.</p>
           <div id="gEquipe"></div>
         </div>
         <div class="nu-cartao nu-largo">
@@ -266,30 +325,68 @@
       if (!r.ok) throw new Error(d.erro || 'Erro ao carregar.');
       return d;
     }
+    const lerLocal = (k, padrao) => { try { return localStorage.getItem(k) || padrao; } catch { return padrao; } };
+    const gravarLocal = (k, v) => { try { localStorage.setItem(k, v); } catch { /* sem localStorage */ } };
+
+    // ---------- datas e textos ----------
+    const iso = (d) => d.toLocaleDateString('en-CA');
+    const br = (s) => s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+    const brCurto = (s) => s.slice(8, 10) + '/' + s.slice(5, 7);
+    const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    // "12/10 a 31/10" (com o ano quando não é o deste ano).
+    function intervalo(a, b) {
+      const anoAtual = String(new Date().getFullYear());
+      const f = (s) => (s.slice(0, 4) === anoAtual ? brCurto(s) : br(s));
+      return a === b ? f(a) : f(a) + ' a ' + f(b);
+    }
+    // Tempo fácil de ler: "4 horas", "1,5 dias", "menos de 1 hora".
+    function tempoLegivel(horas) {
+      if (horas === null || horas === undefined) return '—';
+      const h = Number(horas);
+      if (h < 1) return 'menos de 1 hora';
+      if (h < 24) return Math.round(h) + (Math.round(h) === 1 ? ' hora' : ' horas');
+      return G.fmt(Math.round((h / 24) * 10) / 10, 'dias');
+    }
 
     // ---------- período ----------
-    const iso = (d) => d.toLocaleDateString('en-CA');
+    // escolha: hoje | mes | mes_passado | 90 | ano | livre | mes:AAAA-MM (tocou num mês)
+    let escolha = lerLocal('numeros-periodo', 'mes');
+    let comparar = lerLocal('numeros-comparar', 'anterior');
     function periodo(p) {
       const hoje = new Date();
       const y = hoje.getFullYear(), m = hoje.getMonth();
       if (p === 'hoje') return { inicio: iso(hoje), fim: iso(hoje), nome: 'hoje' };
-      if (p === 'mes_passado') return { inicio: iso(new Date(y, m - 1, 1)), fim: iso(new Date(y, m, 0)), nome: 'no mês passado' };
-      if (p === '90') return { inicio: iso(new Date(y, m, hoje.getDate() - 89)), fim: iso(hoje), nome: 'nos últimos 90 dias' };
+      if (p === 'mes_passado') return { inicio: iso(new Date(y, m - 1, 1)), fim: iso(new Date(y, m, 0)), nome: 'o mês passado' };
+      if (p === '90') return { inicio: iso(new Date(y, m, hoje.getDate() - 89)), fim: iso(hoje), nome: 'os últimos 90 dias' };
       if (p === 'ano') return { inicio: iso(new Date(y, 0, 1)), fim: iso(hoje), nome: 'este ano' };
+      if (p === 'livre') {
+        const de = lerLocal('numeros-de', iso(new Date(y, m, 1)));
+        const ate = lerLocal('numeros-ate', iso(hoje));
+        return { inicio: de, fim: ate, nome: 'as datas escolhidas' };
+      }
+      if (/^mes:\d{4}-\d{2}$/.test(p)) {
+        const [a, mm] = p.slice(4).split('-').map(Number);
+        const fimMes = iso(new Date(a, mm, 0));
+        return { inicio: iso(new Date(a, mm - 1, 1)), fim: fimMes > iso(hoje) ? iso(hoje) : fimMes, nome: MESES[mm - 1] + ' de ' + a };
+      }
       return { inicio: iso(new Date(y, m, 1)), fim: iso(hoje), nome: 'este mês' };
     }
-    const br = (s) => s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
-    const brCurto = (s) => s.slice(8, 10) + '/' + s.slice(5, 7);
-    let escolha = 'mes';
-    try { escolha = localStorage.getItem('numeros-periodo') || 'mes'; } catch { /* sem localStorage */ }
+    function abrirMes(mesIso) {
+      escolha = 'mes:' + mesIso;
+      gravarLocal('numeros-periodo', escolha);
+      carregar();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-    // ---------- cartões de número (KPI) ----------
+    // ---------- números (cartões) ----------
+    // "▲ 39% vs. 12/10 a 31/10": sempre diz com QUE período comparou.
+    let anteriorTxt = '';
     function variacao(atual, anterior, invertido) {
-      if (!anterior) return '<span>sem comparação</span>';
+      if (!anterior) return '<span>sem número para comparar em ' + anteriorTxt + '</span>';
       const p = Math.round(((atual - anterior) / Math.abs(anterior)) * 100);
-      if (p === 0) return '<span>igual ao período anterior</span>';
+      if (p === 0) return '<span>igual a ' + anteriorTxt + '</span>';
       const bom = invertido ? p < 0 : p > 0;
-      return '<span class="' + (bom ? 'nu-sobe' : 'nu-desce') + '">' + (p > 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span> vs. período anterior';
+      return '<span class="' + (bom ? 'nu-sobe' : 'nu-desce') + '">' + (p > 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span> vs. ' + anteriorTxt;
     }
     function kpi(rot, val, sub, extra) {
       const tag = extra && extra.href ? 'a' : 'div';
@@ -304,8 +401,114 @@
       while (i < mensal.length - 6 && campos.every((c) => !mensal[i][c])) i++;
       return mensal.slice(i);
     }
+    // O último mês do gráfico ainda não terminou? Marca "até dia X".
+    let ritmo = null;
+    function opcoesMes(meses) {
+      const ultimo = meses.length - 1;
+      const parcial = ritmo ? ultimo : null;
+      return {
+        rotulos: meses.map((m, i) => (i === parcial ? m.rotulo.split('/')[0] + ' (até ' + ritmo.dia + ')' : m.rotulo)),
+        rotulosLongos: meses.map((m, i) => MESES[Number(m.mes.slice(5, 7)) - 1] + ' de ' + m.mes.slice(0, 4) + (i === parcial ? ' (até o dia ' + ritmo.dia + ')' : '')),
+        parcial,
+        aoClicar: (i) => abrirMes(meses[i].mes),
+        textoClique: 'Toque de novo (ou clique) para ver só este mês',
+      };
+    }
+    function textoRitmo() {
+      if (!ritmo) return '';
+      const r = ritmo;
+      const p = r.anterior_mesmo_dia ? Math.round(((r.atual - r.anterior_mesmo_dia) / r.anterior_mesmo_dia) * 100) : null;
+      const comp = p === null ? '' : ' <span class="' + (p >= 0 ? 'nu-sobe' : 'nu-desce') + '">(' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%)</span>';
+      return '<strong>O mês de ' + r.mes + ' ainda não terminou</strong> (barra listrada). Até o dia ' + r.dia + ': <strong>' + moeda(r.atual) + '</strong>. ' +
+        'Em ' + r.mes_anterior + ', até o mesmo dia: ' + moeda(r.anterior_mesmo_dia) + comp + ' — é o traço tracejado na barra. ' +
+        r.mes_anterior.charAt(0).toUpperCase() + r.mes_anterior.slice(1) + ' inteiro: ' + moeda(r.anterior_mes_inteiro) + '.';
+    }
+    function graficoFaturamento(raizId, ritmoId, n) {
+      const meses = mesesUteis(n.mensal, ['faturamento']);
+      G.barras($(raizId), {
+        ...opcoesMes(meses),
+        series: [{ nome: 'Faturamento', valores: meses.map((m) => m.faturamento), cor: 'bom' }],
+        formato: 'moeda', vazio: 'Ainda não há faturamento.',
+        marcador: ritmo ? { indice: meses.length - 1, valor: ritmo.anterior_mesmo_dia, texto: ritmo.mes_anterior.slice(0, 3) + ' até dia ' + ritmo.dia } : null,
+        dica: (i) => '<div style="color:var(--texto-suave)">' + meses[i].os_concluidas + ' atendimento(s)</div>',
+      });
+      $(ritmoId).innerHTML = textoRitmo();
+    }
 
-    // ---------- desenhar cada aba ----------
+    // Cor fixa por tipo (a mesma em todo lugar), para as pizzas. As formas
+    // raras (sem cor própria) pegam uma cor que sobrou naquele gráfico.
+    function corFixa(itens, mapa) {
+      const usadas = new Set(itens.map((x) => mapa[x.nome]).filter(Boolean));
+      return itens.map((x) => {
+        let c = mapa[x.nome];
+        if (!c) { c = [1, 2, 3, 4, 5, 6].find((k) => !usadas.has(k)) || 'outro'; usadas.add(c); }
+        return { ...x, cor: c };
+      });
+    }
+    const CORES_FORMAS = { 'Pix': 1, 'Seguradora': 2, 'Dinheiro': 3, 'Débito': 4, 'Crédito': 5, 'Transferência': 6 };
+
+    // ---------- RESUMO ----------
+    // Cada número: rótulo, valor, explicação e um selo com ícone + palavra
+    // (✓ bom, ⚠ atenção, ✕ problema) — nunca só a cor.
+    const SELO = {
+      bom: '<span class="nu-selo nu-selo-bom">✓ Bom</span>',
+      atencao: '<span class="nu-selo nu-selo-atencao">⚠ Atenção</span>',
+      ruim: '<span class="nu-selo nu-selo-ruim">✕ Problema</span>',
+      neutro: '',
+    };
+    function numeroResumo(o) {
+      return '<a class="nu-res nu-res-' + o.estado + '" href="' + o.href + '">' +
+        '<div class="nu-res-topo"><span class="nu-res-rot">' + o.rot + '</span>' + SELO[o.estado] + '</div>' +
+        '<div class="nu-res-val">' + o.val + '</div>' +
+        '<div class="nu-res-sub">' + o.sub + '</div>' +
+        '<div class="nu-res-ver">Ver detalhes →</div></a>';
+    }
+    function abaResumo(n, v, sv, est) {
+      const p = n.periodo, a = n.anterior, b = n.boletos;
+      const varFat = a.faturamento ? Math.round(((p.faturamento - a.faturamento) / a.faturamento) * 100) : null;
+      const orc = sv.orcamentos, gar = sv.garantias, pt = sv.patio;
+      const numeros = [
+        { rot: 'Faturamento', val: moeda(p.faturamento), sub: variacao(p.faturamento, a.faturamento), href: '#vendas',
+          estado: varFat === null ? 'neutro' : varFat >= 0 ? 'bom' : varFat <= -10 ? 'ruim' : 'atencao' },
+        { rot: 'O que sobrou', val: '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>',
+          sub: 'entrou ' + moeda(p.faturamento) + ', saiu ' + moeda(p.despesas), href: '#financeiro', estado: p.resultado >= 0 ? 'bom' : 'ruim' },
+        { rot: 'Ticket médio', val: moeda(v.ticket_medio), sub: 'quanto cada atendimento deixa, em média (' + p.documentos + ' atendimentos)', href: '#vendas', estado: 'neutro' },
+        { rot: 'Boletos atrasados', val: moeda(b.atrasados.valor),
+          sub: b.atrasados.quantidade ? b.atrasados.quantidade + ' boleto(s) vencido(s) sem pagar' : 'nenhum boleto atrasado', href: '#financeiro',
+          estado: b.atrasados.quantidade ? 'ruim' : 'bom' },
+        { rot: 'Carros parados', val: String(pt.paradas.quantidade),
+          sub: pt.paradas.quantidade ? 'carros no pátio há ' + pt.dias_parada + ' dias ou mais' : 'nenhum carro há ' + pt.dias_parada + ' dias ou mais', href: '#servicos/parados',
+          estado: pt.paradas.quantidade ? 'atencao' : 'bom' },
+        { rot: 'Orçamentos aprovados', val: orc.taxa_aprovacao === null ? '—' : orc.taxa_aprovacao + '%',
+          sub: orc.taxa_aprovacao === null ? 'nenhum orçamento respondido no período' : orc.aprovados + ' aprovado(s), ' + orc.recusados + ' recusado(s)', href: '#servicos/orcamentos',
+          estado: orc.taxa_aprovacao === null ? 'neutro' : orc.taxa_aprovacao >= 70 ? 'bom' : orc.taxa_aprovacao >= 50 ? 'atencao' : 'ruim' },
+        { rot: 'Voltas de garantia', val: String(gar.quantidade),
+          sub: gar.quantidade ? String(gar.taxa_retorno).replace('.', ',') + '% das OS concluídas voltaram' : 'nenhuma volta de garantia no período', href: '#servicos/garantias',
+          estado: gar.quantidade ? (gar.taxa_retorno >= 3 ? 'ruim' : 'atencao') : 'bom' },
+        { rot: 'Dinheiro parado no estoque', val: moeda(est.parados.valor),
+          sub: est.parados.quantidade + ' peça(s) sem sair há ' + est.dias_parado + ' dias', href: '#estoque',
+          estado: est.parados.quantidade ? 'atencao' : 'bom' },
+      ];
+      $('resNumeros').innerHTML = numeros.map(numeroResumo).join('');
+
+      // "Precisa de atenção agora": frases simples, cada uma com o link.
+      const itens = [];
+      if (b.atrasados.quantidade) itens.push(['ruim', '<strong>' + b.atrasados.quantidade + ' boleto(s) atrasado(s)</strong> somando ' + moeda(b.atrasados.valor) + '.', '/despesas.html', 'Ver boletos']);
+      if (p.resultado < 0) itens.push(['ruim', 'No período, <strong>saiu mais do que entrou</strong>: faltaram ' + moeda(-p.resultado) + '.', '#financeiro', 'Ver financeiro']);
+      if (pt.paradas.quantidade) itens.push(['atencao', '<strong>' + pt.paradas.quantidade + ' carro(s) parado(s)</strong> há ' + pt.dias_parada + ' dias ou mais no pátio.', '#servicos/parados', 'Ver carros']);
+      if (n.seguradoras.atrasadas) itens.push(['atencao', '<strong>' + n.seguradoras.atrasadas + ' OS de seguradora</strong> sem receber há mais de 30 dias.', '/seguradoras.html', 'Ver seguradoras']);
+      if (orc.aguardando) itens.push(['atencao', '<strong>' + orc.aguardando + ' orçamento(s)</strong> esperando resposta do cliente (' + moeda(orc.valor_aguardando) + ').', '/ordens-servico.html', 'Ver OS']);
+      if (est.negativos) itens.push(['atencao', '<strong>' + est.negativos + ' peça(s) com estoque negativo</strong>: saiu mais do que entrou, conferir.', '/itens.html', 'Ver itens']);
+      $('resAtencao').innerHTML = '<div class="nu-atencao">' +
+        '<h3>' + (itens.length ? 'Precisa de atenção agora' : '✓ Nada urgente agora') + '</h3>' +
+        (itens.length
+          ? '<ul>' + itens.map(([e, t, href, rot]) => '<li class="nu-at-' + e + '"><span class="nu-at-ico">' + (e === 'ruim' ? '✕' : '⚠') + '</span><span>' + t + '</span><a href="' + href + '">' + rot + ' →</a></li>').join('') + '</ul>'
+          : '<p>Sem boletos atrasados, sem carros parados há muito tempo e nenhuma pendência das seguradoras.</p>') +
+        '</div>';
+      graficoFaturamento('gResFat', 'resRitmo', n);
+    }
+
+    // ---------- VENDAS ----------
     function abaVendas(n, v) {
       const p = n.periodo, a = n.anterior;
       $('kVendas').innerHTML =
@@ -313,71 +516,78 @@
         kpi('Atendimentos', p.documentos, variacao(p.documentos, a.documentos)) +
         kpi('Ticket médio', moeda(v.ticket_medio), 'quanto cada atendimento deixa, em média') +
         kpi('Lucro nas peças', moeda(v.lucro_pecas), v.pecas_sem_custo ? v.pecas_sem_custo + ' peça(s) sem custo cadastrado ficaram de fora' : 'venda menos custo das peças vendidas');
-      const meses = mesesUteis(n.mensal, ['faturamento']);
-      G.barras($('gFatMes'), {
-        rotulos: meses.map((m) => m.rotulo), destaque: meses.length - 1,
-        series: [{ nome: 'Faturamento', valores: meses.map((m) => m.faturamento), cor: 1 }],
-        formato: 'moeda', vazio: 'Ainda não há faturamento.',
-        dica: (i) => '<div style="color:var(--texto-suave)">' + meses[i].os_concluidas + ' atendimento(s)</div>',
+      graficoFaturamento('gFatMes', 'ritmoVendas', n);
+      const ordemTipo = ['Ordens de serviço', 'Vendas no balcão', 'Serviços externos'];
+      G.rosca($('gTipo'), {
+        itens: v.por_tipo.map((t) => ({ nome: t.tipo, valor: t.valor, sub: t.quantidade + ' atendimento(s)', cor: ordemTipo.indexOf(t.tipo) + 1 })),
+        formato: 'moeda', vazio: 'Nada concluído no período.', manterOrdem: true,
       });
-      G.ranking($('gTipo'), { itens: v.por_tipo.map((t) => ({ nome: t.tipo, valor: t.valor, sub: t.quantidade + ' atendimento(s)' })), formato: 'moeda', porcentagem: true, cor: 1 });
-      G.ranking($('gPecaServ'), { itens: [{ nome: 'Peças', valor: v.receita_pecas, cor: 1 }, { nome: 'Serviços (mão de obra)', valor: v.receita_servicos, cor: 3 }], formato: 'moeda', porcentagem: true });
-      G.ranking($('gFormas'), { itens: v.formas.map((f) => ({ nome: f.forma || 'Não informada', valor: f.valor, sub: f.quantidade + ' pagamento(s)' })), formato: 'moeda', porcentagem: true, cor: 1 });
+      G.rosca($('gPecaServ'), {
+        itens: [{ nome: 'Peças', valor: v.receita_pecas, cor: 1 }, { nome: 'Mão de obra (serviços)', valor: v.receita_servicos, cor: 5 }],
+        formato: 'moeda', vazio: 'Nada concluído no período.', manterOrdem: true,
+      });
+      G.rosca($('gFormas'), {
+        itens: corFixa(v.formas.map((f) => ({ nome: f.forma || 'Não informada', valor: f.valor, sub: f.quantidade + ' pagamento(s)' })).sort((x, y) => y.valor - x.valor), CORES_FORMAS),
+        formato: 'moeda', vazio: 'Nenhum pagamento no período.',
+      });
       G.ranking($('gPecas'), {
         itens: v.itens.slice(0, 10).map((x) => ({ nome: x.nome, valor: x.receita, sub: x.quantidade + ' un. · lucro ' + moeda(x.lucro) })),
-        formato: 'moeda', cor: 1, vazio: 'Nenhuma peça vendida no período.',
+        formato: 'moeda', cor: 'bom', vazio: 'Nenhuma peça vendida no período.',
       });
       G.ranking($('gClientes'), {
         itens: v.clientes.slice(0, 10).map((c) => ({ nome: c.nome, valor: c.valor, sub: c.documentos + ' atendimento(s)', href: c.cliente_id ? '/clientes.html?historico=' + c.cliente_id : null })),
-        formato: 'moeda', cor: 1, vazio: 'Nenhum cliente no período.',
+        formato: 'moeda', cor: 'bom', vazio: 'Nenhum cliente no período.',
       });
       G.barras($('gSemana'), {
         rotulos: v.dias_semana.map((d) => d.dia.slice(0, 3)), rotulosLongos: v.dias_semana.map((d) => d.dia),
-        series: [{ nome: 'Média', valores: v.dias_semana.map((d) => d.media), cor: 1 }], formato: 'moeda', altura: 190,
+        series: [{ nome: 'Média', valores: v.dias_semana.map((d) => d.media), cor: 'bom' }], formato: 'moeda', altura: 200,
         dica: (i) => '<div style="color:var(--texto-suave)">' + v.dias_semana[i].documentos + ' atendimento(s) no período</div>',
       });
     }
 
+    // ---------- FINANCEIRO ----------
     function abaFinanceiro(n) {
       const p = n.periodo, a = n.anterior, b = n.boletos;
       $('kFin').innerHTML =
         kpi('Entrou (faturamento)', moeda(p.faturamento), variacao(p.faturamento, a.faturamento)) +
         kpi('Saiu (despesas)', moeda(p.despesas), variacao(p.despesas, a.despesas, true)) +
-        kpi('Resultado', '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>', variacao(p.resultado, a.resultado)) +
+        kpi('O que sobrou', '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>', variacao(p.resultado, a.resultado)) +
         kpi('Boletos atrasados', moeda(b.atrasados.valor), b.atrasados.quantidade ? b.atrasados.quantidade + ' boleto(s) vencido(s) sem pagar' : 'nenhum atrasado',
           { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' }) +
         kpi('A receber de seguradoras', moeda(n.seguradoras.aReceber), n.seguradoras.os ? n.seguradoras.os + ' OS' + (n.seguradoras.atrasadas ? ' · ' + n.seguradoras.atrasadas + ' há mais de 30 dias' : '') : 'nada pendente',
           { alerta: n.seguradoras.atrasadas > 0, href: '/seguradoras.html' });
       const meses = mesesUteis(n.mensal, ['faturamento', 'despesas']);
       G.barras($('gEntraSai'), {
-        rotulos: meses.map((m) => m.rotulo),
-        series: [{ nome: 'Entrou', valores: meses.map((m) => m.faturamento), cor: 3 }, { nome: 'Saiu', valores: meses.map((m) => m.despesas), cor: 2 }],
+        ...opcoesMes(meses),
+        series: [{ nome: 'Entrou', valores: meses.map((m) => m.faturamento), cor: 'bom' }, { nome: 'Saiu', valores: meses.map((m) => m.despesas), cor: 'ruim' }],
         formato: 'moeda', vazio: 'Ainda não há movimento.',
         dica: (i) => '<div style="color:var(--texto-suave)">Sobrou: <b>' + moeda(meses[i].resultado) + '</b></div>',
       });
       G.barras($('gResultado'), {
-        rotulos: meses.map((m) => m.rotulo), series: [{ nome: 'Resultado', valores: meses.map((m) => m.resultado), cor: 1 }],
+        ...opcoesMes(meses),
+        series: [{ nome: 'Sobrou', valores: meses.map((m) => m.resultado), cor: 'bom' }], corPorValor: true,
         formato: 'moeda', altura: 200, vazio: 'Ainda não há movimento.',
       });
       G.barras($('gSemanas'), {
         rotulos: b.semanas.map((s) => s.rotulo), rotulosLongos: b.semanas.map((s) => 'Semana de ' + s.rotulo),
-        series: [{ nome: 'A pagar', valores: b.semanas.map((s) => s.valor), cor: 4 }], formato: 'moeda', altura: 180,
+        series: [{ nome: 'A pagar', valores: b.semanas.map((s) => s.valor), cor: 'ruim' }], formato: 'moeda', altura: 190,
         vazio: 'Nenhum boleto vence nas próximas 8 semanas.',
         dica: (i) => '<div style="color:var(--texto-suave)">' + b.semanas[i].quantidade + ' boleto(s)</div>',
       });
       $('gAtrasados').innerHTML = b.atrasados.quantidade
-        ? '<div class="nu-aviso">⚠ Além disso, <strong>' + b.atrasados.quantidade + ' boleto(s) atrasado(s)</strong> somando <strong>' + moeda(b.atrasados.valor) + '</strong>. <a href="/despesas.html">Ver boletos</a></div>'
+        ? '<div class="nu-aviso nu-aviso-ruim">✕ Além disso, <strong>' + b.atrasados.quantidade + ' boleto(s) atrasado(s)</strong> somando <strong>' + moeda(b.atrasados.valor) + '</strong>. <a href="/despesas.html">Ver boletos</a></div>'
         : '';
       G.ranking($('gFornecedores'), {
         itens: b.fornecedores.map((f) => ({ nome: f.nome, valor: f.valor, sub: f.boletos + ' boleto(s)', apagado: f.outros })),
-        formato: 'moeda', cor: 2, porcentagem: true, vazio: 'Nenhum boleto pago no período.',
+        formato: 'moeda', cor: 'ruim', porcentagem: true, vazio: 'Nenhum boleto pago no período.',
       });
-      G.ranking($('gTipoDespesa'), {
-        itens: [{ nome: 'Boletos de fornecedor', valor: p.despesas_boletos }, { nome: 'Despesas avulsas', valor: p.despesas_manuais }],
-        formato: 'moeda', cor: 2, porcentagem: true, vazio: 'Nenhuma despesa no período.',
+      G.rosca($('gTipoDespesa'), {
+        itens: [{ nome: 'Boletos de fornecedor', valor: p.despesas_boletos, cor: 2 }, { nome: 'Despesas avulsas', valor: p.despesas_manuais, cor: 4 }],
+        formato: 'moeda', manterOrdem: true, vazio: 'Nenhuma despesa no período.',
       });
     }
 
+    // ---------- ESTOQUE ----------
     function abaEstoque(e, d) {
       $('kEst').innerHTML =
         kpi('Patrimônio em estoque', moeda(e.valor_custo), e.unidades + ' peças, pelo preço de custo') +
@@ -386,13 +596,13 @@
         kpi('Dinheiro parado', moeda(e.parados.valor), e.parados.quantidade + ' peça(s) sem sair há ' + e.dias_parado + ' dias', { alerta: e.parados.quantidade > 0 });
       G.ranking($('gMaiores'), {
         itens: e.maiores.map((x) => ({ nome: x.nome, valor: x.valor, sub: [x.codigo, x.localizacao ? 'local ' + x.localizacao : null, x.estoque + ' un.'].filter(Boolean).join(' · ') })),
-        formato: 'moeda', cor: 1, vazio: 'Estoque vazio.',
+        formato: 'moeda', cor: 'neutro', vazio: 'Estoque vazio.',
       });
       $('explicaParado').textContent = 'Peças que não saíram em nenhuma OS ou venda nos últimos ' + e.dias_parado + ' dias' +
         (e.parados.quantidade > e.parados.itens.length ? ' (as ' + e.parados.itens.length + ' de maior valor).' : '.');
       G.ranking($('gParados'), {
         itens: e.parados.itens.map((x) => ({ nome: x.nome, valor: x.valor, sub: [x.codigo, x.localizacao ? 'local ' + x.localizacao : null, x.estoque + ' un.'].filter(Boolean).join(' · ') })),
-        formato: 'moeda', cor: 2, vazio: 'Nenhuma peça parada. Ótimo!',
+        formato: 'moeda', cor: 'atencao', vazio: 'Nenhuma peça parada. Ótimo!',
       });
       $('kAtencao').innerHTML =
         kpi('Abaixo do mínimo', d.itens_baixo_estoque, 'peças para repor', { alerta: d.itens_baixo_estoque > 0, href: '/itens.html?estoque_baixo=1' }) +
@@ -400,53 +610,54 @@
         kpi('Estoque negativo', e.negativos, 'saiu mais do que entrou: conferir', { alerta: e.negativos > 0, href: '/itens.html' });
     }
 
+    // ---------- SERVIÇOS ----------
     function abaServicos(n, prod, sv) {
       const o = n.os;
       const abertas = o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros;
+      const orc = sv.orcamentos;
       $('kServ').innerHTML =
         kpi('OS em aberto', abertas, 'agora, sem contar externos', { href: '/patio.html' }) +
         kpi('Concluídas', o.concluidas, 'no período' + (o.concluidas ? ' · ' + o.concluidas_no_dia + ' no mesmo dia' : '')) +
-        kpi('Tempo até concluir', o.tempo_medio_dias === null ? '—' : G.fmt(o.tempo_medio_dias, 'dias'), 'média, da abertura à conclusão') +
-        kpi('Orçamentos aprovados', sv.orcamentos.taxa_aprovacao === null ? '—' : sv.orcamentos.taxa_aprovacao + '%', sv.orcamentos.aprovados + ' aprovado(s), ' + sv.orcamentos.recusados + ' recusado(s)') +
+        kpi('Tempo até concluir', tempoLegivel(o.tempo_medio_horas), 'média, da abertura à conclusão') +
+        kpi('Orçamentos aprovados', orc.taxa_aprovacao === null ? '—' : orc.taxa_aprovacao + '%', orc.aprovados + ' aprovado(s), ' + orc.recusados + ' recusado(s)', { href: '#servicos/orcamentos' }) +
         kpi('Externos em aberto', o.externos_abertos, 'serviços fora da loja', { href: '/externos.html' });
       const meses = mesesUteis(n.mensal, ['os_abertas', 'os_concluidas']);
       G.barras($('gOsMes'), {
-        rotulos: meses.map((m) => m.rotulo),
-        series: [{ nome: 'Abertas', valores: meses.map((m) => m.os_abertas), cor: 1 }, { nome: 'Concluídas', valores: meses.map((m) => m.os_concluidas), cor: 3 }],
+        ...opcoesMes(meses),
+        series: [{ nome: 'Abertas', valores: meses.map((m) => m.os_abertas), cor: 'neutro' }, { nome: 'Concluídas', valores: meses.map((m) => m.os_concluidas), cor: 'bom' }],
         formato: 'numero', vazio: 'Ainda não há OS.',
       });
-      G.ranking($('gEtapas'), {
+      G.rosca($('gEtapas'), {
         itens: [
-          { nome: 'Recepção', valor: o.etapas.recepcao, sub: 'carro chegou, falta orçar' },
-          { nome: 'Orçamento', valor: o.etapas.orcamento, sub: 'esperando o cliente aprovar' },
-          { nome: 'Execução', valor: o.etapas.execucao, sub: 'serviço sendo feito' },
-          { nome: 'Outras', valor: o.etapas.outros },
+          { nome: 'Recepção', valor: o.etapas.recepcao, sub: 'carro chegou, falta orçar', cor: 1 },
+          { nome: 'Orçamento', valor: o.etapas.orcamento, sub: 'esperando o cliente aprovar', cor: 4 },
+          { nome: 'Execução', valor: o.etapas.execucao, sub: 'serviço sendo feito', cor: 3 },
+          { nome: 'Outras', valor: o.etapas.outros, cor: 'outro' },
         ],
-        formato: 'numero', cor: 1, porcentagem: true, vazio: 'Nenhuma OS em aberto.',
+        formato: 'numero', manterOrdem: true, centro: { valor: String(abertas), rotulo: 'em aberto' }, vazio: 'Nenhuma OS em aberto.',
       });
       G.ranking($('gServicos'), {
         itens: prod.por_servico.slice(0, 10).map((s) => ({ nome: s.nome, valor: s.quantidade, sub: moeda(s.valor_total) })),
-        formato: 'numero', cor: 3, vazio: 'Nenhum serviço feito no período.',
+        formato: 'numero', cor: 'neutro', vazio: 'Nenhum serviço feito no período.',
       });
       blocosNovosServicos(sv);
     }
 
-    // ----- Tempo no pátio, orçamentos e garantias (/api/analises/servicos) -----
     const ROTULO_ETAPA = { recepcao: 'recepção', orcamento: 'orçamento', execucao: 'execução' };
     const dataBr = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR'); };
     const isoBr = (s) => String(s || '').slice(0, 10).split('-').reverse().join('/');
     function blocosNovosServicos(sv) {
       const pt = sv.patio;
       $('explicaPatio').textContent = 'Carros entregues no período (' + pt.concluidos + '): quantos dias ficaram na loja' +
-        (pt.media_dias === null ? '.' : ', ' + G.fmt(pt.media_dias, 'dias') + ' em média.');
+        (pt.media_horas === null ? '.' : '. Em média: ' + tempoLegivel(pt.media_horas) + '.');
       G.ranking($('gPatio'), {
-        itens: pt.faixas.map((f, i) => ({ nome: f.nome, valor: f.quantidade, cor: i >= 3 ? 2 : i === 2 ? 4 : 3 })),
+        itens: pt.faixas.map((f, i) => ({ nome: f.nome, valor: f.quantidade, cor: i <= 1 ? 'bom' : i === 2 ? 'atencao' : 'ruim' })),
         formato: 'numero', porcentagem: true, vazio: 'Nenhum carro entregue no período.',
       });
       $('tituloParadosPatio').textContent = 'Carros parados há ' + pt.dias_parada + ' dias ou mais' + (pt.paradas.quantidade ? ' (' + pt.paradas.quantidade + ')' : '');
       G.ranking($('gParadosPatio'), {
         itens: pt.paradas.itens.map((p) => ({
-          nome: p.placa + ' · ' + p.codigo, valor: p.dias, cor: p.dias > 7 ? 2 : 4, href: '/os.html?id=' + p.id,
+          nome: p.placa + ' · ' + p.codigo, valor: p.dias, cor: p.dias > 7 ? 'ruim' : 'atencao', href: '/os.html?id=' + p.id,
           sub: [[p.marca, p.modelo].filter(Boolean).join(' '), p.cliente_nome, ROTULO_ETAPA[p.status] || p.status].filter(Boolean).join(' · '),
         })),
         formato: 'dias', vazio: 'Nenhum carro parado. Ótimo!',
@@ -456,6 +667,10 @@
       }
 
       const orc = sv.orcamentos;
+      $('resumoOrc').innerHTML = orc.taxa_aprovacao === null
+        ? 'nenhum orçamento respondido no período'
+        : '<strong>' + orc.taxa_aprovacao + '% aprovados</strong> · ' + orc.aprovados + ' aprovado(s), ' + orc.recusados + ' recusado(s)' +
+          (orc.recusados ? ' (' + moeda(orc.valor_recusados) + ' que não entraram)' : '');
       $('kOrc').innerHTML =
         kpi('Aprovados', orc.aprovados, moeda(orc.valor_aprovados)) +
         kpi('Recusados', orc.recusados, moeda(orc.valor_recusados) + ' que não entraram', { alerta: orc.recusados > 0 }) +
@@ -465,31 +680,34 @@
       const meses = mesesUteis(orc.mensal, ['aprovados', 'recusados']);
       G.barras($('gOrcMes'), {
         rotulos: meses.map((m) => m.rotulo),
-        series: [{ nome: 'Aprovados', valores: meses.map((m) => m.aprovados), cor: 3 }, { nome: 'Recusados', valores: meses.map((m) => m.recusados), cor: 2 }],
+        series: [{ nome: 'Aprovados', valores: meses.map((m) => m.aprovados), cor: 'bom' }, { nome: 'Recusados', valores: meses.map((m) => m.recusados), cor: 'ruim' }],
         formato: 'numero', altura: 200, vazio: 'Ainda não há orçamentos respondidos.',
       });
       G.ranking($('gRecusados'), {
         itens: orc.recusados_lista.map((x) => ({
-          nome: x.codigo + (x.placa ? ' · ' + x.placa : ''), valor: x.valor_total, cor: 2, href: '/os.html?id=' + x.id,
+          nome: x.codigo + (x.placa ? ' · ' + x.placa : ''), valor: x.valor_total, cor: 'ruim', href: '/os.html?id=' + x.id,
           sub: [x.cliente_nome, dataBr(x.orcamento_recusado_em)].filter(Boolean).join(' · '),
         })),
         formato: 'moeda', vazio: 'Nenhum orçamento recusado no período.',
       });
 
       const g = sv.garantias;
+      $('resumoGar').innerHTML = g.quantidade
+        ? '<strong>' + g.quantidade + ' volta(s) de garantia</strong> · ' + String(g.taxa_retorno).replace('.', ',') + '% das OS concluídas · peças gastas ' + moeda(g.custo_pecas)
+        : 'nenhuma volta de garantia no período';
       $('kGar').innerHTML =
         kpi('Voltas de garantia', g.quantidade, 'no período', { alerta: g.quantidade > 0 }) +
         kpi('Taxa de retorno', g.taxa_retorno === null ? '—' : String(g.taxa_retorno).replace('.', ',') + '%', 'das ' + g.os_concluidas + ' OS concluídas no período') +
         kpi('Peças gastas', moeda(g.custo_pecas), 'nas garantias, pelo custo' + (g.pecas_sem_custo ? ' (' + g.pecas_sem_custo + ' sem custo)' : ''));
       const porMotivo = (x) => [x.peca ? x.peca + ' defeito' : '', x.instalacao ? x.instalacao + ' instalação' : '', x.outro ? x.outro + ' outro' : ''].filter(Boolean).join(' · ');
-      G.ranking($('gGarMotivo'), {
+      G.rosca($('gGarMotivo'), {
         itens: g.por_motivo.map((m) => ({ nome: m.nome, valor: m.quantidade, cor: m.motivo === 'peca' ? 1 : m.motivo === 'instalacao' ? 2 : 4 })),
-        formato: 'numero', porcentagem: true, vazio: 'Nenhuma volta de garantia no período.',
+        formato: 'numero', manterOrdem: true, centro: { valor: String(g.quantidade), rotulo: 'voltas' }, vazio: 'Nenhuma volta de garantia no período.',
       });
-      G.ranking($('gGarPeca'), { itens: g.por_peca.map((x) => ({ nome: x.nome, valor: x.quantidade, sub: porMotivo(x) })), formato: 'numero', cor: 1, vazio: 'Nenhuma peça voltou.' });
-      G.ranking($('gGarForn'), { itens: g.por_fornecedor.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 1, vazio: 'Nenhum defeito de peça.' });
-      G.ranking($('gGarMarca'), { itens: g.por_marca.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 1, vazio: 'Nenhum defeito de peça.' });
-      G.ranking($('gGarFunc'), { itens: g.por_funcionario.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 2, vazio: 'Nenhum erro de instalação.' });
+      G.ranking($('gGarPeca'), { itens: g.por_peca.map((x) => ({ nome: x.nome, valor: x.quantidade, sub: porMotivo(x) })), formato: 'numero', cor: 'ruim', vazio: 'Nenhuma peça voltou.' });
+      G.ranking($('gGarForn'), { itens: g.por_fornecedor.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 'ruim', vazio: 'Nenhum defeito de peça.' });
+      G.ranking($('gGarMarca'), { itens: g.por_marca.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 'ruim', vazio: 'Nenhum defeito de peça.' });
+      G.ranking($('gGarFunc'), { itens: g.por_funcionario.map((x) => ({ nome: x.nome, valor: x.quantidade })), formato: 'numero', cor: 'ruim', vazio: 'Nenhum erro de instalação.' });
       $('gGarRecentes').innerHTML = g.recentes.length
         ? '<ul class="nu-lista">' + g.recentes.map((x) => '<li><a href="/os.html?id=' + x.id + '">' + esc(x.codigo) + '</a> <small>(da <a href="/os.html?id=' + x.origem_id + '">' + esc(x.origem_codigo) + '</a>)</small> · ' +
             esc(x.motivo_nome) + (x.item_nome ? ' · ' + esc(x.item_nome) : '') + '<small> · ' + dataBr(x.data_abertura) + '</small>' +
@@ -497,7 +715,16 @@
         : '<div class="gr-vazio">Nenhuma volta de garantia no período.</div>';
     }
 
-    // ----- Preço por fornecedor (/api/analises/precos-fornecedor) -----
+    // Partes que abrem e fecham (Orçamentos, Garantias): lembra a escolha.
+    document.querySelectorAll('details.nu-sec').forEach((d) => {
+      d.open = lerLocal('numeros-sec-' + d.dataset.sec, 'fechado') === 'aberto';
+      d.addEventListener('toggle', () => {
+        gravarLocal('numeros-sec-' + d.dataset.sec, d.open ? 'aberto' : 'fechado');
+        if (d.open) G.redesenhar(d);
+      });
+    });
+
+    // ---------- PREÇO POR FORNECEDOR ----------
     let precosPadrao = null;
     function mostrarDiferencas() {
       const p = precosPadrao;
@@ -505,7 +732,7 @@
       $('gPrecos').innerHTML = '<h4 class="nu-sub">Maior diferença de preço entre fornecedores (últimos 12 meses)</h4><div id="gDifPrecos"></div>';
       G.ranking($('gDifPrecos'), {
         itens: p.maiores_diferencas.map((x) => ({
-          nome: x.nome, valor: x.diferenca_pct, cor: 2,
+          nome: x.nome, valor: x.diferenca_pct, cor: 'atencao',
           sub: x.mais_barato + ' ' + moeda(x.preco_barato) + ' → ' + x.mais_caro + ' ' + moeda(x.preco_caro),
           href: '#preco-' + x.item_id,
         })),
@@ -576,7 +803,7 @@
     });
     document.addEventListener('click', (e) => { if (!e.target.closest('.nu-busca-preco')) $('sugPreco').classList.add('oculto'); });
 
-
+    // ---------- EQUIPE ----------
     let periodoAtual = null;
     function abaEquipe(prod) {
       const f = prod.por_funcionario.filter((x) => x.total_valor > 0).sort((a, b) => b.total_valor - a.total_valor);
@@ -588,7 +815,7 @@
         kpi('Peças', moeda(f.reduce((s, x) => s + x.pecas_valor, 0)), f.reduce((s, x) => s + x.pecas_quantidade, 0) + ' lançamento(s)') +
         kpi('Serviços', moeda(f.reduce((s, x) => s + x.servicos_valor, 0)), f.reduce((s, x) => s + x.servicos_quantidade, 0) + ' serviço(s)');
       G.empilhado($('gEquipe'), {
-        series: [{ nome: 'Peças', cor: 1 }, { nome: 'Serviços', cor: 3 }],
+        series: [{ nome: 'Peças', cor: 1 }, { nome: 'Serviços', cor: 5 }],
         itens: f.map((x) => ({ nome: x.nome, sub: x.cargo, partes: [x.pecas_valor, x.servicos_valor] })),
         formato: 'moeda', vazio: 'Ninguém lançou nada no período.',
       });
@@ -608,7 +835,7 @@
         (usarBarras ? G.barras : G.linha)($('gDia'), {
           rotulos: s.map((x) => brCurto(x.data)), rotulosLongos: s.map((x) => br(x.data)),
           series: usarBarras
-            ? [{ nome: 'Peças', valores: s.map((x) => x.pecas_valor), cor: 1 }, { nome: 'Serviços', valores: s.map((x) => x.servicos_valor), cor: 3 }]
+            ? [{ nome: 'Peças', valores: s.map((x) => x.pecas_valor), cor: 1 }, { nome: 'Serviços', valores: s.map((x) => x.servicos_valor), cor: 5 }]
             : [{ nome: 'Total', valores: s.map((x) => x.total_valor), cor: 1 }],
           formato: 'moeda', altura: 200, vazio: 'Nada lançado no período.',
         });
@@ -623,16 +850,33 @@
     // ---------- carregar ----------
     let estoqueCache = null;
     let ultimo = null; // o que está na tela agora (para a planilha)
+    function mostrarPeriodo(p, n) {
+      document.querySelectorAll('#periodo button').forEach((b) => b.classList.toggle('ativo',
+        b.dataset.p === escolha || (b.dataset.p === 'livre' && escolha === 'livre')));
+      $('livre').hidden = escolha !== 'livre';
+      if (escolha === 'livre') { $('livreDe').value = p.inicio; $('livreAte').value = p.fim; }
+      $('comparar').value = comparar;
+      const datas = p.inicio === p.fim ? br(p.inicio) : br(p.inicio) + ' a ' + br(p.fim);
+      let txt = '<strong>Mostrando:</strong> ' + esc(p.nome) + ' (' + datas + ')';
+      if (n) {
+        txt += ' · <strong>Comparando com:</strong> ' + intervalo(n.anterior.inicio, n.anterior.fim) +
+          ({ ano: ' (mesmas datas do ano passado)', mes: ' (os mesmos dias do mês anterior)', mes_inteiro: ' (o mês anterior inteiro)' }[n.comparar] || (n.dias === 1 ? ' (o dia anterior)' : ' (os ' + n.dias + ' dias logo antes)'));
+      }
+      if (/^mes:/.test(escolha)) txt += ' · <a href="#" id="voltarMes">voltar para este mês</a>';
+      $('mostrando').innerHTML = txt;
+      const v = $('voltarMes');
+      if (v) v.addEventListener('click', (e) => { e.preventDefault(); escolha = 'mes'; gravarLocal('numeros-periodo', escolha); carregar(); });
+      $('periodoImp').textContent = 'Período: ' + datas + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
     async function carregar() {
       const p = periodo(escolha);
       periodoAtual = p;
-      document.querySelectorAll('#periodo button').forEach((b) => b.classList.toggle('ativo', b.dataset.p === escolha));
-      $('datas').textContent = p.inicio === p.fim ? br(p.inicio) : br(p.inicio) + ' a ' + br(p.fim);
+      mostrarPeriodo(p, null);
       document.querySelector('main').classList.add('nu-carregando');
       try {
         const q = '?inicio=' + p.inicio + '&fim=' + p.fim;
         const [n, v, prod, dash, est, sv, precos] = await Promise.all([
-          api('/api/numeros' + q),
+          api('/api/numeros' + q + '&comparar=' + comparar),
           api('/api/analises/vendas' + q),
           api('/api/produtividade' + q),
           api('/api/dashboard'),
@@ -643,15 +887,18 @@
         estoqueCache = est;
         const primeiraVezPrecos = !precosPadrao;
         precosPadrao = precos;
+        ritmo = n.ritmo;
+        anteriorTxt = intervalo(n.anterior.inicio, n.anterior.fim);
         ultimo = { p, n, v, prod, est, dash, sv };
-        $('periodoImp').textContent = 'Período: ' + $('datas').textContent + ' · gerado em ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        mostrarPeriodo(p, n);
         $('mensagens').replaceChildren();
+        abaResumo(n, v, sv, est);
         abaVendas(n, v);
         abaFinanceiro(n);
         abaEstoque(est, dash);
         abaServicos(n, prod, sv);
-        if (primeiraVezPrecos) mostrarDiferencas();
         abaEquipe(prod);
+        if (primeiraVezPrecos) mostrarDiferencas();
       } catch (e) {
         // Fora do Modo Gerenciador o servidor recusa; a página já mostra o aviso.
         if (window.Gerente && !Gerente.ativo()) return;
@@ -662,15 +909,22 @@
     }
 
     // ---------- exportar ----------
-    // PDF: as 5 abas, uma por página (a tela volta ao normal depois).
+    // PDF: todas as abas, uma por página, com as partes recolhidas abertas.
     function nomeArquivo() { return 'Análises ' + (ultimo ? ultimo.p.inicio + ' a ' + ultimo.p.fim : ''); }
+    let estadoSecoes = null;
+    window.addEventListener('beforeprint', () => {
+      estadoSecoes = [...document.querySelectorAll('details.nu-sec')].map((d) => d.open);
+      document.querySelectorAll('details.nu-sec').forEach((d) => { d.open = true; });
+    });
     $('btnPdf').addEventListener('click', () => {
       document.body.classList.add('nu-imprimir-tudo');
+      document.querySelectorAll('details.nu-sec').forEach((d) => { d.open = true; });
       G.redesenhar();
       Exportar.pdf(nomeArquivo());
     });
     window.addEventListener('afterprint', () => {
       document.body.classList.remove('nu-imprimir-tudo');
+      if (estadoSecoes) document.querySelectorAll('details.nu-sec').forEach((d, i) => { d.open = estadoSecoes[i]; });
       G.redesenhar();
     });
     // Planilha: todos os números do período, uma tabela embaixo da outra.
@@ -678,17 +932,18 @@
       if (!ultimo) return;
       const { n, v, prod, est, dash, sv } = ultimo;
       const p = n.periodo, o = n.os, b = n.boletos;
+      const datas = br(ultimo.p.inicio) + ' a ' + br(ultimo.p.fim);
       Exportar.planilha(nomeArquivo(), [
-        { titulo: 'Análises · Auto Vidros Sport · período ' + $('datas').textContent },
+        { titulo: 'Análises · Auto Vidros Sport · período ' + datas + ' · comparado com ' + br(n.anterior.inicio) + ' a ' + br(n.anterior.fim) },
         { titulo: 'Resumo do período', colunas: ['', 'Valor'], linhas: [
           ['Faturamento (R$)', p.faturamento], ['Atendimentos', p.documentos], ['Ticket médio (R$)', v.ticket_medio],
-          ['Lucro nas peças (R$)', v.lucro_pecas], ['Despesas (R$)', p.despesas], ['Resultado (R$)', p.resultado],
-          ['Faturamento do período anterior (R$)', n.anterior.faturamento], ['Boletos atrasados (R$)', b.atrasados.valor],
+          ['Lucro nas peças (R$)', v.lucro_pecas], ['Despesas (R$)', p.despesas], ['O que sobrou (R$)', p.resultado],
+          ['Faturamento do período comparado (R$)', n.anterior.faturamento], ['Boletos atrasados (R$)', b.atrasados.valor],
           ['A receber de seguradoras (R$)', n.seguradoras.aReceber],
           ['OS em aberto', o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros], ['OS concluídas', o.concluidas],
-          ['Tempo médio até concluir (dias)', o.tempo_medio_dias],
+          ['Tempo médio até concluir (horas)', o.tempo_medio_horas],
         ] },
-        { titulo: 'Mês a mês', colunas: ['Mês', 'Faturamento (R$)', 'Despesas (R$)', 'Resultado (R$)', 'OS abertas', 'OS concluídas'],
+        { titulo: 'Mês a mês', colunas: ['Mês', 'Faturamento (R$)', 'Despesas (R$)', 'O que sobrou (R$)', 'OS abertas', 'OS concluídas'],
           linhas: n.mensal.map((m) => [m.rotulo, m.faturamento, m.despesas, m.resultado, m.os_abertas, m.os_concluidas]) },
         { titulo: 'Por tipo de atendimento', colunas: ['Tipo', 'Atendimentos', 'Valor (R$)'], linhas: v.por_tipo.map((x) => [x.tipo, x.quantidade, x.valor]) },
         { titulo: 'Formas de pagamento', colunas: ['Forma', 'Pagamentos', 'Valor (R$)'], linhas: v.formas.map((x) => [x.forma || 'Não informada', x.quantidade, x.valor]) },
@@ -729,33 +984,75 @@
       ]);
     });
 
+    // ---------- período: botões, datas livres, comparar ----------
     $('periodo').addEventListener('click', (e) => {
       const b = e.target.closest('[data-p]');
-      if (!b || b.dataset.p === escolha) return;
+      if (!b) return;
+      if (b.dataset.p === 'livre') {
+        $('livre').hidden = false;
+        const p = periodo(escolha);
+        $('livreDe').value = $('livreDe').value || p.inicio;
+        $('livreAte').value = $('livreAte').value || p.fim;
+        $('livreDe').focus();
+        return;
+      }
+      if (b.dataset.p === escolha) return;
       escolha = b.dataset.p;
-      try { localStorage.setItem('numeros-periodo', escolha); } catch { /* ok */ }
+      gravarLocal('numeros-periodo', escolha);
+      carregar();
+    });
+    $('btnLivre').addEventListener('click', () => {
+      const de = $('livreDe').value, ate = $('livreAte').value;
+      if (!de || !ate) { mostrarMensagem('Escolha as duas datas: De e Até.', 'erro'); return; }
+      if (de > ate) { mostrarMensagem('A data "De" é depois da data "Até".', 'erro'); return; }
+      if ((Date.parse(ate) - Date.parse(de)) / 86400000 > 366 * 5) { mostrarMensagem('Período grande demais (máximo 5 anos).', 'erro'); return; }
+      escolha = 'livre';
+      gravarLocal('numeros-periodo', escolha);
+      gravarLocal('numeros-de', de);
+      gravarLocal('numeros-ate', ate);
+      carregar();
+    });
+    $('comparar').addEventListener('change', () => {
+      comparar = $('comparar').value;
+      gravarLocal('numeros-comparar', comparar);
       carregar();
     });
 
-    // ---------- abas (lembradas no endereço: numeros.html#financeiro) ----------
-    function abrirAba(nome) {
-      if (!document.querySelector('[data-painel="' + nome + '"]')) nome = 'vendas';
+    // ---------- abas (lembradas no endereço: numeros.html#financeiro, #servicos/garantias) ----------
+    function abrirAba(destino) {
+      let [nome, sec] = String(destino || '').split('/');
+      if (!document.querySelector('[data-painel="' + nome + '"]')) nome = 'resumo';
       document.querySelectorAll('.nu-aba').forEach((b) => {
         b.classList.toggle('ativa', b.dataset.aba === nome);
         b.setAttribute('aria-selected', b.dataset.aba === nome);
       });
       document.querySelectorAll('.nu-painel').forEach((s) => { s.hidden = s.dataset.painel !== nome; });
       G.redesenhar(document.querySelector('[data-painel="' + nome + '"]'));
-      if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
+      if (sec) {
+        const alvo = $('sec-' + sec);
+        if (alvo) {
+          if (alvo.tagName === 'DETAILS') alvo.open = true;
+          setTimeout(() => { G.redesenhar(alvo); alvo.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+        }
+      }
+      if (location.hash !== '#' + destino) history.replaceState(null, '', '#' + (sec ? nome + '/' + sec : nome));
     }
     $('abas').addEventListener('click', (e) => {
       const b = e.target.closest('[data-aba]');
       if (b) abrirAba(b.dataset.aba);
     });
+    // Links internos (#vendas, #servicos/orcamentos) dos números do resumo.
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const destino = a.getAttribute('href').slice(1);
+      if (!/^(resumo|vendas|financeiro|estoque|servicos|equipe)(\/[a-z]+)?$/.test(destino)) return;
+      e.preventDefault();
+      abrirAba(destino);
+      if (!destino.includes('/')) window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
     window.addEventListener('hashchange', () => abrirAba(location.hash.slice(1)));
-    abrirAba(location.hash.slice(1) || 'vendas');
-    // numeros.html?imprimir: já abre no formato do PDF (as 5 abas), para testes.
-    if (new URLSearchParams(location.search).has('imprimir')) document.body.classList.add('nu-imprimir-tudo');
+    abrirAba(location.hash.slice(1) || 'resumo');
     carregar();
   </script>
 </body>

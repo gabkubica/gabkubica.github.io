@@ -3246,6 +3246,32 @@ a.a-caminho:hover { text-decoration: underline; }
 .gr-eixo { font-size: 11px; fill: var(--texto-suave); font-variant-numeric: tabular-nums; }
 .gr-barra { transition: opacity .12s; }
 .gr-foco .gr-barra:not(.gr-ativa) { opacity: .45; }
+/* Cores com significado (Análises, 2026-11-20): verde = dinheiro entrando ou
+   coisa boa; vermelho = saída ou problema; amarelo = atenção; cinza = só
+   quantidade (nem bom nem ruim). */
+:root { --cor-bom: var(--serie-3); --cor-ruim: var(--serie-2); --cor-atencao: var(--serie-4); --cor-neutro: #8a8f98; }
+[data-tema="escuro"] { --cor-neutro: #7d838c; }
+/* Número em cima da barra, mês que ainda não terminou e traço de comparação */
+.gr-valor { font-size: 11px; font-weight: 700; fill: var(--texto); font-variant-numeric: tabular-nums; }
+.gr-parcial { opacity: .95; }
+.gr-marcador { stroke: var(--texto); stroke-width: 2; stroke-dasharray: 5 3; }
+.gr-marcador-txt { font-size: 10px; fill: var(--texto-suave); }
+.gr-dica-acao { margin-top: 6px; font-size: 11px; color: var(--texto-suave); font-style: italic; }
+/* Rosca ("pizza"): o desenho e, ao lado, a lista com % e valor */
+.gr-rosca { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.gr-rosca svg { flex: none; }
+.gr-fatia { stroke: var(--card-bg); stroke-width: 2; transition: opacity .12s; }
+.gr-rosca svg:has(.gr-ativa) .gr-fatia:not(.gr-ativa) { opacity: .4; }
+.gr-rosca-num { font-size: 15px; font-weight: 800; fill: var(--texto); }
+.gr-rosca-rot { font-size: 10px; fill: var(--texto-suave); }
+.gr-rosca-lista { list-style: none; margin: 0; padding: 0; flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.gr-rosca-lista li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 3px 6px; border-radius: 6px; cursor: default; }
+.gr-rosca-lista li.gr-ativa { background: var(--tabela-hover); }
+.gr-rosca-lista i { width: 12px; height: 12px; border-radius: 3px; }
+.gr-rosca-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gr-rosca-nome small { display: block; color: var(--texto-suave); font-size: 11px; }
+.gr-rosca-lista b { font-variant-numeric: tabular-nums; }
+.gr-rosca-val { color: var(--texto-suave); font-variant-numeric: tabular-nums; text-align: right; min-width: 74px; }
 .gr-ponto { stroke: var(--card-bg); stroke-width: 2; }
 .gr-legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--texto-suave); margin: 0 0 8px; }
 .gr-legenda span { display: inline-flex; align-items: center; gap: 6px; }
@@ -3388,7 +3414,93 @@ a.a-caminho:hover { text-decoration: underline; }
   .nu-grade { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .nu-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
   .nu-kpi-val { font-size: 18px !important; }
+  .nu-barra-periodo, .nu-legenda-cores, .nu-sec-abrir { display: none !important; }
+  .nu-resumo { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .nu-res, .nu-atencao li { break-inside: avoid; box-shadow: none !important; }
+  .nu-res-ver { display: none; }
 }
+
+/* ===== Análises mais claras (2026-11-20) ===== */
+/* Período: botões, datas livres e "comparar com" numa faixa só */
+.nu-barra-periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 6px; }
+.nu-livre { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--borda); border-radius: 10px; background: var(--card-bg); }
+.nu-livre[hidden] { display: none; }
+.nu-livre label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.nu-livre input { width: auto; padding: 5px 8px; }
+.nu-livre button { padding: 6px 14px; }
+.nu-comparar { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.nu-comparar select { width: auto; padding: 5px 8px; font-size: 13px; }
+.nu-mostrando { margin: 0 0 12px; font-size: 13px; color: var(--texto-suave); line-height: 1.5; }
+.nu-mostrando strong { color: var(--texto); }
+/* Legenda das cores, logo abaixo das abas */
+.nu-legenda-cores { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -6px 0 14px; font-size: 12px; color: var(--texto-suave); }
+.nu-legenda-cores span { display: inline-flex; align-items: center; gap: 6px; }
+.nu-legenda-cores i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.nu-legenda-cores .c-bom { background: var(--cor-bom); }
+.nu-legenda-cores .c-ruim { background: var(--cor-ruim); }
+.nu-legenda-cores .c-atencao { background: var(--cor-atencao); }
+.nu-legenda-cores .c-neutro { background: var(--cor-neutro); }
+.nu-legenda-obs { font-style: italic; }
+.nu-aviso-aba { margin: 0 0 12px; font-size: 13px; color: var(--texto-suave); }
+.nu-aviso.nu-aviso-ruim { background: color-mix(in srgb, var(--cor-ruim) 14%, var(--card-bg)); }
+/* Texto do "mês que ainda não terminou" embaixo do gráfico */
+.nu-ritmo { margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: var(--texto-suave); }
+.nu-ritmo:empty { display: none; }
+.nu-ritmo strong { color: var(--texto); }
+/* Resumo: 8 números grandes, cada um com selo (ícone + palavra) */
+.nu-resumo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.nu-res { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--borda); border-left: 6px solid var(--cor-neutro);
+  border-radius: 12px; background: var(--card-bg); color: var(--texto); text-decoration: none; box-shadow: var(--sombra); transition: transform .1s; }
+.nu-res:hover { transform: translateY(-1px); color: var(--texto); }
+.nu-res-bom { border-left-color: var(--cor-bom); }
+.nu-res-ruim { border-left-color: var(--cor-ruim); }
+.nu-res-atencao { border-left-color: var(--cor-atencao); }
+.nu-res-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.nu-res-rot { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--texto-suave); }
+.nu-res-val { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.nu-res-sub { font-size: 13px; color: var(--texto-suave); flex: 1; }
+.nu-res-ver { font-size: 12px; font-weight: 700; color: var(--texto-suave); margin-top: 4px; }
+.nu-selo { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.nu-selo-bom { background: #dcfce7; color: #14532d; }
+.nu-selo-atencao { background: #fef3c7; color: #78350f; }
+.nu-selo-ruim { background: #fee2e2; color: #7f1d1d; }
+[data-tema="escuro"] .nu-selo-bom { background: #14532d; color: #bbf7d0; }
+[data-tema="escuro"] .nu-selo-atencao { background: #713f12; color: #fde68a; }
+[data-tema="escuro"] .nu-selo-ruim { background: #7f1d1d; color: #fecaca; }
+/* Resumo: "Precisa de atenção agora" */
+.nu-atencao { margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 12px; background: var(--card-bg); box-shadow: var(--sombra); }
+.nu-atencao h3 { margin: 0 0 8px; font-size: 16px; }
+.nu-atencao p { margin: 0; font-size: 14px; color: var(--texto-suave); }
+.nu-atencao ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nu-atencao li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; padding: 8px 10px; border-radius: 8px; }
+.nu-atencao li a { font-weight: 700; white-space: nowrap; }
+.nu-at-ico { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; }
+.nu-at-ruim { background: color-mix(in srgb, var(--cor-ruim) 12%, transparent); }
+.nu-at-ruim .nu-at-ico { background: var(--cor-ruim); color: #fff; }
+.nu-at-atencao { background: color-mix(in srgb, var(--cor-atencao) 14%, transparent); }
+.nu-at-atencao .nu-at-ico { background: var(--cor-atencao); color: #1f1300; }
+/* Partes que abrem e fecham (Serviços: Orçamentos, Garantias) */
+details.nu-sec { margin-top: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--card-bg); box-shadow: var(--sombra); }
+details.nu-sec > summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 14px 16px; cursor: pointer; }
+details.nu-sec > summary::-webkit-details-marker { display: none; }
+.nu-sec-tit { font-size: 16px; font-weight: 800; }
+.nu-sec-resumo { flex: 1 1 260px; font-size: 13px; color: var(--texto-suave); }
+.nu-sec-resumo strong { color: var(--texto); }
+.nu-sec-abrir::after { content: 'Abrir ▾'; display: inline-block; padding: 5px 12px; border: 1px solid var(--borda); border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--texto); }
+details.nu-sec[open] .nu-sec-abrir::after { content: 'Fechar ▴'; }
+.nu-sec-corpo { padding: 0 16px 16px; }
+.nu-sec-corpo .nu-explica { margin: 0 0 12px; font-size: 12px; color: var(--texto-suave); }
+.nu-cartao-topo a { white-space: nowrap; }
+@media (max-width: 1100px) { .nu-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .nu-res-val { font-size: 22px; }
+  .nu-res { padding: 12px; }
+  .nu-atencao li { grid-template-columns: 24px minmax(0, 1fr); }
+  .nu-atencao li a { grid-column: 2; }
+  .nu-barra-periodo { gap: 8px; }
+  .nu-comparar { flex-wrap: wrap; }
+}
+@media (max-width: 420px) { .nu-resumo { grid-template-columns: minmax(0, 1fr); } }
 
 /* Seguro na OS (os.html) */
 .sg-liga { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
