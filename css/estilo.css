@@ -4425,3 +4425,10 @@ button.marca-chip.oculto { display: none; }
   .la-marcas { grid-column: 2 / -1; }
 }
 .la-marcas { padding-bottom: 8px; }
+/* Todos os botões da linha da Conclusão com a MESMA altura, centralizados
+   (Pago por seguradora parecia mais baixo). */
+.dc-acoes button, .dc-acoes label.sg-liga {
+  height: 34px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  padding-top: 0; padding-bottom: 0; margin: 0; vertical-align: middle; line-height: 1; white-space: nowrap;
+}
+.dc-acoes .btn-vistoria svg { flex: none; }
