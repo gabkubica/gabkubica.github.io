@@ -4220,14 +4220,6 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 
 [data-tema="escuro"] .btn-mini.perigo:hover { background: #3a2020; }
 
-/* Busca com UMA caixa e texto de ajuda (2026-11-21). As caixas 2 e 3 ficam
-   escondidas: a busca já junta tudo, então várias palavras na primeira
-   caixa dão o mesmo resultado. */
-.busca-3linhas:has(.busca-extra),
-.planilha-toolbar .busca-3linhas:has(.busca-extra) { grid-template-columns: minmax(0, 1fr) !important; }
-input.busca-extra[hidden] { display: none !important; }
-input.busca-unica { font-size: 16px; }
-input.busca-unica::placeholder { color: var(--texto-suave); opacity: 1; }
 
 /* Pátio: a placa nunca é cortada ("MMP9N..."), o modelo do carro quebra a
    linha em vez de sumir com "...", e o selo do status não ganha "..." solto. */
