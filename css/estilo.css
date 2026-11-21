@@ -2885,23 +2885,12 @@ body:has(main > .ficha) { background: var(--mesa); }
 }
 .faixa-orcamento.oculto { display: none; }
 /* Para ninguém esquecer que está no modo orçamento (2026-11-18):
-   1) barra laranja listrada presa no alto da tela, sempre visível ao rolar;
+   1) (a barra listrada presa no alto foi tirada a pedido, 2026-11-21);
    2) ficha com listras bem leves no fundo;
    3) cada peça/serviço com a marca "orçamento" e borda tracejada;
    4) o total vira "Total do orçamento". */
 .selo-orcamento { display: inline-block; padding: 2px 9px; margin-right: 6px; border-radius: 4px; background: var(--orcamento); color: #fff; font-weight: 800; font-size: 12px; letter-spacing: .6px; }
 [data-tema="escuro"] .selo-orcamento { color: #1f1300; }
-body.em-orcamento { padding-top: 30px; }
-body.em-orcamento::before {
-  content: 'MODO ORÇAMENTO  ·  nada sai do estoque até aprovar';
-  position: fixed; top: 0; left: 0; right: 0; z-index: 60; height: 30px;
-  display: flex; align-items: center; justify-content: center;
-  font: 800 13px/1 'Segoe UI', Arial, sans-serif; letter-spacing: .8px; color: #fff; white-space: nowrap; overflow: hidden;
-  background: repeating-linear-gradient(-45deg, #c26a00 0 14px, #d9820f 14px 28px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
-}
-body.em-orcamento .os-outra.flutuando { top: 40px; }
-@media (max-width: 700px) { body.em-orcamento::before { content: 'MODO ORÇAMENTO · nada sai do estoque'; font-size: 12px; letter-spacing: .4px; } }
 .ficha.modo-orcamento {
   background-image: repeating-linear-gradient(-45deg, transparent 0 22px, color-mix(in srgb, var(--orcamento) 7%, transparent) 22px 44px);
 }
@@ -4281,11 +4270,11 @@ input.busca-unica::placeholder { color: var(--texto-suave); opacity: 1; }
 
 /* OS/venda/externo: o nome da peça ganha espaço (antes quebrava em 4 linhas
    enquanto Responsável e Assistente sobravam largos). */
-.tabela-linhas .col-qtd { width: 72px; }
-.tabela-linhas .col-preco { width: 158px; }
-.tabela-linhas .col-func { width: 160px; }
-.tabela-linhas .col-assist { width: 150px; }
-.tabela-linhas .col-remover { width: 84px; }
+.tabela-linhas .col-qtd { width: 64px; }
+.tabela-linhas .col-preco { width: 140px; }
+.tabela-linhas .col-func { width: 132px; }
+.tabela-linhas .col-assist { width: 132px; }
+.tabela-linhas .col-remover { width: 80px; }
 
 /* Celular — Itens (2026-11-21):
    - botões de cima numa faixa só, que rola de lado (antes eram 4 fileiras);
@@ -4321,4 +4310,16 @@ td.col-preco .ip-desc-selo { white-space: normal; }
 /* Tablet: coluna do código mais larga ("BC-LAV-ONIX" não quebra no meio). */
 @media (min-width: 701px) and (max-width: 1100px) {
   #corpoPecas tr, #corpoServicos tr { grid-template-columns: 112px 150px minmax(0, 1fr) minmax(0, 1fr) auto; padding-left: 8px; }
+}
+
+/* Nomes grandes (2026-11-21): na tabela de Itens o nome, a marca e o local
+   quebram linha e aparecem inteiros, em vez de ficarem cortados. */
+#tabelaItens tbody td.col-nome, #tabelaItens tbody td.col-marca, #tabelaItens tbody td.col-local {
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; cursor: default; line-height: 1.3;
+}
+/* OS/venda/externo: o código cabe numa linha e o nome ganha espaço. */
+@media (min-width: 1101px) {
+  .tabela-linhas { table-layout: fixed; }
+  .tabela-linhas th:first-child { width: 124px; }
+  #corpoPecas td.subtotal { white-space: nowrap; }
 }
