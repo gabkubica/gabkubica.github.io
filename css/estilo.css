@@ -4417,3 +4417,11 @@ button.marca-chip.oculto { display: none; }
 .dc-grupo label.sg-liga input { width: auto; margin: 0; }
 .dc-grupo label.sg-liga strong { color: inherit; }
 .la-marcas .grupo-retirada { border-left: 0; padding-left: 0; margin-left: 10px; }
+/* Linha do Atendente alinhada às colunas de cima e mais afastada da Conclusão */
+.linha-atendente { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--borda); }
+@media (min-width: 1101px) {
+  .linha-atendente { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: end; }
+  .la-campo { min-width: 0; }
+  .la-marcas { grid-column: 2 / -1; }
+}
+.la-marcas { padding-bottom: 8px; }
