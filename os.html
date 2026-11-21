@@ -53,13 +53,6 @@
           <span class="ficha-tipo">Ordem de serviço</span>
           <h1 class="ficha-numero"><span id="tituloNumero"></span></h1>
           <span id="statusBadge"></span>
-          <!-- Marcações discretas embaixo do nº da OS (2026-11-21). -->
-          <div class="ficha-marcas oculto" id="fichaMarcas">
-            <button id="btnClienteAvisado" class="marca-chip" type="button">Cliente avisado</button>
-            <span id="dataClienteAvisado" class="marcacao-data"></span>
-            <button id="btnOrcamentoAprovado" class="marca-chip" type="button">Orçamento aprovado</button>
-            <span id="dataOrcamentoAprovado" class="marcacao-data"></span>
-          </div>
         </div>
       </div>
 
@@ -78,6 +71,8 @@
             <button id="btnAssociarCliente" class="secundario" type="button">Adicionar cliente</button>
             <!-- Vistoria: fica colorido quando tem alguma anotação. -->
             <button id="btnVistoria" class="btn-vistoria" type="button"><svg class="ico-carro" viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 11.5V9l2-1 2.5-4.2c.4-.6 1-.8 1.7-.8h6.3c.7 0 1.3.3 1.7.9L19 8l2.6.8c.6.2.9.7.9 1.3v1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="6.5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 12h7" stroke="currentColor" stroke-width="1.6"/></svg><span id="vistoriaRotulo">Vistoria</span></button>
+            <!-- Seguro: marcar abre os campos logo abaixo (sem tópico próprio). -->
+            <label class="sg-liga oculto" id="sgLigaRotulo"><input type="checkbox" id="sgLigado"> Pago por <strong>seguradora</strong></label>
           </div>
           <div class="dc-grupo dc-imprimir">
             <button id="btnImprimir" class="azul" type="button">Imprimir PDF</button>
@@ -88,32 +83,10 @@
         <div id="vinculoCarro"></div>
         <!-- Garantias de peças já trocadas neste carro (ou cliente) -->
         <div id="boxGarantias"></div>
-        <div class="os-grid" style="margin-top:12px">
-          <div>
-            <label>Atendente</label>
-            <select id="atendente"><option value="">— sem atendente —</option></select>
-          </div>
-        </div>
-      </div>
-
-      <div class="os-secao">
-        <h2>Andamento</h2>
-        <div class="os-acoes">
-          <!-- Pátio: o cliente vem buscar o carro? (o mesmo da aba Pátio) -->
-          <span id="grupoRetirada" class="grupo-retirada">
-            <button id="btnVemBuscar" class="secundario" type="button">Vem buscar</button>
-            <button id="btnNaoVem" class="secundario" type="button">Não vem hoje</button>
-            <span id="dataRetirada" class="marcacao-data"></span>
-          </span>
-        </div>
-      </div>
-
-      <!-- Seguro: a seguradora (um cliente marcado como seguradora) e o nº do
-           sinistro. Ao concluir com a forma "Seguradora", a OS fica a receber
-           (Clientes > Seguradoras). -->
-      <div class="os-secao oculto" id="secaoSeguro">
-        <h2>Seguro</h2>
-        <label class="sg-liga"><input type="checkbox" id="sgLigado"> Serviço pago por <strong>seguradora</strong></label>
+        <!-- Seguro: a seguradora (um cliente marcado como seguradora) e o nº do
+             sinistro. Ao concluir com a forma "Seguradora", a OS fica a receber
+             (Clientes > Seguradoras). Só aparece com "Pago por seguradora" marcado. -->
+        <div class="oculto sg-bloco" id="secaoSeguro">
         <div id="sgCampos" class="oculto">
           <div class="os-grid" style="margin-top:10px">
             <div>
@@ -125,6 +98,26 @@
           <div id="sgStatus"></div>
           <div class="os-acoes"><button type="button" class="secundario" id="btnSalvarSeguro">Salvar seguro</button>
             <a href="/seguradoras.html" class="sg-link">O que as seguradoras devem →</a></div>
+        </div>
+        </div>
+        <!-- Atendente e andamento numa linha só (2026-11-21): cliente avisado,
+             orçamento aprovado e se o cliente vem buscar (o mesmo da aba Pátio). -->
+        <div class="linha-atendente">
+          <div class="la-campo">
+            <label>Atendente</label>
+            <select id="atendente"><option value="">— sem atendente —</option></select>
+          </div>
+          <div class="la-marcas">
+            <button id="btnClienteAvisado" class="marca-chip" type="button">Cliente avisado</button>
+            <span id="dataClienteAvisado" class="marcacao-data"></span>
+            <button id="btnOrcamentoAprovado" class="marca-chip" type="button">Orçamento aprovado</button>
+            <span id="dataOrcamentoAprovado" class="marcacao-data"></span>
+            <span id="grupoRetirada" class="grupo-retirada">
+              <button id="btnVemBuscar" class="secundario" type="button">Vem buscar</button>
+              <button id="btnNaoVem" class="secundario" type="button">Não vem hoje</button>
+              <span id="dataRetirada" class="marcacao-data"></span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -541,7 +534,6 @@
       document.getElementById('observacoes').value = os.observacoes || '';
       document.getElementById('observacoes').dataset.servidor = os.observacoes || '';
 
-      document.getElementById('fichaMarcas').classList.remove('oculto');
       atualizarMarcacao('btnClienteAvisado', 'dataClienteAvisado', os.cliente_avisado_em, 'Cliente avisado');
       atualizarMarcacao('btnOrcamentoAprovado', 'dataOrcamentoAprovado', os.orcamento_aprovado_em, 'Orçamento aprovado');
       atualizarRetirada(os);
@@ -631,9 +623,11 @@
       const sec = document.getElementById('secaoSeguro');
       // Venda no balcão e OS ainda não criada: sem seguro.
       const mostrar = !!osAtual.id && !osAtual.venda_balcao_id;
+      document.getElementById('sgLigaRotulo').classList.toggle('oculto', !mostrar);
       sec.classList.toggle('oculto', !mostrar);
       if (!mostrar) return;
       const ligado = !!osAtual.seguradora_id;
+      sec.classList.toggle('oculto', !ligado);
       document.getElementById('sgLigado').checked = ligado;
       document.getElementById('sgCampos').classList.toggle('oculto', !ligado);
       document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(osAtual.seguradora_id);
@@ -672,6 +666,7 @@
     }
     document.getElementById('sgLigado').addEventListener('change', async (e) => {
       if (e.target.checked) {
+        document.getElementById('secaoSeguro').classList.remove('oculto');
         document.getElementById('sgCampos').classList.remove('oculto');
         if (!seguradorasCache.length) await carregarSeguradoras();
         document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(document.getElementById('sgSeguradora').value);
@@ -680,6 +675,7 @@
         await salvarSeguro();
       } else {
         document.getElementById('sgCampos').classList.add('oculto');
+        document.getElementById('secaoSeguro').classList.add('oculto');
       }
     });
     document.getElementById('btnSalvarSeguro').addEventListener('click', () => salvarSeguro());

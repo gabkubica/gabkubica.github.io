@@ -7,6 +7,7 @@
 //   - Mensagem para o WhatsApp (texto pronto, dá para editar antes)
 //   - PDF do orçamento (para mandar ao cliente)
 //   - Aprovar orçamento: sai do modo e TODAS as peças saem do estoque.
+//   - Sair do modo orçamento: volta ao normal sem contar como aprovado.
 //   - Orçamento recusado: o cliente não quis. Fecha a OS (fica no histórico
 //     em vermelho; nada para devolver ao estoque). "Reabrir" volta ao orçamento.
 // Para ninguém esquecer que está no modo: faixa presa no alto da tela,
@@ -64,6 +65,7 @@
         '<button type="button" class="secundario" data-orc="pdf">PDF do orçamento</button>' +
         '<button type="button" class="sucesso" data-orc="aprovar">Aprovar orçamento</button>' +
         '<button type="button" class="perigo" data-orc="recusar">Orçamento recusado</button>' +
+        '<button type="button" class="secundario" data-orc="sair" title="Volta a ser uma OS normal, sem contar como orçamento aprovado">Sair do modo orçamento</button>' +
       '</div>';
     const conteudo = document.getElementById('conteudo');
     conteudo.insertBefore(faixa, conteudo.firstChild);
@@ -74,6 +76,7 @@
       if (b.dataset.orc === 'pdf') abrirPdf();
       if (b.dataset.orc === 'aprovar') aprovar();
       if (b.dataset.orc === 'recusar') recusar();
+      if (b.dataset.orc === 'sair') sair();
     });
 
     const dialogo = document.createElement('dialog');
@@ -162,6 +165,28 @@
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: false }),
       }));
       cfg.aoMudar(nova, 'Orçamento aprovado: peças baixadas do estoque.' + (nova.aviso ? ' ' + nova.aviso : ''),
+        nova.aviso ? 'erro' : 'ok');
+    } catch (e) {
+      cfg.aoMudar(null, e.message, 'erro');
+    }
+  }
+
+  // Sair do modo orçamento sem aprovar (ex.: ligou sem querer). A OS volta
+  // ao normal: as peças saem do estoque, mas não conta como "aprovado".
+  async function sair() {
+    const os = cfg.osAtual();
+    const pecas = os.pecas || [];
+    const avisos = await avisosDeEstoque(os);
+    let pergunta = 'Sair do modo orçamento?\n\nA OS volta ao normal' +
+      (pecas.length ? ' e as ' + pecas.length + ' peça(s) saem do estoque agora.' : '.') +
+      '\nIsso NÃO conta como orçamento aprovado.';
+    if (avisos.length) pergunta += '\n\nATENÇÃO, ESTOQUE VAI FICAR NEGATIVO:\n' + avisos.join('\n');
+    if (!confirm(pergunta)) return;
+    try {
+      const nova = await lerJson(await fetch('/api/ordens-servico/' + os.id + '/modo-orcamento', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: false, aprovado: false }),
+      }));
+      cfg.aoMudar(nova, 'Saiu do modo orçamento: a OS voltou ao normal.' + (nova.aviso ? ' ' + nova.aviso : ''),
         nova.aviso ? 'erro' : 'ok');
     } catch (e) {
       cfg.aoMudar(null, e.message, 'erro');
