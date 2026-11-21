@@ -19,6 +19,7 @@
   <script src="/js/os-cliente-carro.js"></script>
   <script src="/js/modo-orcamento.js"></script>
   <script src="/js/info-peca.js"></script>
+  <script src="/js/tabela-lancar.js"></script>
   <script src="/js/garantia-os.js"></script>
 </head>
 <body>
@@ -122,6 +123,7 @@
         </div>
         <div class="busca-acoes" style="margin-top:8px">
           <select id="responsavel"><option value="">— responsável (obrigatório) —</option></select>
+          <button id="btnTabelaInteira" class="azul" type="button" title="Abrir a tabela completa e lançar dali">Tabela inteira</button>
           <button id="btnBuscarItens" type="button">Buscar</button>
           <button id="btnLimparItens" class="secundario" type="button">Limpar</button>
         </div>
@@ -692,18 +694,17 @@
       const funcionarioId = document.getElementById('responsavel').value || null;
       if (!funcionarioId) {
         mostrarMensagem('Selecione o responsável antes de adicionar a peça ou o serviço.', 'erro');
-        return;
+        return false;
       }
       if (tipo === 'servico') {
-        await adicionarServico(refId);
-        return;
+        return adicionarServico(refId);
       }
       // Estoque vai ficar negativo? Pergunta ANTES (numa OS cancelada o
       // estoque não se mexe, então não há o que avisar).
       if ((!osAtual || osAtual.status !== 'cancelada' && !ModoOrcamento.ativo(osAtual)) &&
           !(await EstoqueAviso.confirmar(refId, 1))) {
         mostrarMensagem('Peça não lançada.', 'ok');
-        return;
+        return false;
       }
       try {
         await garantirOs();
@@ -721,8 +722,10 @@
         } else {
           mostrarMensagem('Peça adicionada.', 'ok');
         }
+        return true;
       } catch (e) {
         mostrarMensagem(e.message, 'erro');
+        return false;
       }
     }
 
@@ -742,8 +745,10 @@
         } else {
           mostrarMensagem('Serviço adicionado.', 'ok');
         }
+        return true;
       } catch (e) {
         mostrarMensagem(e.message, 'erro');
+        return false;
       }
     }
 
@@ -1012,6 +1017,18 @@
       document.getElementById('bi3').value = '';
       document.getElementById('resultados').classList.add('oculto');
       document.getElementById('resultados').replaceChildren();
+    });
+
+
+    // "Tabela inteira": lançar vendo a tabela completa (js/tabela-lancar.js).
+    document.getElementById('btnTabelaInteira').addEventListener('click', () => {
+      const resp = document.getElementById('responsavel');
+      if (!resp.value) {
+        mostrarMensagem('Escolha o responsável primeiro; depois abra a tabela inteira.', 'erro');
+        resp.focus();
+        return;
+      }
+      TabelaLancar.abrir({ servicos: true, lancar: (tipo, id) => adicionarLinha(tipo, id) });
     });
 
     document.getElementById('resultados').addEventListener('click', e => {

@@ -17,6 +17,7 @@
   <script src="/js/ponte-londrisoft.js" defer></script>
   <script src="/js/estoque-aviso.js"></script>
   <script src="/js/info-peca.js"></script>
+  <script src="/js/tabela-lancar.js"></script>
   <script src="/js/os-cliente-carro.js"></script>
 </head>
 <body>
@@ -82,6 +83,7 @@
         </div>
         <div class="busca-acoes" style="margin-top:8px">
           <button id="btnBuscarItens" type="button">Buscar</button>
+          <button id="btnTabelaInteira" class="azul" type="button" title="Abrir a tabela completa e lançar dali">Tabela inteira</button>
           <button id="btnLimparItens" class="secundario" type="button">Limpar</button>
         </div>
         <div id="resultados" class="busca-resultados oculto"></div>
@@ -458,7 +460,7 @@
       // Estoque vai ficar negativo? Pergunta ANTES (venda cancelada não mexe no estoque).
       if ((!vendaAtual || vendaAtual.status !== 'cancelada') && !(await EstoqueAviso.confirmar(itemId, 1))) {
         mostrarMensagem('Peça não lançada.', 'ok');
-        return;
+        return false;
       }
       try {
         await garantirVenda();
@@ -471,8 +473,10 @@
         renderLinhas();
         if (vendaAtual.aviso) mostrarMensagem(vendaAtual.aviso, 'erro');
         else mostrarMensagem('Peça adicionada.', 'ok');
+        return true;
       } catch (e) {
         mostrarMensagem(e.message, 'erro');
+        return false;
       }
     }
 
@@ -604,6 +608,12 @@
       document.getElementById('resultados').classList.add('oculto');
       document.getElementById('resultados').replaceChildren();
     });
+
+    // "Tabela inteira": lançar vendo a tabela completa (js/tabela-lancar.js).
+    document.getElementById('btnTabelaInteira').addEventListener('click', () => {
+      TabelaLancar.abrir({ servicos: false, lancar: (tipo, id) => adicionarPeca(id) });
+    });
+
     document.getElementById('resultados').addEventListener('click', e => {
       const item = e.target.closest('.resultado-item');
       if (item) adicionarPeca(item.dataset.id);

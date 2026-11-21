@@ -2739,7 +2739,7 @@ td.col-preco .in-preco { width: calc(100% - 38px); min-width: 70px; display: inl
 }
 body:has(main > .ficha) { background: var(--mesa); }
 .ficha {
-  max-width: 1120px;
+  max-width: 1320px;
   margin: 0 auto 24px;
   background: var(--papel);
   border: 1px solid var(--papel-linha);
@@ -4315,3 +4315,50 @@ td.col-preco .ip-desc-selo { white-space: normal; }
   .tabela-linhas th:first-child { width: 124px; }
   #corpoPecas td.subtotal { white-space: nowrap; }
 }
+
+/* ===== OS mais larga e organizada (2026-11-21) =====
+   Alto da ficha: "Cliente avisado" / "Orçamento aprovado".
+   Linha da Conclusão: trocar carro/cliente e vistoria à esquerda,
+   impressões à direita (cada uma com sua cor). */
+.ficha-marcas { margin: 4px 0 14px; }
+@media (min-width: 1101px) {
+  #dadosCarro { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  #dadosCarro { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+#dadosCarro > .dc-acoes { grid-column: 2 / -1; }
+@media (max-width: 1100px) { #dadosCarro > .dc-acoes { grid-column: 1 / -1; } }
+.dc-acoes { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.dc-grupo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dc-imprimir { margin-left: auto; }
+button.btn-ficha-papel { background: #0f766e; color: #fff; }
+button.btn-ficha-papel:hover { background: #115e59; }
+
+/* Janela "Tabela inteira" (js/tabela-lancar.js) */
+.tl-dialogo { width: min(1200px, 96vw); max-width: none; height: min(86vh, 900px); padding: 14px 16px; }
+.tl-dialogo[open] { display: flex; flex-direction: column; gap: 8px; }
+.tl-topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tl-topo h3 { margin: 0; font-size: 18px; }
+.tl-topo .tl-fechar { margin-left: auto; }
+.tl-abas { margin: 0; border: 0; }
+.tl-info { font-size: 13px; color: var(--texto-suave); }
+.tl-rolagem { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--borda); border-radius: 6px; }
+.tl-tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tl-tabela th { position: sticky; top: 0; z-index: 1; background: var(--tabela-cabecalho, var(--card-bg)); text-align: left; padding: 8px; border-bottom: 2px solid var(--borda); white-space: nowrap; }
+.tl-tabela td { padding: 6px 8px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+.tl-tabela tbody tr:hover td { background: var(--tabela-hover); }
+.tl-tabela .tl-cod { font-weight: 700; white-space: nowrap; }
+.tl-tabela .tl-nome { min-width: 220px; }
+.tl-tabela .tl-num { text-align: right; white-space: nowrap; }
+.tl-tabela td.tl-zero { color: #c0392b; font-weight: 700; }
+.tl-tabela tr.tl-lancado td { background: color-mix(in srgb, #16a34a 10%, transparent); }
+.tl-rodape { padding: 10px; text-align: center; font-size: 13px; color: var(--texto-suave); }
+@media (max-width: 700px) {
+  .tl-dialogo { width: 100vw; height: 100vh; max-height: none; border-radius: 0; padding: 10px; }
+  .tl-tabela { font-size: 13px; }
+  .tl-tabela .tl-nome { min-width: 160px; }
+}
+.tl-busca { flex: none; align-items: start; }
+.tl-busca input.busca { height: auto; min-height: 0; padding-top: 8px; padding-bottom: 8px; }
+.tl-topo, .tl-info, .tl-rodape { flex: none; }
