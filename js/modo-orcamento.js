@@ -48,7 +48,9 @@
     botao.className = 'btn-modo-orcamento secundario';
     botao.textContent = 'Modo orçamento';
     botao.title = 'As peças lançadas não saem do estoque até o orçamento ser aprovado';
-    doc.appendChild(botao);
+    // Ao lado do status; as marcações (cliente avisado...) ficam embaixo.
+    const marcas = doc.querySelector('.ficha-marcas');
+    if (marcas) doc.insertBefore(botao, marcas); else doc.appendChild(botao);
     botao.addEventListener('click', ligar);
 
     const faixa = document.createElement('div');

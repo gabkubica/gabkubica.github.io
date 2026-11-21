@@ -4320,7 +4320,6 @@ td.col-preco .ip-desc-selo { white-space: normal; }
    Alto da ficha: "Cliente avisado" / "Orçamento aprovado".
    Linha da Conclusão: trocar carro/cliente e vistoria à esquerda,
    impressões à direita (cada uma com sua cor). */
-.ficha-marcas { margin: 4px 0 14px; }
 @media (min-width: 1101px) {
   #dadosCarro { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
@@ -4362,3 +4361,28 @@ button.btn-ficha-papel:hover { background: #115e59; }
 .tl-busca { flex: none; align-items: start; }
 .tl-busca input.busca { height: auto; min-height: 0; padding-top: 8px; padding-bottom: 8px; }
 .tl-topo, .tl-info, .tl-rodape { flex: none; }
+
+/* Marcações discretas embaixo do nº da OS (2026-11-21, v2) */
+.ficha-marcas { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 8px; margin-top: 8px; }
+.ficha-marcas .marcacao-data { font-size: 11px; color: var(--texto-suave); margin: 0 4px 0 -4px; }
+.ficha-marcas .marcacao-data:empty { display: none; }
+button.marca-chip { background: transparent; color: var(--texto-suave); border: 1px solid var(--input-borda);
+  border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; line-height: 1.4; min-height: 0; }
+button.marca-chip:hover { background: var(--tabela-hover); color: var(--texto); }
+button.marca-chip.feito { background: #e8f5ec; color: #166534; border-color: #9fd5b0; }
+[data-tema="escuro"] button.marca-chip.feito { background: #12301c; color: #86efac; border-color: #2f6b45; }
+button.marca-chip.oculto { display: none; }
+
+/* Linha de botões do carro/cliente: compactos e alinhados */
+.dc-acoes button { padding: 7px 12px; font-size: 14px; min-height: 0; }
+.dc-acoes .btn-vistoria { padding-top: 6px; padding-bottom: 6px; }
+@media (max-width: 1100px) {
+  #dadosCarro > .dc-acoes { margin-top: 2px; }
+}
+@media (max-width: 700px) {
+  .ficha-marcas { justify-content: flex-start; }
+  .dc-acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dc-grupo { display: contents; }
+  .dc-acoes button { width: 100%; justify-content: center; }
+}
+@media (max-width: 1100px) { .dc-imprimir { margin-left: 0; } }
