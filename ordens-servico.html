@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script src="/demo/demo.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ordens de Serviço - Auto Vidros Sport</title>
+  <title>Ordens de serviço - Auto Vidros Sport</title>
   <link rel="stylesheet" href="/css/estilo.css">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
@@ -26,15 +26,16 @@
   </header>
 
   <main class="os-main">
+    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a></div>
     <div id="mensagens"></div>
 
     <div class="abas">
       <button class="aba ativa" data-aba="nova" type="button">Nova OS</button>
-      <button class="aba" data-aba="placa" type="button">Pesquisa por Placa</button>
+      <button class="aba" data-aba="placa" type="button">Pesquisa por placa</button>
       <button class="aba" data-aba="antiga" type="button">Consultar OS antiga</button>
     </div>
 
-    <!-- ============ Aba: Pesquisa por Placa ============ -->
+    <!-- ============ Aba: Pesquisa por placa ============ -->
     <section id="aba-placa" class="oculto">
       <div class="os-secao">
         <h2>Pesquisar veículo pela placa</h2>
@@ -66,9 +67,9 @@
       <div class="os-secao">
         <div class="planilha-toolbar" style="margin-bottom:0">
           <div class="busca-3linhas">
-            <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
-            <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
-            <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+            <input type="text" id="busca" class="busca busca-unica" placeholder="Procurar OS antiga: nome do cliente, placa ou nº da OS" aria-label="Procurar OS antiga: nome do cliente, placa ou nº da OS" autocomplete="off">
+            <input type="text" id="busca2" class="busca busca-extra" hidden placeholder="" autocomplete="off">
+            <input type="text" id="busca3" class="busca busca-extra" hidden placeholder="" autocomplete="off">
           </div>
           <div class="busca-acoes">
             <select id="filtroTipo">
@@ -247,7 +248,7 @@
     });
 
     // =====================================================
-    // Aba: Pesquisa por Placa
+    // Aba: Pesquisa por placa
     // =====================================================
     function renderRegistroVeiculo(placa) {
       document.getElementById('novaResultado').innerHTML = `

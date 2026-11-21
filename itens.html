@@ -25,11 +25,12 @@
   </header>
 
   <main class="planilha-main">
+    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a><h2>Itens</h2></div>
     <div class="planilha-toolbar">
       <div class="busca-3linhas">
-        <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
-        <input type="text" id="busca2" class="busca" placeholder="" autocomplete="off">
-        <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
+        <input type="text" id="busca" class="busca busca-unica" placeholder="Procurar: nome, código, marca, local ou nº da etiqueta (pode digitar várias palavras)" aria-label="Procurar: nome, código, marca, local ou nº da etiqueta (pode digitar várias palavras)" autocomplete="off">
+        <input type="text" id="busca2" class="busca busca-extra" hidden placeholder="" autocomplete="off">
+        <input type="text" id="busca3" class="busca busca-extra" hidden placeholder="" autocomplete="off">
       </div>
       <div class="busca-acoes">
         <button id="btnBuscar">Buscar</button>
@@ -342,9 +343,11 @@
     let ordemDirecao = 'desc';
 
     const LARGURAS_PADRAO = {
-      'codigo': '130px', 'nome': '460px', 'marca': '100px', 'estoque': '110px',
-      'preco': '90px', 'precoInst': '100px', 'local': '90px',
-      'conferencia': '160px', 'acoes': '130px',
+      // Nome sem largura fixa: fica com o espaço que sobra (assim nada passa
+      // da borda direita e código, marca e estoque não são cortados com '...').
+      'codigo': '150px', 'nome': '', 'marca': '120px', 'estoque': '150px',
+      'preco': '95px', 'precoInst': '105px', 'local': '80px',
+      'conferencia': '170px', 'acoes': '130px',
     };
     // Tablet em pé: larguras menores (o nome quebra linha), para caber sem rolar.
     if (window.innerWidth <= 900) {
@@ -420,7 +423,7 @@
       if (!item.a_caminho) return '';
       return ' <a class="a-caminho" href="/entrada-estoque.html" title="' + item.a_caminho +
         (item.a_caminho === 1 ? ' peça aguardando entrada' : ' peças aguardando entrada') +
-        ' (lançadas em boleto). Ainda não estão no saldo.">+' + item.a_caminho + '</a>';
+        ' (lançadas em boleto). Ainda não estão no saldo.">+' + item.a_caminho + ' a caminho</a>';
     }
 
     function badgeEstoque(item) {

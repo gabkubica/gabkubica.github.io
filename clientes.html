@@ -25,6 +25,7 @@
   </header>
 
   <main>
+    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a></div>
     <div class="abas">
       <a class="aba ativa" href="/clientes.html">Clientes</a>
       <a class="aba" href="/carros.html">Carros</a>
@@ -156,7 +157,7 @@
       lista.innerHTML = '<div style="margin-top:10px">' + carrosPendentes.map((c, i) => `
         <div class="cliente-selecionado" style="margin-bottom:6px">
           <span><strong>${escapeHtml(c.placa)}</strong> — ${escapeHtml(c.modelo)}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}${c.ano ? ' · ' + escapeHtml(c.ano) : ''}</span>
-          <button onclick="removerCarroPendente(${i})">Remover</button>
+          <button class="perigo btn-mini" type="button" onclick="removerCarroPendente(${i})">Remover</button>
         </div>`).join('') + '</div>';
     }
 

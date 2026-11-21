@@ -39,6 +39,13 @@
     botao.setAttribute('aria-label', texto);
   }
 
+  // Mensagens flutuantes (#mensagens, embaixo da tela): um toque fecha.
+  // Botões e links dentro da mensagem continuam funcionando normalmente.
+  document.addEventListener('click', (e) => {
+    const msg = e.target.closest && e.target.closest('#mensagens > div');
+    if (msg && !e.target.closest('button, a, input, select')) msg.remove();
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     const botao = document.getElementById('btnTema');
     if (!botao) return;

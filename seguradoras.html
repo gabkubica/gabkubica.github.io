@@ -62,6 +62,7 @@
        A seguradora é um cliente marcado como seguradora; a OS fica a receber
        quando é concluída com a forma "Seguradora". Servidor: src/routes/seguradoras.js. -->
   <main>
+    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a></div>
     <div class="abas">
       <a class="aba" href="/clientes.html">Clientes</a>
       <a class="aba" href="/carros.html">Carros</a>
@@ -202,7 +203,7 @@
             '<td>' + esc(o.sinistro || '—') + '</td>' +
             '<td class="num"><strong>' + moeda(o.valor) + '</strong></td><td>' + situacaoHtml(o) + '</td>' +
             '<td class="sem-imp num">' + (o.recebidoEm
-              ? '<button type="button" class="btn-mini" data-desfazer="' + o.id + '">Desfazer</button>'
+              ? '<button type="button" class="btn-mini secundario" data-desfazer="' + o.id + '">Desfazer</button>'
               : '<button type="button" class="btn-mini sucesso" data-receber="' + o.id + '">Recebido</button>') + '</td></tr>').join('') +
           '</tbody></table></div></div>';
       }).join('');

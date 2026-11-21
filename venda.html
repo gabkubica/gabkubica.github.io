@@ -16,6 +16,7 @@
   <script src="/js/gerente.js"></script>
   <script src="/js/ponte-londrisoft.js" defer></script>
   <script src="/js/estoque-aviso.js"></script>
+  <script src="/js/info-peca.js"></script>
   <script src="/js/os-cliente-carro.js"></script>
 </head>
 <body>
@@ -75,9 +76,9 @@
       <div class="os-secao">
         <h2>Adicionar peças</h2>
         <div class="busca-3linhas">
-          <input type="text" id="bi1" class="busca" placeholder="" autocomplete="off">
-          <input type="text" id="bi2" class="busca" placeholder="" autocomplete="off">
-          <input type="text" id="bi3" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi1" class="busca busca-unica" placeholder="Procurar peça: nome, código ou nº da etiqueta (pode digitar várias palavras)" aria-label="Procurar peça: nome, código ou nº da etiqueta (pode digitar várias palavras)" autocomplete="off">
+          <input type="text" id="bi2" class="busca busca-extra" hidden placeholder="" autocomplete="off">
+          <input type="text" id="bi3" class="busca busca-extra" hidden placeholder="" autocomplete="off">
         </div>
         <div class="busca-acoes" style="margin-top:8px">
           <button id="btnBuscarItens" type="button">Buscar</button>
@@ -350,10 +351,10 @@
       }
       tbody.innerHTML = v.pecas.map(p => `
         <tr data-id="${p.id}">
-          <td>${escapeHtml(p.codigo || '')}</td>
-          <td class="rolavel" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</td>
+          <td>${InfoPeca.codigo(p.item_id, p.codigo)}</td>
+          <td class="rolavel" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${InfoPeca.local(p.localizacao)}</td>
           <td class="col-qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
-          <td class="col-preco"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-preco"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}>${InfoPeca.desconto(p.preco_tabela, p.preco_unitario, editavel)}</td>
           <td class="subtotal">${formatarMoeda(p.subtotal)}</td>
           <td class="col-remover">${editavel ? `<button class="btn-mini perigo" data-acao="remover-peca" data-id="${p.id}" type="button">Remover</button>` : ''}</td>
         </tr>`).join('');
@@ -448,8 +449,8 @@
         <div class="resultado-item" data-id="${i.id}">
           <span class="etiqueta peca">peça</span>
           <span class="cod">${escapeHtml(i.codigo || '')}</span>
-          <span class="nome">${escapeHtml(i.nome)}</span>
-          <span class="preco">levar ${formatarMoeda(i.preco)} · estoque ${i.estoque}</span>
+          <span class="nome">${escapeHtml(i.nome)}${InfoPeca.linhaBusca(i)}</span>
+          <span class="preco">levar ${formatarMoeda(i.preco)}</span>
         </div>`).join('');
     }
 

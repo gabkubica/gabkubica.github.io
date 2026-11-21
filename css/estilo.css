@@ -475,6 +475,23 @@ tr:hover {
   margin-top: 10px;
 }
 
+/* Mensagens ("Peça adicionada.", erros): flutuam embaixo da tela, SEM
+   empurrar a página (2026-11-21). Antes elas entravam no alto e empurravam
+   tudo para baixo — e quando sumiam, tudo subia: no tablet, o toque seguinte
+   caía na linha errada da lista (lançava a peça errada ou nada).
+   Um toque na mensagem fecha (js/tema.js). */
+#mensagens { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 200;
+  width: min(560px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+#mensagens > div { margin: 0; pointer-events: auto; cursor: pointer; font-size: 15px; font-weight: 600; line-height: 1.4;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .3); animation: mensagem-entra .18s ease-out; }
+/* Mensagem verde sem botão some sozinha: o toque passa por ela e chega ao
+   botão que estiver embaixo (não atrapalha quem já vai tocar no próximo). */
+#mensagens > div.ok:not(:has(button, a)) { pointer-events: none; }
+#mensagens > div.ok::before { content: '✓  '; font-weight: 900; }
+#mensagens > div.erro::before { content: '✕  '; font-weight: 900; }
+@keyframes mensagem-entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media print { #mensagens { display: none !important; } }
+
 .oculto {
   display: none;
 }
@@ -2116,6 +2133,55 @@ textarea:focus {
   font-size: 13px;
   white-space: nowrap;
 }
+
+/* Peças na OS, externo e venda (js/info-peca.js, 2026-11-21) */
+/* Na busca: local, saldo e última conferência embaixo do nome */
+.ip-busca { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 3px; font-size: 12px; color: var(--texto-suave); font-weight: 400; }
+.ip-busca b { color: var(--texto); }
+.ip-saldo.ip-zero b { color: #b45309; }
+.ip-saldo.ip-neg b { color: #b91c1c; }
+[data-tema="escuro"] .ip-saldo.ip-zero b { color: #fbbf24; }
+[data-tema="escuro"] .ip-saldo.ip-neg b { color: #f87171; }
+.ip-caminho { color: #2563eb; }
+[data-tema="escuro"] .ip-caminho { color: #93c5fd; }
+/* Peça lançada: código que abre a ficha, local embaixo do nome */
+.ip-codigo { background: none; border: 0; padding: 0; color: var(--texto); font: inherit; font-weight: 700; text-decoration: underline dotted;
+  text-underline-offset: 3px; cursor: pointer; text-align: left; word-break: normal; overflow-wrap: anywhere; }
+.ip-codigo:hover { color: var(--vermelho); background: none; }
+.ip-local { display: block; font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+.ip-local b { color: var(--texto); }
+/* Ficha da peça */
+.ip-dialogo { width: min(560px, calc(100vw - 32px)); box-sizing: border-box; }
+.ip-titulo { margin: 0; font-size: 18px; }
+.ip-sub { margin: 4px 0 14px; font-size: 13px; color: var(--texto-suave); }
+.ip-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ip-campo { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 8px; }
+.ip-campo span { font-size: 12px; color: var(--texto-suave); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.ip-campo b { font-size: 16px; }
+.ip-campo b small { display: block; font-size: 12px; font-weight: 400; color: var(--texto-suave); }
+.ip-campo.ip-destaque b { font-size: 22px; }
+.ip-campo.ip-zero b { color: #b45309; }
+.ip-campo.ip-neg b { color: #b91c1c; }
+[data-tema="escuro"] .ip-campo.ip-zero b { color: #fbbf24; }
+[data-tema="escuro"] .ip-campo.ip-neg b { color: #f87171; }
+/* Desconto rápido: botão "%" ao lado do preço e selo do desconto */
+td.col-preco { white-space: nowrap; }
+td.col-preco .in-preco { width: calc(100% - 38px); min-width: 70px; display: inline-block; vertical-align: middle; }
+.ip-desc-btn { width: 32px; height: 32px; margin-left: 4px; padding: 0; border-radius: 8px; vertical-align: middle; font-weight: 800;
+  background: var(--card-bg); color: var(--texto); border: 1px solid var(--borda); }
+.ip-desc-btn:hover { border-color: var(--vermelho); color: var(--vermelho); background: var(--card-bg); }
+.ip-desc-selo { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: #15803d; white-space: normal; }
+.ip-desc-selo.ip-acima { color: var(--texto-suave); font-weight: 600; }
+[data-tema="escuro"] .ip-desc-selo { color: #4ade80; }
+.ip-desc-menu { position: absolute; z-index: 150; display: flex; flex-direction: column; gap: 4px; padding: 8px; min-width: 190px;
+  background: var(--card-bg); border: 1px solid var(--borda); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .25); }
+.ip-desc-menu[hidden] { display: none; }
+.ip-desc-tit { font-size: 12px; color: var(--texto-suave); font-weight: 600; padding: 2px 4px 6px; }
+.ip-desc-menu button { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; font-size: 15px;
+  background: var(--fundo); color: var(--texto); border: 1px solid var(--borda); border-radius: 8px; font-weight: 800; }
+.ip-desc-menu button:hover { border-color: var(--vermelho); background: var(--fundo); color: var(--texto); }
+.ip-desc-menu button small { font-weight: 600; color: var(--texto-suave); font-size: 13px; }
+.ip-desc-menu .ip-desc-volta { font-weight: 600; }
 
 .etiqueta {
   display: inline-block;
@@ -4160,4 +4226,122 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 @media (max-width: 600px) {
   .dlg-vistoria { width: calc(100vw - 8px); padding: 12px 10px; }
   .vs-desenho { padding: 0; }
+}
+
+/* ===== Cores dos botões: uma regra só (2026-11-21) =====
+   azul (padrão, sem classe, ou .azul) = abrir, ver, buscar
+   verde (.sucesso)                     = criar, salvar, confirmar
+   vermelho (.perigo)                   = só apagar, cancelar, recusar
+   claro com contorno (.secundario)     = o resto (voltar, limpar, imprimir...)
+   Botões pequenos das linhas (.btn-mini): com contorno, para a tabela não
+   virar um mar de cores; só o verde (ex.: "Dar entrada") fica cheio. */
+button { background: #2563eb; }
+button:hover { background: #1d4ed8; }
+button.secundario, a.secundario { background: var(--card-bg); color: var(--texto); border: 1px solid var(--input-borda); }
+button.secundario:hover, a.secundario:hover { background: var(--tabela-hover); color: var(--texto); border-color: var(--texto-suave); }
+.btn-mini:not(.sucesso):not(.perigo) { background: var(--card-bg); color: var(--link); border: 1px solid var(--input-borda); }
+/* Botões das linhas de Clientes/Carros/Funcionários (td.acoes): mesmo contorno. */
+td.acoes button:not(.sucesso):not(.perigo) { background: var(--card-bg); color: var(--link); border: 1px solid var(--input-borda); }
+td.acoes button:not(.sucesso):not(.perigo):hover { background: var(--tabela-hover); border-color: var(--link); }
+td.acoes button.perigo { background: var(--card-bg); color: #b3352b; border: 1px solid #e0a5a0; }
+[data-tema="escuro"] td.acoes button.perigo { color: #f2a597; border-color: #7a3a33; }
+.btn-mini.secundario:not(.sucesso):not(.perigo) { color: var(--texto); }
+.btn-mini:not(.sucesso):not(.perigo):hover { background: var(--tabela-hover); border-color: var(--link); }
+.btn-mini.perigo { background: var(--card-bg); color: #b3352b; border: 1px solid #e0a5a0; }
+.btn-mini.perigo:hover { background: #fdecea; color: #92291f; }
+[data-tema="escuro"] .btn-mini.perigo { color: #f2a597; border-color: #7a3a33; }
+[data-tema="escuro"] .btn-mini.perigo:hover { background: #3a2020; }
+
+/* Busca com UMA caixa e texto de ajuda (2026-11-21). As caixas 2 e 3 ficam
+   escondidas: a busca já junta tudo, então várias palavras na primeira
+   caixa dão o mesmo resultado. */
+.busca-3linhas:has(.busca-extra),
+.planilha-toolbar .busca-3linhas:has(.busca-extra) { grid-template-columns: minmax(0, 1fr) !important; }
+input.busca-extra[hidden] { display: none !important; }
+input.busca-unica { font-size: 16px; }
+input.busca-unica::placeholder { color: var(--texto-suave); opacity: 1; }
+
+/* Pátio: a placa nunca é cortada ("MMP9N..."), o modelo do carro quebra a
+   linha em vez de sumir com "...", e o selo do status não ganha "..." solto. */
+.patio-tabela td.pt-placa { overflow: visible; text-overflow: clip; white-space: nowrap; }
+.patio-tabela td.pt-status { overflow: visible; text-overflow: clip; white-space: normal; }
+.patio-tabela td.pt-status .status-os, .patio-tabela td.pt-status .tag-garantia { white-space: nowrap; display: inline-block; margin: 2px 0; }
+.patio-tabela td.pt-veiculo { white-space: normal; overflow: visible; }
+
+/* Itens: a coluna Estoque quebra a linha ("24 +10 a caminho OK") em vez de
+   cortar com "..." */
+#tabelaItens td.col-estoque { white-space: normal; overflow: visible; }
+#tabelaItens td.col-codigo { overflow-wrap: anywhere; white-space: normal; }
+
+/* Topo das telas: "← Painel" sempre no mesmo lugar (2026-11-21) */
+.topo-pagina { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.topo-pagina h2 { margin: 0; font-size: 22px; }
+.btn-voltar { background: var(--card-bg); color: var(--texto); border: 1px solid var(--input-borda); }
+.btn-voltar:hover { border-color: var(--texto-suave); color: var(--texto); background: var(--tabela-hover); }
+
+/* Painel: grupos lado a lado e um ícone em cada botão (2026-11-21) */
+.painel-setores { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 18px 24px; align-items: start; }
+.painel-setores .setor { margin-bottom: 0; }
+.painel-setores .modulos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.painel-setores .modulo { flex: none; min-height: 66px; justify-content: flex-start; gap: 10px; padding: 10px 12px; text-align: left; font-size: 15px; line-height: 1.2; }
+.mod-ico { width: 30px; height: 30px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
+.painel-setores .modulo span { min-width: 0; }
+@media (max-width: 700px) {
+  .painel-setores { grid-template-columns: minmax(0, 1fr); }
+  .painel-setores .modulos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .painel-setores .modulo { min-height: 60px; font-size: 14px; gap: 8px; padding: 10px 12px; }
+  .mod-ico { width: 24px; height: 24px; }
+}
+
+/* Celular: a faixa do gerente cabe numa linha quando dá (os botões só descem
+   para a 2ª linha se faltar espaço — continuam todos à vista). */
+@media (max-width: 640px) {
+  html[data-gerente="sim"] .barra-gerente .faixa-acoes { flex-basis: auto; margin-left: auto; }
+  html[data-gerente="sim"] .barra-gerente .faixa-btn { padding: 3px 7px; font-size: 12px; }
+  html[data-gerente="sim"] .barra-gerente .faixa-tempo { font-size: 11px; }
+  header { padding-top: 8px; padding-bottom: 8px; }
+}
+
+/* OS/venda/externo: o nome da peça ganha espaço (antes quebrava em 4 linhas
+   enquanto Responsável e Assistente sobravam largos). */
+.tabela-linhas .col-qtd { width: 72px; }
+.tabela-linhas .col-preco { width: 158px; }
+.tabela-linhas .col-func { width: 160px; }
+.tabela-linhas .col-assist { width: 150px; }
+.tabela-linhas .col-remover { width: 84px; }
+
+/* Celular — Itens (2026-11-21):
+   - botões de cima numa faixa só, que rola de lado (antes eram 4 fileiras);
+   - cada peça num cartão baixo: código e estoque, nome, depois marca/preços
+     e local/conferência (cabem umas 7 peças por tela, antes eram 4). */
+@media (max-width: 700px) {
+  .planilha-toolbar .busca-acoes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .planilha-toolbar .busca-acoes::-webkit-scrollbar { display: none; }
+  .planilha-toolbar .busca-acoes > * { flex: none; white-space: nowrap; }
+  #tabelaItens.cel-cartoes tbody tr {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: "cod cod est" "nome nome nome" "marca preco inst" "local conf conf";
+    gap: 4px 10px; padding: 8px 10px; margin-bottom: 8px;
+  }
+  #tabelaItens.cel-cartoes tbody td.col-codigo { grid-area: cod; grid-column: auto; }
+  #tabelaItens.cel-cartoes tbody td.col-nome { grid-area: nome; grid-column: auto; font-size: 15px; font-weight: 600; }
+  #tabelaItens.cel-cartoes tbody td.col-estoque { grid-area: est; text-align: right !important; }
+  #tabelaItens.cel-cartoes tbody td.col-marca { grid-area: marca; }
+  #tabelaItens.cel-cartoes tbody td.col-preco { grid-area: preco; }
+  #tabelaItens.cel-cartoes tbody td.col-precoInst { grid-area: inst; }
+  #tabelaItens.cel-cartoes tbody td.col-local { grid-area: local; }
+  #tabelaItens.cel-cartoes tbody td.col-conferencia { grid-area: conf; }
+  #tabelaItens.cel-cartoes tbody td.col-codigo::before,
+  #tabelaItens.cel-cartoes tbody td.col-nome::before,
+  #tabelaItens.cel-cartoes tbody td.col-estoque::before { content: none; display: none; }
+  #tabelaItens.cel-cartoes tbody td.col-acoes { display: none; }
+}
+
+/* Celular/tablet: o botão "%" do desconto fica AO LADO do preço, não embaixo. */
+td.col-preco:has(.ip-desc-btn) { white-space: nowrap; }
+td.col-preco:has(.ip-desc-btn) .in-preco { width: calc(100% - 40px) !important; min-width: 0; display: inline-block; }
+td.col-preco .ip-desc-selo { white-space: normal; }
+/* Tablet: coluna do código mais larga ("BC-LAV-ONIX" não quebra no meio). */
+@media (min-width: 701px) and (max-width: 1100px) {
+  #corpoPecas tr, #corpoServicos tr { grid-template-columns: 112px 150px minmax(0, 1fr) minmax(0, 1fr) auto; padding-left: 8px; }
 }

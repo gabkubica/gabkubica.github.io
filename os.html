@@ -18,6 +18,7 @@
   <script src="/js/estoque-aviso.js"></script>
   <script src="/js/os-cliente-carro.js"></script>
   <script src="/js/modo-orcamento.js"></script>
+  <script src="/js/info-peca.js"></script>
   <script src="/js/garantia-os.js"></script>
   <script src="/js/carro-desenho.js"></script>
 </head>
@@ -126,9 +127,9 @@
       <div class="os-secao">
         <h2>Adicionar peças e serviços</h2>
         <div class="busca-3linhas">
-          <input type="text" id="bi1" class="busca" placeholder="" autocomplete="off">
-          <input type="text" id="bi2" class="busca" placeholder="" autocomplete="off">
-          <input type="text" id="bi3" class="busca" placeholder="" autocomplete="off">
+          <input type="text" id="bi1" class="busca busca-unica" placeholder="Procurar peça ou serviço: nome, código ou nº da etiqueta (pode digitar várias palavras)" aria-label="Procurar peça ou serviço: nome, código ou nº da etiqueta (pode digitar várias palavras)" autocomplete="off">
+          <input type="text" id="bi2" class="busca busca-extra" hidden placeholder="" autocomplete="off">
+          <input type="text" id="bi3" class="busca busca-extra" hidden placeholder="" autocomplete="off">
         </div>
         <div class="busca-acoes" style="margin-top:8px">
           <select id="responsavel"><option value="">— responsável (obrigatório) —</option></select>
@@ -333,7 +334,8 @@
       const marcado = !!valor;
       btn.classList.toggle('sucesso', marcado);
       btn.classList.toggle('secundario', !marcado);
-      btn.textContent = (marcado ? '✓ ' : '') + rotulo;
+      // Cara de caixinha de marcar: ☐ vazio, ✓ marcado (verde).
+      btn.textContent = (marcado ? '✓ ' : '☐ ') + rotulo;
       btn.title = marcado ? 'Clique para desmarcar' : 'Clique para marcar';
       span.textContent = marcado ? formatarData(valor) : '';
     }
@@ -565,10 +567,10 @@
       }
       tbody.innerHTML = osAtual.pecas.map(p => `
         <tr data-id="${p.id}">
-          <td data-label="Código">${escapeHtml(p.codigo || '')}</td>
-          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${p.garantia_meses ? '<small class="gar-peca">garantia ' + (Number(p.garantia_meses) === 12 ? '1 ano' : p.garantia_meses + ' meses') + '</small>' : ''}</td>
+          <td data-label="Código">${InfoPeca.codigo(p.item_id, p.codigo)}</td>
+          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${InfoPeca.local(p.localizacao)}${p.garantia_meses ? '<small class="gar-peca">garantia ' + (Number(p.garantia_meses) === 12 ? '1 ano' : p.garantia_meses + ' meses') + '</small>' : ''}</td>
           <td class="col-qtd" data-label="Qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
-          <td class="col-preco" data-label="Preço unit. (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-preco" data-label="Preço unit. (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}>${InfoPeca.desconto(p.preco_tabela, p.preco_unitario, editavel)}</td>
           <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.funcionario_id, '— não informado —')}</select></td>
           <td class="col-assist" data-label="Assistente"><select class="in-assist" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.assistente_id, '— sem assistente —')}</select></td>
           <td class="subtotal" data-label="Subtotal">${formatarMoeda(p.subtotal)}</td>
@@ -587,7 +589,7 @@
         <tr data-id="${s.id}">
           <td data-label="Código">${escapeHtml(s.codigo || '')}</td>
           <td class="rolavel" data-label="Serviço" title="${escapeHtml(s.nome)}">${escapeHtml(s.nome)}</td>
-          <td class="col-preco" data-label="Valor (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(s.valor).toFixed(2)}" ${editavel ? '' : 'disabled'}></td>
+          <td class="col-preco" data-label="Valor (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(s.valor).toFixed(2)}" ${editavel ? '' : 'disabled'}>${InfoPeca.desconto(s.valor_tabela, s.valor, editavel)}</td>
           <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(s.funcionario_id, '— não informado —')}</select></td>
           <td class="col-assist" data-label="Assistente"><select class="in-assist" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(s.assistente_id, '— sem assistente —')}</select></td>
           <td class="col-remover">${editavel ? `<button class="btn-mini perigo" data-acao="remover-servico" data-id="${s.id}" type="button">Remover</button>` : ''}</td>
@@ -825,7 +827,7 @@
       }
 
       const lista = [
-        ...itens.map(i => ({ tipo: 'peca', id: i.id, codigo: i.codigo, nome: i.nome, preco: i.preco, preco_inst: i.preco_com_instalacao })),
+        ...itens.map(i => ({ tipo: 'peca', id: i.id, codigo: i.codigo, nome: i.nome, preco: i.preco, preco_inst: i.preco_com_instalacao, info: i })),
         ...servicos.map(s => ({ tipo: 'servico', id: s.id, codigo: s.codigo, nome: s.nome, valor: s.valor_padrao })),
       ].sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
 
@@ -839,7 +841,7 @@
           return `<div class="resultado-item" data-tipo="peca" data-id="${r.id}">
             <span class="etiqueta peca">peça</span>
             <span class="cod">${escapeHtml(r.codigo || '')}</span>
-            <span class="nome">${escapeHtml(r.nome)}</span>
+            <span class="nome">${escapeHtml(r.nome)}${InfoPeca.linhaBusca(r.info)}</span>
             <span class="preco">inst. ${formatarMoeda(r.preco_inst)} · levar ${formatarMoeda(r.preco)}</span>
           </div>`;
         }
