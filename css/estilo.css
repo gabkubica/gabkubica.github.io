@@ -2148,8 +2148,9 @@ textarea:focus {
 .ip-codigo { background: none; border: 0; padding: 0; color: var(--texto); font: inherit; font-weight: 700; text-decoration: underline dotted;
   text-underline-offset: 3px; cursor: pointer; text-align: left; word-break: normal; overflow-wrap: anywhere; }
 .ip-codigo:hover { color: var(--vermelho); background: none; }
-.ip-local { display: block; font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+.ip-local { display: block; font-size: 13px; color: var(--texto-suave); margin-top: 2px; }
 .ip-local b { color: var(--texto); }
+.ip-local b.ip-saldo-zero { color: #c0392b; }
 /* Ficha da peça */
 .ip-dialogo { width: min(560px, calc(100vw - 32px)); box-sizing: border-box; }
 .ip-titulo { margin: 0; font-size: 18px; }
@@ -4228,28 +4229,6 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .vs-desenho { padding: 0; }
 }
 
-/* ===== Cores dos botões: uma regra só (2026-11-21) =====
-   azul (padrão, sem classe, ou .azul) = abrir, ver, buscar
-   verde (.sucesso)                     = criar, salvar, confirmar
-   vermelho (.perigo)                   = só apagar, cancelar, recusar
-   claro com contorno (.secundario)     = o resto (voltar, limpar, imprimir...)
-   Botões pequenos das linhas (.btn-mini): com contorno, para a tabela não
-   virar um mar de cores; só o verde (ex.: "Dar entrada") fica cheio. */
-button { background: #2563eb; }
-button:hover { background: #1d4ed8; }
-button.secundario, a.secundario { background: var(--card-bg); color: var(--texto); border: 1px solid var(--input-borda); }
-button.secundario:hover, a.secundario:hover { background: var(--tabela-hover); color: var(--texto); border-color: var(--texto-suave); }
-.btn-mini:not(.sucesso):not(.perigo) { background: var(--card-bg); color: var(--link); border: 1px solid var(--input-borda); }
-/* Botões das linhas de Clientes/Carros/Funcionários (td.acoes): mesmo contorno. */
-td.acoes button:not(.sucesso):not(.perigo) { background: var(--card-bg); color: var(--link); border: 1px solid var(--input-borda); }
-td.acoes button:not(.sucesso):not(.perigo):hover { background: var(--tabela-hover); border-color: var(--link); }
-td.acoes button.perigo { background: var(--card-bg); color: #b3352b; border: 1px solid #e0a5a0; }
-[data-tema="escuro"] td.acoes button.perigo { color: #f2a597; border-color: #7a3a33; }
-.btn-mini.secundario:not(.sucesso):not(.perigo) { color: var(--texto); }
-.btn-mini:not(.sucesso):not(.perigo):hover { background: var(--tabela-hover); border-color: var(--link); }
-.btn-mini.perigo { background: var(--card-bg); color: #b3352b; border: 1px solid #e0a5a0; }
-.btn-mini.perigo:hover { background: #fdecea; color: #92291f; }
-[data-tema="escuro"] .btn-mini.perigo { color: #f2a597; border-color: #7a3a33; }
 [data-tema="escuro"] .btn-mini.perigo:hover { background: #3a2020; }
 
 /* Busca com UMA caixa e texto de ajuda (2026-11-21). As caixas 2 e 3 ficam
@@ -4276,8 +4255,6 @@ input.busca-unica::placeholder { color: var(--texto-suave); opacity: 1; }
 /* Topo das telas: "← Painel" sempre no mesmo lugar (2026-11-21) */
 .topo-pagina { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .topo-pagina h2 { margin: 0; font-size: 22px; }
-.btn-voltar { background: var(--card-bg); color: var(--texto); border: 1px solid var(--input-borda); }
-.btn-voltar:hover { border-color: var(--texto-suave); color: var(--texto); background: var(--tabela-hover); }
 
 /* Painel: grupos lado a lado e um ícone em cada botão (2026-11-21) */
 .painel-setores { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 18px 24px; align-items: start; }

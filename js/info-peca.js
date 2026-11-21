@@ -5,7 +5,7 @@
 //                                     conferiu por último
 //   InfoPeca.codigo(itemId, codigo)-> o código da peça lançada vira botão que
 //                                     abre a ficha dela
-//   InfoPeca.local(texto)          -> "Local B-14" pequeno embaixo do nome
+//   InfoPeca.local(texto, saldo)   -> "Local B-14 · Saldo 8" embaixo do nome
 //   InfoPeca.abrir(itemId)         -> janela: local, saldo, conferência,
 //                                     preços, garantia
 //   InfoPeca.desconto(tabela, preco, editavel)
@@ -53,8 +53,11 @@
     return '<button type="button" class="ip-codigo" data-info-peca="' + esc(itemId) + '" title="Ver local, saldo e conferência desta peça">' +
       esc(cod || 'ver peça') + '</button>';
   }
-  function local(texto) {
-    return '<small class="ip-local">Local <b>' + (texto ? esc(texto) : '—') + '</b></small>';
+  function local(texto, saldo) {
+    const temSaldo = saldo !== undefined && saldo !== null && saldo !== '';
+    const n = Number(saldo);
+    return '<small class="ip-local">Local <b>' + (texto ? esc(texto) : '—') + '</b>' +
+      (temSaldo ? ' · Saldo <b class="' + (n <= 0 ? 'ip-saldo-zero' : '') + '">' + esc(saldo) + '</b>' : '') + '</small>';
   }
 
   // ---------- ficha da peça ----------

@@ -568,7 +568,7 @@
       tbody.innerHTML = osAtual.pecas.map(p => `
         <tr data-id="${p.id}">
           <td data-label="Código">${InfoPeca.codigo(p.item_id, p.codigo)}</td>
-          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${InfoPeca.local(p.localizacao)}${p.garantia_meses ? '<small class="gar-peca">garantia ' + (Number(p.garantia_meses) === 12 ? '1 ano' : p.garantia_meses + ' meses') + '</small>' : ''}</td>
+          <td class="rolavel" data-label="Item" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}${InfoPeca.local(p.localizacao, p.saldo)}${p.garantia_meses ? '<small class="gar-peca">garantia ' + (Number(p.garantia_meses) === 12 ? '1 ano' : p.garantia_meses + ' meses') + '</small>' : ''}</td>
           <td class="col-qtd" data-label="Qtd"><input type="number" class="in-qtd" min="1" step="1" value="${Number(p.quantidade)}" ${editavel ? '' : 'disabled'}></td>
           <td class="col-preco" data-label="Preço unit. (R$)"><input type="number" class="in-preco" min="0" step="0.01" value="${Number(p.preco_unitario).toFixed(2)}" ${editavel ? '' : 'disabled'}>${InfoPeca.desconto(p.preco_tabela, p.preco_unitario, editavel)}</td>
           <td class="col-func" data-label="Responsável"><select class="in-func" ${editavel ? '' : 'disabled'}>${opcoesFuncionarios(p.funcionario_id, '— não informado —')}</select></td>
