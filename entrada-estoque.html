@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261121151622"></script>
+  <script src="/demo/demo.js?v=20261124224220"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrada de estoque - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261121151622">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261124224220">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261121151622"></script>
-  <script src="/js/celular.js?v=20261121151622"></script>
-  <script src="/js/atalhos.js?v=20261121151622"></script>
-  <script src="/js/gerente.js?v=20261121151622"></script>
+  <script src="/js/tema.js?v=20261124224220"></script>
+  <script src="/js/celular.js?v=20261124224220"></script>
+  <script src="/js/atalhos.js?v=20261124224220"></script>
+  <script src="/js/gerente.js?v=20261124224220"></script>
   <style>
     /* Papel: A4 com margem pequena (cabe mais peça por folha). */
     @page { size: A4 portrait; margin: 8mm; }
@@ -246,15 +246,20 @@
       }
     }
 
+    // Como a busca de peças: sem acento, sem traço ("camera" acha "câmera",
+    // "parabrisa" acha "Para-brisa") e cada palavra pode estar em qualquer lugar.
+    const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const junto = (s) => s.replace(/[\s\-./]/g, '');
     function filtradas() {
-      const t = campoBusca.value.trim().toLowerCase();
+      const t = campoBusca.value.trim();
       if (!t) return linhas;
       const n = /^\d{1,10}$/.test(t) ? Number(t) : null;
-      return linhas.filter(l =>
-        (n !== null && l.numero_interno === n) ||
-        String(l.nome || '').toLowerCase().includes(t) ||
-        String(l.codigo || '').toLowerCase().includes(t) ||
-        String(l.fornecedor || '').toLowerCase().includes(t));
+      const palavras = semAcento(t).split(/\s+/).filter(Boolean);
+      return linhas.filter(l => {
+        if (n !== null && l.numero_interno === n) return true;
+        const texto = semAcento([l.nome, l.codigo, l.fornecedor].join(' '));
+        return palavras.every(p => texto.includes(p) || junto(texto).includes(junto(p)));
+      });
     }
 
     // Separa as peças por boleto (mais antigo primeiro), uma tabela para cada.
@@ -404,6 +409,13 @@
       if (!atual) return;
       const chegou = Number(deChegou.value) || 0;
       const depois = atual.estoque + chegou;
+      if (chegou > atual.quantidade) {
+        // Mostra na hora (antes só avisava ao confirmar, e a conta dizia "13").
+        document.getElementById('deConta').innerHTML = '<strong class="texto-erro">A nota tem só ' + pecas(atual.quantidade) +
+          '.</strong> Se veio a mais, lance a diferença num boleto.';
+        document.getElementById('deDiferenca').textContent = '';
+        return;
+      }
       document.getElementById('deConta').innerHTML = atual.novo
         ? 'Peça nova: entra com <strong>' + chegou + '</strong> no estoque.'
         : 'Saldo hoje: ' + atual.estoque + ' &nbsp;→&nbsp; com a entrada: <strong>' + depois + '</strong>';

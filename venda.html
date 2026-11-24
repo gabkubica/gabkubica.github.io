@@ -2,23 +2,23 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261121151622"></script>
+  <script src="/demo/demo.js?v=20261124224220"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Venda no balcão - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261121151622">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261124224220">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261121151622"></script>
-  <script src="/js/celular.js?v=20261121151622"></script>
-  <script src="/js/atalhos.js?v=20261121151622"></script>
-  <script src="/js/gerente.js?v=20261121151622"></script>
-  <script src="/js/ponte-londrisoft.js?v=20261121151622" defer></script>
-  <script src="/js/estoque-aviso.js?v=20261121151622"></script>
-  <script src="/js/info-peca.js?v=20261121151622"></script>
-  <script src="/js/tabela-lancar.js?v=20261121151622"></script>
-  <script src="/js/os-cliente-carro.js?v=20261121151622"></script>
+  <script src="/js/tema.js?v=20261124224220"></script>
+  <script src="/js/celular.js?v=20261124224220"></script>
+  <script src="/js/atalhos.js?v=20261124224220"></script>
+  <script src="/js/gerente.js?v=20261124224220"></script>
+  <script src="/js/ponte-londrisoft.js?v=20261124224220" defer></script>
+  <script src="/js/estoque-aviso.js?v=20261124224220"></script>
+  <script src="/js/info-peca.js?v=20261124224220"></script>
+  <script src="/js/tabela-lancar.js?v=20261124224220"></script>
+  <script src="/js/os-cliente-carro.js?v=20261124224220"></script>
 </head>
 <body>
   <header>
@@ -109,8 +109,8 @@
       <div class="os-secao">
         <div class="os-total">Total: <span id="total">R$ 0,00</span></div>
         <div class="os-acoes">
-          <button id="btnImprimir" class="secundario" type="button">Imprimir recibo (PDF)</button>
-          <button id="btnImprimirFolha" class="secundario" type="button">Imprimir folha de OS (PDF)</button>
+          <button id="btnImprimir" class="azul" type="button">Imprimir recibo (PDF)</button>
+          <button id="btnImprimirFolha" class="btn-ficha-papel" type="button">Imprimir folha de OS (PDF)</button>
           <button id="btnCancelarVenda" class="perigo" type="button">Cancelar venda</button>
           <button id="btnModificarVenda" class="secundario oculto" type="button" title="Modificar uma venda cancelada sem reabrir (continua cancelada; o estoque permanece devolvido)">Modificar</button>
           <button id="btnReabrirVenda" class="secundario oculto" type="button" title="Reabrir uma venda cancelada: volta para aguardando pagamento e re-reserva o estoque">Reabrir venda</button>
@@ -252,6 +252,7 @@
       if (vendaId) return;
       const atendenteId = document.getElementById('atendente').value;
       if (!atendenteId) {
+        document.getElementById('atendente').focus();
         throw new Error('Selecione o atendente antes de iniciar a venda.');
       }
       // Leva junto o cliente já escolhido ou o nome digitado: a venda nasce
@@ -333,6 +334,9 @@
       document.getElementById('btnSalvar').classList.toggle('oculto', !editavelCampos);
       document.getElementById('btnBuscarItens').classList.toggle('oculto', !editavelCelulas);
       document.getElementById('btnLimparItens').classList.toggle('oculto', !editavelCelulas);
+      document.getElementById('btnTabelaInteira').classList.toggle('oculto', !editavelCelulas);
+      // Venda paga/travada: a lista da última busca some (clicar nela só dava erro).
+      if (!editavelCelulas) document.getElementById('resultados').classList.add('oculto');
       document.querySelectorAll('#conteudo .busca').forEach(el => { el.disabled = !editavelCelulas; });
       document.getElementById('btnCancelarVenda').classList.toggle('oculto', !editavelCelulas || rascunho);
       document.getElementById('btnPagar').classList.toggle('oculto', !aguardando || rascunho);
@@ -383,6 +387,7 @@
 
     function renderLinhas() {
       renderPecas();
+      InfoPeca.atualizarSaldosBusca(vendaAtual);
       document.getElementById('total').textContent = formatarMoeda(vendaAtual.valor_total);
     }
 

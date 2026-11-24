@@ -48,6 +48,23 @@
       '<span>' + conferido + '</span></small>';
   }
 
+  // Depois de lançar/remover: o "Saldo" da lista de busca que ainda está na
+  // tela passa a ser o de agora (antes continuava "Saldo 1" com a peça já
+  // lançada). doc = OS/venda devolvida pelo servidor (pecas com item_id e saldo).
+  function atualizarSaldosBusca(doc) {
+    if (!doc || !Array.isArray(doc.pecas)) return;
+    for (const p of doc.pecas) {
+      if (p.saldo === undefined || p.saldo === null) continue;
+      const n = Number(p.saldo);
+      document.querySelectorAll('.resultado-item[data-id="' + p.item_id + '"]:not([data-tipo="servico"]) .ip-saldo').forEach((el) => {
+        el.classList.toggle('ip-neg', n < 0);
+        el.classList.toggle('ip-zero', n === 0);
+        const b = el.querySelector('b');
+        if (b) b.textContent = n;
+      });
+    }
+  }
+
   // ---------- peça lançada: código que abre a ficha, local ----------
   function codigo(itemId, cod) {
     return '<button type="button" class="ip-codigo" data-info-peca="' + esc(itemId) + '" title="Ver local, saldo e conferência desta peça">' +
@@ -171,5 +188,5 @@
   });
   window.addEventListener('scroll', fecharMenu, { passive: true });
 
-  window.InfoPeca = { linhaBusca, codigo, local, abrir, desconto };
+  window.InfoPeca = { linhaBusca, codigo, local, abrir, desconto, atualizarSaldosBusca };
 })();

@@ -2,25 +2,25 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261121151622"></script>
+  <script src="/demo/demo.js?v=20261124224220"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Serviço externo - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261121151622">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261124224220">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261121151622"></script>
-  <script src="/js/celular.js?v=20261121151622"></script>
-  <script src="/js/atalhos.js?v=20261121151622"></script>
-  <script src="/js/gerente.js?v=20261121151622"></script>
-  <script src="/js/ponte-londrisoft.js?v=20261121151622" defer></script>
-  <script src="/js/estoque-aviso.js?v=20261121151622"></script>
-  <script src="/js/os-cliente-carro.js?v=20261121151622"></script>
-  <script src="/js/modo-orcamento.js?v=20261121151622"></script>
-  <script src="/js/info-peca.js?v=20261121151622"></script>
-  <script src="/js/tabela-lancar.js?v=20261121151622"></script>
-  <script src="/js/garantia-os.js?v=20261121151622"></script>
+  <script src="/js/tema.js?v=20261124224220"></script>
+  <script src="/js/celular.js?v=20261124224220"></script>
+  <script src="/js/atalhos.js?v=20261124224220"></script>
+  <script src="/js/gerente.js?v=20261124224220"></script>
+  <script src="/js/ponte-londrisoft.js?v=20261124224220" defer></script>
+  <script src="/js/estoque-aviso.js?v=20261124224220"></script>
+  <script src="/js/os-cliente-carro.js?v=20261124224220"></script>
+  <script src="/js/modo-orcamento.js?v=20261124224220"></script>
+  <script src="/js/info-peca.js?v=20261124224220"></script>
+  <script src="/js/tabela-lancar.js?v=20261124224220"></script>
+  <script src="/js/garantia-os.js?v=20261124224220"></script>
 </head>
 <body>
   <header>
@@ -178,7 +178,7 @@
         <div class="os-acoes">
           <button id="btnSalvar" class="sucesso" type="button">Salvar</button>
           <button id="btnConcluir" class="sucesso" type="button">Concluir</button>
-          <button id="btnPdfAgendamento" class="secundario oculto" type="button" title="Gerar o PDF de agendamento para enviar ao cliente">Agendamento (PDF)</button>
+          <button id="btnPdfAgendamento" class="azul oculto" type="button" title="Gerar o PDF de agendamento para enviar ao cliente">Agendamento (PDF)</button>
           <button id="btnCancelarOs" class="perigo" type="button">Cancelar</button>
           <button id="btnModificarOs" class="secundario oculto" type="button" title="Modificar um serviço externo cancelado/concluído sem reabrir (concluído também atualiza o pagamento)">Modificar</button>
           <button id="btnReabrirOs" class="secundario oculto" type="button" title="Reabrir um serviço externo cancelado: volta para recepção e re-reserva o estoque">Reabrir</button>
@@ -452,6 +452,7 @@
 
     function renderLinhas() {
       renderPecas();
+      InfoPeca.atualizarSaldosBusca(osAtual);
       renderServicos();
       document.getElementById('total').textContent = formatarMoeda(osAtual.valor_total);
       sincronizarObservacoes();
@@ -543,6 +544,8 @@
       document.getElementById('btnClienteAvisado').disabled = cancelada;
       document.getElementById('btnBuscarItens').classList.toggle('oculto', !podeEditarItens);
       document.getElementById('btnLimparItens').classList.toggle('oculto', !podeEditarItens);
+      document.getElementById('btnTabelaInteira').classList.toggle('oculto', !podeEditarItens);
+      if (!podeEditarItens) document.getElementById('resultados').classList.add('oculto');
       ['bi1', 'bi2', 'bi3'].forEach(id => { document.getElementById(id).disabled = !podeEditarItens; });
       if (concluida) {
         document.getElementById('btnConcluir').classList.add('oculto');
@@ -694,6 +697,7 @@
       const funcionarioId = document.getElementById('responsavel').value || null;
       if (!funcionarioId) {
         mostrarMensagem('Selecione o responsável antes de adicionar a peça ou o serviço.', 'erro');
+        document.getElementById('responsavel').focus();
         return false;
       }
       if (tipo === 'servico') {
