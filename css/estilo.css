@@ -4294,8 +4294,9 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
     grid-template-areas: "cod cod est" "nome nome nome" "marca preco inst" "local conf conf";
     gap: 4px 10px; padding: 8px 10px; margin-bottom: 8px;
   }
-  #tabelaItens.cel-cartoes tbody td.col-codigo { grid-area: cod; grid-column: auto; }
-  #tabelaItens.cel-cartoes tbody td.col-nome { grid-area: nome; grid-column: auto; font-size: 15px; font-weight: 600; }
+  #tabelaItens.cel-cartoes tbody td.col-codigo { grid-area: cod; grid-column: 1 / 3; }
+  /* nome no cartão inteiro (com "grid-column: auto" ele ficava num terço e virava 9 linhas) */
+  #tabelaItens.cel-cartoes tbody td.col-nome { grid-area: nome; grid-column: 1 / -1; font-size: 15px; font-weight: 600; }
   #tabelaItens.cel-cartoes tbody td.col-estoque { grid-area: est; text-align: right !important; }
   #tabelaItens.cel-cartoes tbody td.col-marca { grid-area: marca; }
   #tabelaItens.cel-cartoes tbody td.col-preco { grid-area: preco; }
@@ -4496,3 +4497,7 @@ button.marca-chip.oculto { display: none; }
   .en-compacta .en-ok { width: 46px !important; }
   .en-compacta td.en-ok::after { width: 12px; height: 12px; }
 }
+/* Itens (2026-11-25): nome longo em 1-2 linhas (colunas do lado mais enxutas); a
+   conferência (data · quem) quebra linha em vez de rolar. */
+/* (letra do nome no tamanho normal: Gabriel pediu cuidado para nada ficar pequeno) */
+#tabelaItens tbody td.col-conferencia { white-space: normal; overflow: visible; text-overflow: clip; font-size: 13px; line-height: 1.25; cursor: default; }

@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125150730"></script>
+  <script src="/demo/demo.js?v=20261125151815"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Itens - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125150730">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125151815">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125150730"></script>
-  <script src="/js/celular.js?v=20261125150730"></script>
-  <script src="/js/atalhos.js?v=20261125150730"></script>
-  <script src="/js/gerente.js?v=20261125150730"></script>
+  <script src="/js/tema.js?v=20261125151815"></script>
+  <script src="/js/celular.js?v=20261125151815"></script>
+  <script src="/js/atalhos.js?v=20261125151815"></script>
+  <script src="/js/gerente.js?v=20261125151815"></script>
 </head>
 <body>
   <header>
@@ -345,13 +345,16 @@
     const LARGURAS_PADRAO = {
       // Nome sem largura fixa: fica com o espaço que sobra (assim nada passa
       // da borda direita e código, marca e estoque não são cortados com '...').
-      'codigo': '150px', 'nome': '', 'marca': '120px', 'estoque': '150px',
-      'preco': '95px', 'precoInst': '105px', 'local': '80px',
-      'conferencia': '170px', 'acoes': '130px',
+      // (2026-11-25) Colunas do lado mais enxutas: os nomes das peças são longos
+      // ("VIDRO PB DG DEGRADE AUDI A3 13>15 HATCH/SPORT BACK C/SENSOR...") e
+      // precisam de espaço para caber em 1 ou 2 linhas.
+      'codigo': '125px', 'nome': '', 'marca': '100px', 'estoque': '110px',
+      'preco': '95px', 'precoInst': '105px', 'local': '95px',
+      'conferencia': '125px', 'acoes': '130px',
     };
     // Tablet em pé: larguras menores (o nome quebra linha), para caber sem rolar.
     if (window.innerWidth <= 900) {
-      Object.assign(LARGURAS_PADRAO, { codigo: '100px', nome: '190px', marca: '90px', estoque: '80px', preco: '85px', precoInst: '90px', local: '70px' });
+      Object.assign(LARGURAS_PADRAO, { codigo: '125px', nome: '205px', marca: '60px', estoque: '75px', preco: '100px', precoInst: '100px', local: '90px' });
     }
 
     function pintarSetasOrdenacao() {
