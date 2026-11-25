@@ -2,25 +2,25 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261124224220"></script>
+  <script src="/demo/demo.js?v=20261125004556"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Serviço externo - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261124224220">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125004556">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261124224220"></script>
-  <script src="/js/celular.js?v=20261124224220"></script>
-  <script src="/js/atalhos.js?v=20261124224220"></script>
-  <script src="/js/gerente.js?v=20261124224220"></script>
-  <script src="/js/ponte-londrisoft.js?v=20261124224220" defer></script>
-  <script src="/js/estoque-aviso.js?v=20261124224220"></script>
-  <script src="/js/os-cliente-carro.js?v=20261124224220"></script>
-  <script src="/js/modo-orcamento.js?v=20261124224220"></script>
-  <script src="/js/info-peca.js?v=20261124224220"></script>
-  <script src="/js/tabela-lancar.js?v=20261124224220"></script>
-  <script src="/js/garantia-os.js?v=20261124224220"></script>
+  <script src="/js/tema.js?v=20261125004556"></script>
+  <script src="/js/celular.js?v=20261125004556"></script>
+  <script src="/js/atalhos.js?v=20261125004556"></script>
+  <script src="/js/gerente.js?v=20261125004556"></script>
+  <script src="/js/ponte-londrisoft.js?v=20261125004556" defer></script>
+  <script src="/js/estoque-aviso.js?v=20261125004556"></script>
+  <script src="/js/os-cliente-carro.js?v=20261125004556"></script>
+  <script src="/js/modo-orcamento.js?v=20261125004556"></script>
+  <script src="/js/info-peca.js?v=20261125004556"></script>
+  <script src="/js/tabela-lancar.js?v=20261125004556"></script>
+  <script src="/js/garantia-os.js?v=20261125004556"></script>
 </head>
 <body>
   <header>
@@ -57,24 +57,34 @@
     <div id="conteudo" class="oculto">
       <div class="os-secao">
         <h2>Cliente e veículo</h2>
-        <div class="os-grid" id="dadosCliente"></div>
-        <div class="os-acoes" style="margin-top:10px">
-          <button id="btnAssociarVeiculo" class="secundario" type="button">Adicionar carro</button>
-          <button id="btnAssociarCliente" class="secundario" type="button">Adicionar cliente</button>
+        <!-- Igual à OS (2026-11-24): mesma grade (#dadosCarro) e mesma linha
+             da Conclusão: trocar carro/cliente à esquerda, PDF do agendamento
+             à direita. O render() põe esta linha dentro da grade. -->
+        <div class="os-grid" id="dadosCarro"></div>
+        <div id="linhaAcoesCarro" class="dc-acoes">
+          <div class="dc-grupo">
+            <button id="btnAssociarVeiculo" class="secundario" type="button">Adicionar carro</button>
+            <button id="btnAssociarCliente" class="secundario" type="button">Adicionar cliente</button>
+          </div>
+          <div class="dc-grupo dc-imprimir">
+            <button id="btnPdfAgendamento" class="azul oculto" type="button" title="Gerar o PDF de agendamento para enviar ao cliente">Agendamento (PDF)</button>
+          </div>
         </div>
         <!-- Vínculo carro -> cliente (js/os-cliente-carro.js) -->
         <div id="vinculoCarro"></div>
-        <div class="os-grid" style="margin-top:12px">
-          <div>
+        <!-- Atendente e marcações numa linha só, como na OS. -->
+        <div class="linha-atendente">
+          <div class="la-campo">
             <label>Atendente</label>
             <select id="atendente"><option value="">— sem atendente —</option></select>
           </div>
-          <div>
-            <label>Cliente avisado</label>
-            <div class="os-acoes" style="gap:8px;flex-wrap:wrap">
-              <button id="btnClienteAvisado" class="secundario" type="button">Cliente avisado</button>
-              <span id="dataClienteAvisado" class="marcacao-data"></span>
-            </div>
+          <div class="la-marcas">
+            <button id="btnClienteAvisado" class="marca-chip" type="button">Cliente avisado</button>
+            <span id="dataClienteAvisado" class="marcacao-data"></span>
+            <button id="btnOrcamentoAprovado" class="marca-chip" type="button">Orçamento aprovado</button>
+            <span id="dataOrcamentoAprovado" class="marcacao-data"></span>
+            <button id="btnGravacaoEnviada" class="marca-chip" type="button">Gravação enviada</button>
+            <span id="dataGravacaoEnviada" class="marcacao-data"></span>
           </div>
         </div>
       </div>
@@ -99,13 +109,6 @@
             <label>Endereço do atendimento</label>
             <input type="text" id="endereco" autocomplete="off">
           </div>
-        </div>
-        <div class="os-acoes" style="margin-top:10px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
-            <input type="checkbox" id="gravacaoEnviada">
-            Gravação enviada
-          </label>
-          <span id="dataGravacaoEnviada" class="marcacao-data"></span>
         </div>
       </div>
 
@@ -167,8 +170,12 @@
       </div>
 
       <div class="os-secao">
-        <h2>Serviços executados</h2>
-        <textarea id="executados" class="campo-grande"></textarea>
+        <!-- Como na OS: "Serviços executados" saiu (o serviço é lançado na
+             tabela de serviços). Só aparece se já tinha algo escrito. -->
+        <div id="blocoExecutados" class="oculto">
+          <h2>Serviços executados <small class="texto-suave">(anotação antiga)</small></h2>
+          <textarea id="executados" class="campo-grande"></textarea>
+        </div>
         <h2 style="margin-top:16px">Observações</h2>
         <textarea id="observacoes" style="min-height:80px"></textarea>
       </div>
@@ -178,7 +185,6 @@
         <div class="os-acoes">
           <button id="btnSalvar" class="sucesso" type="button">Salvar</button>
           <button id="btnConcluir" class="sucesso" type="button">Concluir</button>
-          <button id="btnPdfAgendamento" class="azul oculto" type="button" title="Gerar o PDF de agendamento para enviar ao cliente">Agendamento (PDF)</button>
           <button id="btnCancelarOs" class="perigo" type="button">Cancelar</button>
           <button id="btnModificarOs" class="secundario oculto" type="button" title="Modificar um serviço externo cancelado/concluído sem reabrir (concluído também atualiza o pagamento)">Modificar</button>
           <button id="btnReabrirOs" class="secundario oculto" type="button" title="Reabrir um serviço externo cancelado: volta para recepção e re-reserva o estoque">Reabrir</button>
@@ -291,8 +297,7 @@
       const btn = document.getElementById(btnId);
       const span = document.getElementById(dataId);
       const marcado = !!valor;
-      btn.classList.toggle('sucesso', marcado);
-      btn.classList.toggle('secundario', !marcado);
+      btn.classList.toggle('feito', marcado);
       // Cara de caixinha de marcar: ☐ vazio, ✓ marcado (verde).
       btn.textContent = (marcado ? '✓ ' : '☐ ') + rotulo;
       btn.title = marcado ? 'Clique para desmarcar' : 'Clique para marcar';
@@ -335,7 +340,7 @@
         atendente_id: null, apontamento_cliente: '', servicos_executados: '', observacoes: '',
         data_abertura: null, data_conclusao: null,
         tipo: 'externo', endereco: '', data_agendamento: null, periodo: '',
-        cliente_avisado_em: null, gravacao_enviada_em: null, gravacao_enviada: false,
+        cliente_avisado_em: null, orcamento_aprovado_em: null, gravacao_enviada_em: null, gravacao_enviada: false,
         pecas: [], servicos: [], valor_total: 0, pagamento: null,
       };
     }
@@ -411,13 +416,15 @@
       atualizarCabecalho();
 
       const veiculo = [os.marca, os.modelo].filter(Boolean).join(' ');
-      document.getElementById('dadosCliente').innerHTML = `
+      const linhaAcoesCarro = document.getElementById('linhaAcoesCarro');
+      document.getElementById('dadosCarro').innerHTML = `
         <div><label>Cliente</label><div class="valor">${os.cliente_nome ? (os.cliente_id ? '<a href="/clientes.html?id=' + os.cliente_id + '">' + escapeHtml(os.cliente_nome) + '</a>' : escapeHtml(os.cliente_nome)) : '—'}</div></div>
         <div><label>Telefone</label><div class="valor">${escapeHtml(os.cliente_telefone) || '—'}</div></div>
         <div><label>Placa</label><div class="valor">${os.placa ? escapeHtml(os.placa) : '— sem placa —'}</div></div>
         <div><label>Veículo</label><div class="valor">${veiculo ? escapeHtml(veiculo) + (os.ano ? ' ' + escapeHtml(os.ano) : '') : '—'}</div></div>
         <div><label>Abertura</label><div class="valor">${formatarData(os.data_abertura)}</div></div>
         <div><label>Conclusão</label><div class="valor">${formatarData(os.data_conclusao)}</div></div>`;
+      document.getElementById('dadosCarro').appendChild(linhaAcoesCarro);
 
       document.getElementById('btnAssociarVeiculo').textContent = os.placa ? 'Trocar carro' : 'Adicionar carro';
       document.getElementById('btnAssociarCliente').textContent = os.cliente_nome ? 'Trocar cliente' : 'Adicionar cliente';
@@ -432,16 +439,16 @@
 
       document.getElementById('apontamento').value = os.apontamento_cliente || '';
       document.getElementById('executados').value = os.servicos_executados || '';
+      document.getElementById('blocoExecutados').classList.toggle('oculto', !(os.servicos_executados || '').trim());
       document.getElementById('observacoes').value = os.observacoes || '';
       document.getElementById('observacoes').dataset.servidor = os.observacoes || '';
 
       document.getElementById('endereco').value = os.endereco || '';
       document.getElementById('dataAgenda').value = valorDataInput(os.data_agendamento);
       document.getElementById('periodo').value = os.periodo ? PERIODO_LABEL[os.periodo] ? os.periodo : '' : '';
-      document.getElementById('gravacaoEnviada').checked = !!os.gravacao_enviada;
-      document.getElementById('dataGravacaoEnviada').textContent = os.gravacao_enviada_em ? formatarData(os.gravacao_enviada_em) : '';
-
       atualizarMarcacao('btnClienteAvisado', 'dataClienteAvisado', os.cliente_avisado_em, 'Cliente avisado');
+      atualizarMarcacao('btnOrcamentoAprovado', 'dataOrcamentoAprovado', os.orcamento_aprovado_em, 'Orçamento aprovado');
+      atualizarMarcacao('btnGravacaoEnviada', 'dataGravacaoEnviada', os.gravacao_enviada_em, 'Gravação enviada');
 
       renderPecas();
       renderServicos();
@@ -542,6 +549,9 @@
       document.getElementById('btnModificarOs').classList.toggle('oculto', !podeModificar);
       document.getElementById('btnReabrirOs').classList.toggle('oculto', rascunho || !cancelada);
       document.getElementById('btnClienteAvisado').disabled = cancelada;
+      document.getElementById('btnOrcamentoAprovado').disabled = cancelada;
+      document.getElementById('btnOrcamentoAprovado').classList.toggle('oculto', status === 'orcamento');
+      document.getElementById('btnGravacaoEnviada').disabled = cancelada;
       document.getElementById('btnBuscarItens').classList.toggle('oculto', !podeEditarItens);
       document.getElementById('btnLimparItens').classList.toggle('oculto', !podeEditarItens);
       document.getElementById('btnTabelaInteira').classList.toggle('oculto', !podeEditarItens);
@@ -634,12 +644,6 @@
       } catch (e) {
         mostrarMensagem(e.message, 'erro');
       }
-    }
-
-    function alternarGravacaoEnviada() {
-      alternarMarcacao('gravacao_enviada', 'gravacao_enviada').then(() => {
-        document.getElementById('gravacaoEnviada').checked = !!(osAtual && osAtual.gravacao_enviada);
-      });
     }
 
     // ---------- Busca de peças e serviços ----------
@@ -1082,7 +1086,8 @@
       if (osId) window.open('/api/ordens-servico/' + osId + '/pdf', '_blank');
     });
     document.getElementById('btnClienteAvisado').addEventListener('click', () => alternarMarcacao('cliente_avisado', 'cliente_avisado_em'));
-    document.getElementById('gravacaoEnviada').addEventListener('change', alternarGravacaoEnviada);
+    document.getElementById('btnOrcamentoAprovado').addEventListener('click', () => alternarMarcacao('orcamento_aprovado', 'orcamento_aprovado_em'));
+    document.getElementById('btnGravacaoEnviada').addEventListener('click', () => alternarMarcacao('gravacao_enviada', 'gravacao_enviada_em'));
     document.getElementById('btnAssociarVeiculo').addEventListener('click', abrirDialogoVeiculo);
     document.getElementById('btnVeiBuscar').addEventListener('click', buscarPlacaParaAssociar);
     document.getElementById('btnVeiConfirmar').addEventListener('click', cadastrarEAssociarVeiculo);
