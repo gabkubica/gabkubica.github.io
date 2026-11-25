@@ -4452,3 +4452,49 @@ button.marca-chip.oculto { display: none; }
     grid-area: auto; grid-column: 1 / -1; font-size: inherit; color: inherit;
   }
 }
+
+/* ------------------------------------------------------------
+   Entrada de estoque: "Dar entrada na nota" (nota inteira de uma vez).
+   Cada peça é uma linha; "Mudar" abre os campos só daquela peça.
+   ------------------------------------------------------------ */
+.dn-dialog { width: min(720px, calc(100vw - 24px)) !important; max-width: none !important; max-height: 92vh !important; }
+.dn-dialog .dn-nota { margin: 6px 0 0; font-size: 15px; }
+.dn-dialog .dn-explica { margin: 8px 0 0; }
+.dn-lista { margin: 10px 0 0; border: 1px solid var(--borda); border-radius: 8px; max-height: 52vh; overflow: auto; }
+.dn-linha { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 4px 12px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--borda); }
+.dn-linha:last-child { border-bottom: 0; }
+.dn-linha.dn-dif { background: #fff6e5; }
+[data-tema="escuro"] .dn-linha.dn-dif { background: #2e2616; }
+.dn-peca strong { display: block; line-height: 1.25; }
+.dn-situacao { font-size: 14px; white-space: nowrap; text-align: right; }
+.dn-certo { color: #15803d; font-weight: 700; }
+[data-tema="escuro"] .dn-certo { color: #7fd6a1; }
+.dn-falta { color: #b45309; font-weight: 700; }
+[data-tema="escuro"] .dn-falta { color: #f0b860; }
+.dn-mudar { min-width: 70px; }
+.dn-editar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 6px 0 2px; }
+.dn-editar label { display: flex; flex-direction: column; gap: 3px; font-weight: 700; font-size: 13px; flex: 1 1 170px; }
+.dn-editar input { font-size: 17px; padding: 6px 9px; max-width: 150px; }
+.dn-editar input[data-campo="local"] { font-size: 15px; }
+.dn-dialog .dn-quem { margin-top: 12px; }
+.dn-dialog .dn-resumo { margin-top: 10px; }
+.dn-dialog .dn-resumo .er-sub { display: block; }
+.dn-acoes #dnConfirmar { flex: 1 1 auto; font-size: 16px; padding: 11px 16px; }
+@media (max-width: 700px) {
+  .dn-linha { grid-template-columns: auto 1fr; }
+  .dn-situacao { grid-column: 1 / 2; grid-row: 2; text-align: left; white-space: normal; }
+  .dn-mudar { grid-column: 2; grid-row: 2; justify-self: end; }
+  .dn-editar input { max-width: none; }
+}
+/* QR da nota: só no papel, embaixo do nº do boleto (o escritório bipa a folha). */
+.en-qr { display: none; }
+.en-papel-como { display: none; }
+@media print {
+  /* QR pequeno (11 mm) à direita do nº do boleto: o leitor lê bem e a folha
+     continua com muitas peças (a linha só cresce em nota de 1 ou 2 peças). */
+  .en-compacta .en-p-bol { width: 150px !important; }
+  .en-compacta .en-p-bol .en-qr { display: block; float: right; width: 11mm; height: 11mm; margin: 0 0 0 4px; }
+  .en-compacta .en-p-bol.en-p-uma { white-space: normal !important; vertical-align: top; }
+  .en-papel-topo { flex-wrap: wrap; }
+  .en-papel-como { display: block; order: 3; flex-basis: 100%; font-size: 10px; margin-top: 2px; }
+}

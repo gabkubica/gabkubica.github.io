@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125004556"></script>
+  <script src="/demo/demo.js?v=20261125021807"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrada de estoque - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125004556">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125021807">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125004556"></script>
-  <script src="/js/celular.js?v=20261125004556"></script>
-  <script src="/js/atalhos.js?v=20261125004556"></script>
-  <script src="/js/gerente.js?v=20261125004556"></script>
+  <script src="/js/tema.js?v=20261125021807"></script>
+  <script src="/js/celular.js?v=20261125021807"></script>
+  <script src="/js/atalhos.js?v=20261125021807"></script>
+  <script src="/js/gerente.js?v=20261125021807"></script>
   <style>
     /* Papel: A4 com margem pequena (cabe mais peça por folha). */
     @page { size: A4 portrait; margin: 8mm; }
@@ -74,6 +74,7 @@
     <!-- Só no papel -->
     <div class="so-imp en-papel-topo">
       <strong>Auto Vidros Sport · Conferência de mercadoria</strong>
+      <span class="en-papel-como">Chegou certo: só marque <b>✓</b>. Veio diferente: escreva quantas em <b>Chegou</b>. Depois o escritório bipa o QR da nota.</span>
       <span>Impresso em <span id="dataImpressao"></span></span>
     </div>
 
@@ -149,6 +150,27 @@
     <div id="cfFeitas"></div>
   </dialog>
 
+  <!-- Dar entrada na NOTA INTEIRA: a conferência foi no papel e o escritório
+       lança. Tudo vem como "chegou certo"; só mexe no que veio diferente. -->
+  <dialog id="dialogNota" class="dialog-tipos en-dialog dn-dialog">
+    <div class="cf-topo">
+      <h3>Dar entrada na nota</h3>
+      <button id="dnFechar" class="cf-x" type="button" title="Fechar" aria-label="Fechar">✕</button>
+    </div>
+    <div id="dnTopo"></div>
+    <p class="en-ajuda dn-explica">Todas as peças já estão como <strong>chegou certo</strong>. Olhe o papel e aperte
+      <strong>Mudar</strong> só nas que vieram diferentes.</p>
+    <div id="dnLista" class="dn-lista"></div>
+    <label class="cf-quem dn-quem">Quem conferiu?
+      <select id="dnQuem"><option value="">— escolha o nome —</option></select>
+    </label>
+    <div id="dnResumo" class="en-conta dn-resumo"></div>
+    <div class="dialog-acoes dn-acoes">
+      <button id="dnConfirmar" class="sucesso" type="button">Dar entrada na nota inteira</button>
+      <button id="dnCancelar" class="secundario" type="button">Cancelar</button>
+    </div>
+  </dialog>
+
   <dialog id="dialogEntrada" class="dialog-tipos en-dialog">
     <h3>Dar entrada</h3>
     <div id="dePeca"></div>
@@ -185,6 +207,15 @@
     const CHAVE_QUEM = 'quem-recebe';
     let linhas = [];
     let atual = null; // linha aberta no diálogo
+    // ?nota=N abre direto a nota inteira (some da barra de endereço, senão o F5 abriria de novo).
+    let notaDaUrl = (() => {
+      const p = new URLSearchParams(location.search);
+      const n = Number(p.get('nota'));
+      if (!Number.isInteger(n) || n < 1) return null;
+      p.delete('nota');
+      try { history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash); } catch (e) { /* ok */ }
+      return n;
+    })();
 
     function escapeHtml(texto) {
       if (texto === null || texto === undefined) return '';
@@ -211,6 +242,7 @@
           o.value = f.id; o.textContent = f.nome;
           campoQuem.appendChild(o);
           document.getElementById('cfQuem').appendChild(o.cloneNode(true));
+          document.getElementById('dnQuem').appendChild(o.cloneNode(true));
         });
         let ultimo = null;
         try { ultimo = localStorage.getItem(CHAVE_QUEM); } catch (e) { /* ok */ }
@@ -241,6 +273,8 @@
         linhas = d.linhas;
         document.getElementById('cont').textContent = d.total_pecas ? '(' + pecas(d.total_pecas) + ')' : '';
         desenhar();
+        // Aberta com ?nota=N (QR da folha lido pela câmera do celular, por ex.).
+        if (notaDaUrl) { const n = notaDaUrl; notaDaUrl = null; abrirNota(n); }
       } catch (e) {
         listaEl.innerHTML = '<div class="erro">' + escapeHtml(e.message) + '</div>';
       }
@@ -310,6 +344,7 @@
                   <span>${b.pedido ? '<a class="en-pedido" href="/pedidos.html?id=' + b.pedido + '">Pedido nº ' + b.pedido + '</a> · ' : ''}<strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
                     <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>
                   <span class="en-grupo-acoes sem-imp">
+                    <button type="button" class="btn-mini sucesso" data-nota="${b.id}" title="Conferiu no papel? Dá entrada em todas as peças desta nota de uma vez; você só muda as que vieram diferentes">Dar entrada na nota</button>
                     <a class="btn-mini secundario" href="/despesas.html?boleto=${b.id}">Ver boleto</a>
                     <button type="button" class="btn-mini secundario" data-etiquetas="${b.id}" title="Etiqueta com QR Code para colar nas peças (1 por peça)">QR Code</button>
                     <button type="button" class="btn-mini secundario" data-imprimir="${b.id}">Imprimir</button>
@@ -319,7 +354,8 @@
               ${b.linhas.map((l, k) => `
               <tr class="${l.novo ? 'en-novo' : ''}">
                 ${k === 0 ? '<td class="so-imp en-p-bol' + (b.linhas.length === 1 ? ' en-p-uma' : '') + '" rowspan="' + b.linhas.length + '">' + (b.pedido ? 'Ped. ' + b.pedido + ' · ' : '') + '<strong>nº ' + escapeHtml(b.codigo) + '</strong>' +
-                  (b.nf ? ' NF ' + escapeHtml(b.nf) : '') + (b.linhas.length === 1 ? ' · ' : '<br>') + escapeHtml(b.fornecedor || '') + '</td>' : ''}
+                  (b.nf ? ' NF ' + escapeHtml(b.nf) : '') + (b.linhas.length === 1 ? ' · ' : '<br>') + escapeHtml(b.fornecedor || '') +
+                  '<img class="en-qr" src="/api/entrada-estoque/qr/' + b.id + '" data-qr="' + b.id + '" alt="">' + '</td>' : ''}
                 <td class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</td>
                 <td class="en-c-peca"><strong>${escapeHtml(l.nome)}</strong>
                   <span class="er-sub">${l.novo ? 'peça nova: é cadastrada quando der entrada' : escapeHtml(l.codigo || '')}</span></td>
@@ -342,12 +378,20 @@
     // "Imprimir tudo" sai com todos os boletos; "Imprimir este boleto" só com
     // aquele. O papel tem colunas em branco para anotar à caneta: quantas
     // chegaram, o saldo contado na prateleira e um ✓. Depois é só lançar aqui.
-    function imprimir(boletoId) {
+    async function imprimir(boletoId) {
       if (campoBusca.value) { campoBusca.value = ''; desenhar(); }
       document.getElementById('dataImpressao').textContent = new Date().toLocaleString('pt-BR');
       document.querySelectorAll('.en-boleto').forEach(s => {
         s.classList.toggle('en-fora-da-impressao', boletoId !== undefined && Number(s.dataset.boleto) !== boletoId);
       });
+      // Espera os QR Codes das notas carregarem (no máx. 4 s), senão a folha sai sem eles.
+      const qrs = [...document.querySelectorAll('img.en-qr')]
+        .filter(img => boletoId === undefined || Number(img.dataset.qr) === boletoId);
+      await Promise.all(qrs.map(img => img.complete ? null : new Promise(ok => {
+        img.addEventListener('load', ok, { once: true });
+        img.addEventListener('error', ok, { once: true });
+        setTimeout(ok, 4000);
+      })));
       window.print();
     }
     window.addEventListener('afterprint', () => {
@@ -361,6 +405,8 @@
     listaEl.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-linha]');
       if (b) return abrir(Number(b.dataset.linha));
+      const nt = ev.target.closest('[data-nota]');
+      if (nt) return abrirNota(Number(nt.dataset.nota));
       const imp = ev.target.closest('[data-imprimir]');
       if (imp) return imprimir(Number(imp.dataset.imprimir));
       const et = ev.target.closest('[data-etiquetas]');
@@ -371,6 +417,13 @@
     campoBusca.addEventListener('keydown', (ev) => {
       if (ev.key !== 'Enter') return;
       ev.preventDefault();
+      // Bipou o QR da folha impressa ("NOTA12"): abre a nota inteira.
+      const qrNota = campoBusca.value.trim().match(/^nota\s*0*(\d{1,9})$/i);
+      if (qrNota) {
+        campoBusca.value = '';
+        desenhar();
+        return abrirNota(Number(qrNota[1]));
+      }
       const lista = filtradas();
       if (lista.length === 1) abrir(lista[0].linha_id);
       else if (!lista.length) mostrarMensagem('"' + escapeHtml(campoBusca.value.trim()) + '" não está aguardando entrada (não foi lançada em nenhum boleto, ou já entrou).', 'erro');
@@ -482,6 +535,177 @@
         const bn = document.getElementById('btnEtqNova');
         if (bn) bn.addEventListener('click', () => abrirEtiquetas([{ id: d.item_id, copias: d.entrou }]));
         campoBusca.value = '';
+        await carregar();
+        campoBusca.focus();
+      } catch (e) {
+        btn.disabled = false;
+        alert(e.message);
+      }
+    }
+
+    // ---------- dar entrada na NOTA INTEIRA (conferência feita no papel) ----------
+    // O balconista confere e guarda com a folha na mão; o escritório abre a
+    // nota (bipa o QR da folha ou aperta o botão), muda só as peças que
+    // vieram diferentes e dá entrada em tudo com um botão.
+    const dialogNota = document.getElementById('dialogNota');
+    const dnQuem = document.getElementById('dnQuem');
+    const dnLista = document.getElementById('dnLista');
+    let nota = null; // { boletoId, linhas: [{ ...linha, chegou, contado, local, aberta }] }
+
+    function abrirNota(boletoId) {
+      const doBoleto = linhas.filter(l => l.boleto_id === boletoId);
+      if (!doBoleto.length) {
+        mostrarMensagem('Essa nota não tem peças aguardando entrada: ou já entrou tudo, ou o QR é de outra folha.', 'erro');
+        return;
+      }
+      nota = { boletoId, linhas: doBoleto.map(l => ({ ...l, chegou: l.quantidade, contado: '', local: '', aberta: false })) };
+      const b = doBoleto[0];
+      document.getElementById('dnTopo').innerHTML =
+        '<p class="dn-nota">' + (b.pedido_id ? 'Pedido nº ' + b.pedido_id + ' · ' : '') + '<strong>Boleto nº ' + escapeHtml(b.boleto_codigo) + '</strong> · ' +
+        escapeHtml(b.fornecedor || 'sem fornecedor') + (b.nota_fiscal ? ' · NF ' + escapeHtml(b.nota_fiscal) : '') + '</p>';
+      dnQuem.value = campoQuem.value;
+      dnQuem.classList.remove('er-falta');
+      desenharNota();
+      document.getElementById('dnConfirmar').disabled = false;
+      dialogNota.showModal();
+      document.getElementById('dnConfirmar').focus();
+    }
+
+    function situacaoNota(l) {
+      const partes = [];
+      if (l.chegou === l.quantidade) partes.push('<span class="dn-certo">✓ chegou ' + l.quantidade + '</span>');
+      else if (l.chegou === 0) partes.push('<span class="dn-falta">não veio</span>');
+      else partes.push('<span class="dn-falta">chegou ' + l.chegou + ' de ' + l.quantidade + '</span>');
+      if (l.contado !== '') partes.push('contou ' + escapeHtml(l.contado));
+      if (l.local.trim()) partes.push('local ' + escapeHtml(l.local.trim()));
+      return partes.join(' · ');
+    }
+    function diferente(l) { return l.chegou !== l.quantidade || l.contado !== '' || l.local.trim() !== ''; }
+
+    function desenharNota() {
+      dnLista.innerHTML = nota.linhas.map((l, i) => `
+        <div class="dn-linha${diferente(l) ? ' dn-dif' : ''}" data-i="${i}">
+          <span class="er-num">${l.novo ? '<span class="mini-selo pendente">nova</span>' : numeroEtiqueta(l.numero_interno)}</span>
+          <span class="dn-peca"><strong>${escapeHtml(l.nome)}</strong>
+            <span class="er-sub">${l.novo ? 'peça nova: é cadastrada na entrada' : escapeHtml(l.codigo || '')}${l.localizacao ? ' · local ' + escapeHtml(l.localizacao) : ''}</span></span>
+          <span class="dn-situacao">${situacaoNota(l)}</span>
+          <button type="button" class="btn-mini secundario dn-mudar" data-mudar="${i}">${l.aberta ? 'Pronto' : 'Mudar'}</button>
+          ${l.aberta ? `
+          <div class="dn-editar">
+            <label>Quantas chegaram?
+              <input type="number" min="0" max="${l.quantidade}" step="1" inputmode="numeric" data-campo="chegou" data-i="${i}" value="${l.chegou}">
+              <span class="en-ajuda">Na nota: ${l.quantidade}. Não veio = 0 (continua aguardando).</span></label>
+            <label>Contou na prateleira? <span class="en-ajuda">(opcional)</span>
+              <input type="number" min="0" step="1" inputmode="numeric" data-campo="contado" data-i="${i}" value="${escapeHtml(l.contado)}" placeholder="—">
+              <span class="en-ajuda">Total na prateleira, já com as que chegaram.</span></label>
+            <label>Local <span class="en-ajuda">(opcional)</span>
+              <input type="text" maxlength="50" data-campo="local" data-i="${i}" value="${escapeHtml(l.local)}" placeholder="${escapeHtml(l.localizacao || 'Ex.: A-12')}"></label>
+          </div>` : ''}
+        </div>`).join('');
+      resumoNota();
+    }
+
+    function resumoNota() {
+      const entram = nota.linhas.reduce((s, l) => s + (l.chegou > 0 ? l.chegou : 0), 0);
+      const ficam = nota.linhas.reduce((s, l) => s + (l.quantidade - Math.max(0, Math.min(l.chegou, l.quantidade))), 0);
+      const difs = nota.linhas.filter(diferente).length;
+      document.getElementById('dnResumo').innerHTML =
+        '<strong>' + pecas(entram) + '</strong> vão entrar no estoque' +
+        (ficam ? ' · <span class="dn-falta">' + pecas(ficam) + (ficam === 1 ? ' continua' : ' continuam') + ' aguardando</span>' : '') +
+        (difs ? '<span class="er-sub">' + (difs === 1 ? '1 peça mudada' : difs + ' peças mudadas') + ', o resto chegou certo.</span>' : '');
+      const btn = document.getElementById('dnConfirmar');
+      btn.textContent = ficam || difs ? 'Dar entrada (' + pecas(entram) + ')' : 'Dar entrada na nota inteira (' + pecas(entram) + ')';
+    }
+
+    dnLista.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-mudar]');
+      if (!b) return;
+      const i = Number(b.dataset.mudar);
+      nota.linhas[i].aberta = !nota.linhas[i].aberta;
+      desenharNota();
+      const campo = dnLista.querySelector('input[data-campo="chegou"][data-i="' + i + '"]');
+      if (campo) campo.select();
+    });
+    // Digitando: atualiza só a situação daquela peça e o resumo (sem redesenhar, para não perder o cursor).
+    dnLista.addEventListener('input', (ev) => {
+      const c = ev.target.closest('[data-campo]');
+      if (!c) return;
+      const l = nota.linhas[Number(c.dataset.i)];
+      if (c.dataset.campo === 'chegou') l.chegou = c.value.trim() === '' ? 0 : Number(c.value);
+      else if (c.dataset.campo === 'contado') l.contado = c.value.trim();
+      else l.local = c.value;
+      const linhaEl = c.closest('.dn-linha');
+      linhaEl.classList.toggle('dn-dif', diferente(l));
+      linhaEl.querySelector('.dn-situacao').innerHTML = situacaoNota(l);
+      resumoNota();
+    });
+    dnLista.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' && ev.target.matches('input[data-campo]')) {
+        ev.preventDefault();
+        nota.linhas[Number(ev.target.dataset.i)].aberta = false;
+        desenharNota();
+      }
+    });
+    dnQuem.addEventListener('change', () => {
+      campoQuem.value = dnQuem.value;
+      try { localStorage.setItem(CHAVE_QUEM, campoQuem.value); } catch (e) { /* ok */ }
+      dnQuem.classList.remove('er-falta');
+      campoQuem.classList.remove('er-falta');
+    });
+    document.getElementById('dnFechar').addEventListener('click', () => dialogNota.close());
+    document.getElementById('dnCancelar').addEventListener('click', () => dialogNota.close());
+    document.getElementById('dnConfirmar').addEventListener('click', confirmarNota);
+
+    async function confirmarNota() {
+      if (!nota) return;
+      for (const l of nota.linhas) {
+        if (!Number.isInteger(l.chegou) || l.chegou < 0 || l.chegou > l.quantidade) {
+          l.aberta = true; desenharNota();
+          return alert(l.nome + ': quantas chegaram tem que ser de 0 a ' + l.quantidade + ' (o que está na nota).');
+        }
+        if (l.contado !== '' && (!Number.isInteger(Number(l.contado)) || Number(l.contado) < 0)) {
+          l.aberta = true; desenharNota();
+          return alert(l.nome + ': o que contou na prateleira tem que ser um número inteiro, 0 ou mais (ou deixe em branco).');
+        }
+      }
+      if (!nota.linhas.some(l => l.chegou > 0)) return alert('Nenhuma peça marcada como chegou.');
+      if (!dnQuem.value) {
+        dnQuem.classList.add('er-falta');
+        dnQuem.focus();
+        return alert('Escolha quem conferiu (o nome que está na folha).');
+      }
+      const btn = document.getElementById('dnConfirmar');
+      btn.disabled = true;
+      const codigo = nota.linhas[0].boleto_codigo;
+      try {
+        const r = await fetch('/api/entrada-estoque/nota/' + nota.boletoId, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            funcionario_id: Number(dnQuem.value),
+            linhas: nota.linhas.map(l => ({
+              linha_id: l.linha_id,
+              chegou: l.chegou,
+              saldo_contado: l.contado === '' ? null : Number(l.contado),
+              localizacao: l.local.trim(),
+            })),
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.erro || 'Erro ao dar entrada na nota.');
+        dialogNota.close();
+        let html = '<strong>Boleto nº ' + escapeHtml(codigo) + '</strong>: entrada de ' + pecas(d.entraram) + ' no estoque.';
+        if (d.ajustes) html += ' ' + (d.ajustes === 1 ? '1 saldo corrigido' : d.ajustes + ' saldos corrigidos') + ' pela contagem.';
+        if (d.continuam_aguardando) html += ' ' + (d.continuam_aguardando === 1 ? '1 peça continua aguardando.' : d.continuam_aguardando + ' peças continuam aguardando.');
+        if (d.itens_novos && d.itens_novos.length) {
+          const qtd = d.itens_novos.reduce((s, x) => s + x.entrou, 0);
+          html += '<br>' + (d.itens_novos.length === 1 ? 'Peça nova cadastrada' : d.itens_novos.length + ' peças novas cadastradas') + '. ' +
+            '<button type="button" class="btn-mini secundario" id="btnEtqNovasNota">Imprimir ' + qtd + (qtd === 1 ? ' etiqueta' : ' etiquetas') + '</button>';
+        }
+        mostrarMensagem(html, 'ok');
+        const bn = document.getElementById('btnEtqNovasNota');
+        if (bn) bn.addEventListener('click', () => abrirEtiquetas(d.itens_novos.map(x => ({ id: x.item_id, copias: x.entrou }))));
+        nota = null;
         await carregar();
         campoBusca.focus();
       } catch (e) {
