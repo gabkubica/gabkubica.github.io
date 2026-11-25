@@ -4452,3 +4452,7 @@ button.marca-chip.oculto { display: none; }
     grid-area: auto; grid-column: 1 / -1; font-size: inherit; color: inherit;
   }
 }
+
+/* Contagem surpresa do dia, dentro da Conferência de estoque. */
+.cf-do-dia .cf-do-dia-conta { float: right; font-size: 13px; font-weight: 700; }
+.cf-do-dia .er-sub { display: block; margin: 2px 0 4px; color: inherit; opacity: .85; }
