@@ -4039,9 +4039,9 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .en-compacta .en-p-bol { width: 110px !important; white-space: normal !important; vertical-align: top; font-size: 9px !important; line-height: 1.2 !important; }
   .en-compacta .en-c-num { width: 46px !important; }
   .en-compacta .en-c-local { width: 44px !important; }
-  .en-compacta .en-c-qtd { width: 36px !important; }
-  .en-compacta .en-escrever { width: 50px !important; }
-  .en-compacta .en-ok { width: 18px !important; }
+  .en-compacta .en-c-qtd { width: 50px !important; }
+  .en-compacta .en-escrever { width: 64px !important; }
+  .en-compacta .en-ok { width: 44px !important; }
   .en-compacta td.en-escrever, .en-compacta td.en-ok { height: 21px !important; }
   .en-compacta .en-qtd, .en-compacta .en-saldo { font-size: 11.5px !important; font-weight: 700; text-align: center; }
   .en-compacta .en-c-peca .er-sub { display: inline !important; font-size: 9.5px; margin-left: 4px; }
@@ -4464,3 +4464,8 @@ button.marca-chip.oculto { display: none; }
 .cf-do-dia[open] > summary::before { transform: rotate(90deg); }
 .cf-do-dia > summary .cf-do-dia-conta { float: none; margin-left: auto; }
 .cf-do-dia[open] > summary { margin-bottom: 4px; }
+/* Papel da conferência: quadradinho para marcar "QR colado". */
+@media print {
+  .en-compacta td.en-ok { text-align: center; }
+  .en-compacta td.en-ok::after { content: ""; display: inline-block; width: 10px; height: 10px; border: 1.5px solid #000; vertical-align: middle; }
+}

@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125144308"></script>
+  <script src="/demo/demo.js?v=20261125145027"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrada de estoque - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125144308">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125145027">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125144308"></script>
-  <script src="/js/celular.js?v=20261125144308"></script>
-  <script src="/js/atalhos.js?v=20261125144308"></script>
-  <script src="/js/gerente.js?v=20261125144308"></script>
+  <script src="/js/tema.js?v=20261125145027"></script>
+  <script src="/js/celular.js?v=20261125145027"></script>
+  <script src="/js/atalhos.js?v=20261125145027"></script>
+  <script src="/js/gerente.js?v=20261125145027"></script>
   <style>
     /* Papel: A4 com margem pequena (cabe mais peça por folha). */
     @page { size: A4 portrait; margin: 8mm; }
@@ -294,18 +294,17 @@
               <th class="en-c-num">Nº</th>
               <th class="en-c-peca">Peça</th>
               <th class="en-c-local">Local</th>
-              <th class="en-c-qtd">Na nota</th>
-              <th class="en-c-qtd">Saldo hoje</th>
-              <th class="so-imp en-escrever">Chegou</th>
-              <th class="so-imp en-escrever">Contado</th>
-              <th class="so-imp en-ok">✓</th>
+              <th class="en-c-qtd"><span class="sem-imp">Na nota</span><span class="so-imp">Chegou (nota)</span></th>
+              <th class="en-c-qtd"><span class="sem-imp">Saldo hoje</span><span class="so-imp">Tinha</span></th>
+              <th class="so-imp en-escrever" title="Contou na prateleira depois de guardar">Tem agora</th>
+              <th class="so-imp en-ok">QR colado</th>
               <th class="sem-imp en-c-acao"></th>
             </tr></thead>
             ${agrupar(lista).map(b => {
               const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
               return `
             <tbody class="en-boleto" data-boleto="${b.id}">
-              <tr class="en-grupo"><td colspan="10">
+              <tr class="en-grupo"><td colspan="9">
                 <div class="en-grupo-linha">
                   <span>${b.pedido ? '<a class="en-pedido" href="/pedidos.html?id=' + b.pedido + '">Pedido nº ' + b.pedido + '</a> · ' : ''}<strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
                     <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>
@@ -327,7 +326,6 @@
                 <td class="en-qtd">${l.quantidade}</td>
                 <td class="en-saldo">${l.novo ? '—' : l.estoque}</td>
                 <td class="so-imp en-escrever"></td>
-                <td class="so-imp en-escrever"></td>
                 <td class="so-imp en-ok"></td>
                 <td class="sem-imp en-c-acao"><button type="button" class="btn-mini sucesso" data-linha="${l.linha_id}">Dar entrada</button></td>
               </tr>`).join('')}
@@ -340,8 +338,8 @@
 
     // ---------- imprimir (a conferência ainda é muito no papel) ----------
     // "Imprimir tudo" sai com todos os boletos; "Imprimir este boleto" só com
-    // aquele. O papel tem colunas em branco para anotar à caneta: quantas
-    // chegaram, o saldo contado na prateleira e um ✓. Depois é só lançar aqui.
+    // aquele. O papel (2026-11-25, simplificado): quanto chegou pela nota, quanto
+    // tinha no sistema, "Tem agora" em branco (conta depois de guardar) e um quadrado "QR colado".
     function imprimir(boletoId) {
       if (campoBusca.value) { campoBusca.value = ''; desenhar(); }
       document.getElementById('dataImpressao').textContent = new Date().toLocaleString('pt-BR');
