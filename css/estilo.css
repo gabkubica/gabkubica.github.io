@@ -4501,3 +4501,31 @@ button.marca-chip.oculto { display: none; }
    conferência (data · quem) quebra linha em vez de rolar. */
 /* (letra do nome no tamanho normal: Gabriel pediu cuidado para nada ficar pequeno) */
 #tabelaItens tbody td.col-conferencia { white-space: normal; overflow: visible; text-overflow: clip; font-size: 13px; line-height: 1.25; cursor: default; }
+
+/* ===== Itens (2026-11-25) =====
+   - "OK / Repor / Sem estoque / a caminho" só no Modo Gerenciador; os outros
+     veem só o número do estoque.
+   - Atalhos (Novo produto, Entrada, Pedido, Importar, Etiquetas) menores no
+     canto de cima; a barra da busca fica com Buscar, Limpar e o filtro.
+   - Conferência: data em cima, primeiro nome embaixo. */
+html:not([data-gerente="sim"]) #tabelaItens .status-estoque,
+html:not([data-gerente="sim"]) #tabelaItens .a-caminho { display: none; }
+.topo-pagina .it-atalhos { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.it-atalhos > button, .it-atalhos > a { font-size: 13px; padding: 6px 11px; line-height: 1.3; min-height: 0; }
+#tabelaItens .it-conf { display: block; }
+#tabelaItens .it-conf-data { display: block; }
+#tabelaItens .it-conf-quem { display: block; color: var(--texto-suave); }
+@media (max-width: 700px) {
+  .topo-pagina .it-atalhos { margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .topo-pagina .it-atalhos::-webkit-scrollbar { display: none; }
+  .it-atalhos > * { flex: none; white-space: nowrap; }
+  #tabelaItens .it-conf-data, #tabelaItens .it-conf-quem { display: inline; }
+  #tabelaItens .it-conf-quem::before { content: " · "; }
+}
+/* Celular: com só Buscar/Limpar na barra, os 3 campos da busca ficavam
+   espremidos ao lado deles; agora ocupam a linha inteira. */
+@media (max-width: 640px) {
+  .planilha-toolbar .busca-3linhas { flex: 1 1 100%; }
+}
+/* Marca quebra entre palavras ("Borrachas SC"), não no meio delas. */
+#tabelaItens tbody td.col-marca { overflow-wrap: break-word; }

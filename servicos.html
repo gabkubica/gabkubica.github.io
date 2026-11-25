@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125151815"></script>
+  <script src="/demo/demo.js?v=20261125153131"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Serviços - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125151815">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125153131">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125151815"></script>
-  <script src="/js/celular.js?v=20261125151815"></script>
-  <script src="/js/atalhos.js?v=20261125151815"></script>
-  <script src="/js/gerente.js?v=20261125151815"></script>
+  <script src="/js/tema.js?v=20261125153131"></script>
+  <script src="/js/celular.js?v=20261125153131"></script>
+  <script src="/js/atalhos.js?v=20261125153131"></script>
+  <script src="/js/gerente.js?v=20261125153131"></script>
 </head>
 <body>
   <header>
@@ -578,12 +578,29 @@
 
         let inicioX = 0;
         let larguraInicial = 0;
+        let larguraTabela = 0;
         let arrastandoEste = false;
+        const tabela = th.closest('table');
+
+        // A "fisgada" (2026-11-25): a tabela tem largura 100% e o Nome não tem
+        // largura fixa; ao mexer numa coluna, o navegador redistribuía a sobra
+        // entre TODAS as colunas e a borda não acompanhava o mouse (pulava).
+        // Agora, ao começar a arrastar, cada coluna fica com a largura que tem
+        // na tela e a tabela fica com a soma delas: só a coluna arrastada muda
+        // e a tabela cresce/encolhe junto (rola de lado se passar da tela).
+        function congelarColunas() {
+          const visiveis = [...th.parentElement.children].filter(c => c.offsetParent !== null);
+          const larguras = visiveis.map(c => c.getBoundingClientRect().width);
+          visiveis.forEach((c, i) => { c.style.width = larguras[i] + 'px'; });
+          larguraTabela = larguras.reduce((soma, l) => soma + l, 0);
+          tabela.style.width = larguraTabela + 'px';
+        }
 
         function mover(e) {
           if (!arrastandoEste) return;
           const nova = Math.max(60, larguraInicial + (e.clientX - inicioX));
           th.style.width = nova + 'px';
+          tabela.style.width = (larguraTabela + nova - larguraInicial) + 'px';
         }
 
         function soltar(e) {
@@ -599,7 +616,8 @@
           e.preventDefault();
           e.stopPropagation();
           inicioX = e.clientX;
-          larguraInicial = th.offsetWidth;
+          congelarColunas();
+          larguraInicial = th.getBoundingClientRect().width;
           arrastandoEste = true;
           handle.setPointerCapture(e.pointerId);
           document.body.classList.add('redimensionando');
@@ -615,6 +633,7 @@
     function redefinirLarguras() {
       const thead = document.querySelector('#tabelaServicos thead tr');
       if (!thead) return;
+      document.getElementById('tabelaServicos').style.width = '';
       thead.querySelectorAll('th[data-coluna]').forEach(th => {
         th.style.width = LARGURAS_PADRAO[th.dataset.coluna] || '';
       });

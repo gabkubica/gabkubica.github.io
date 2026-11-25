@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125151815"></script>
+  <script src="/demo/demo.js?v=20261125153131"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Itens - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125151815">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125153131">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125151815"></script>
-  <script src="/js/celular.js?v=20261125151815"></script>
-  <script src="/js/atalhos.js?v=20261125151815"></script>
-  <script src="/js/gerente.js?v=20261125151815"></script>
+  <script src="/js/tema.js?v=20261125153131"></script>
+  <script src="/js/celular.js?v=20261125153131"></script>
+  <script src="/js/atalhos.js?v=20261125153131"></script>
+  <script src="/js/gerente.js?v=20261125153131"></script>
 </head>
 <body>
   <header>
@@ -25,7 +25,17 @@
   </header>
 
   <main class="planilha-main">
-    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a><h2>Itens</h2></div>
+    <!-- Atalhos menores no canto de cima (2026-11-25, pedido do Gabriel): a
+         barra da busca fica só com Buscar, Limpar e o filtro. -->
+    <div class="topo-pagina"><a href="/" class="btn-voltar">← Painel</a><h2>Itens</h2>
+      <nav class="it-atalhos" aria-label="Atalhos da tabela de itens">
+        <button id="btnNovo" class="sucesso" type="button">+ Novo produto</button>
+        <a href="/entrada-estoque.html" class="secundario" title="Peças dos boletos aguardando entrada no estoque">Entrada de estoque</a>
+        <a href="/pedidos.html" class="secundario" title="Pedir ao vendedor as peças abaixo do mínimo">Pedido de compra</a>
+        <a href="/importar.html" class="secundario" title="Importar uma tabela inteira de peças (Excel ou CSV)">Importar tabela</a>
+        <button id="btnEtiquetas" class="secundario" type="button" title="Lista de etiquetas com QR code para imprimir">Etiquetas QR<span id="contEtiquetas"></span></button>
+      </nav>
+    </div>
     <div class="planilha-toolbar">
       <div class="busca-3linhas">
         <input type="text" id="busca" class="busca" placeholder="" autocomplete="off">
@@ -33,13 +43,8 @@
         <input type="text" id="busca3" class="busca" placeholder="" autocomplete="off">
       </div>
       <div class="busca-acoes">
-        <button id="btnBuscar">Buscar</button>
-        <button id="btnNovo" class="sucesso">Novo Produto</button>
+        <button id="btnBuscar" title="Também busca apertando Enter">Buscar</button>
         <button id="btnLimpar" class="secundario">Limpar</button>
-        <a href="/entrada-estoque.html" class="secundario" title="Peças dos boletos aguardando entrada no estoque">Entrada de estoque</a>
-        <a href="/pedidos.html" class="secundario" title="Pedir ao vendedor as peças abaixo do mínimo">Pedido de compra</a>
-        <a href="/importar.html" class="secundario" title="Importar uma tabela inteira de peças (Excel ou CSV)">Importar tabela</a>
-        <button id="btnEtiquetas" class="secundario" type="button" title="Lista de etiquetas com QR code para imprimir">Etiquetas QR<span id="contEtiquetas"></span></button>
         <label class="filtro-estoque">
           <input type="checkbox" id="chkEstoqueBaixo"> Abaixo do mínimo
         </label>
@@ -348,13 +353,13 @@
       // (2026-11-25) Colunas do lado mais enxutas: os nomes das peças são longos
       // ("VIDRO PB DG DEGRADE AUDI A3 13>15 HATCH/SPORT BACK C/SENSOR...") e
       // precisam de espaço para caber em 1 ou 2 linhas.
-      'codigo': '125px', 'nome': '', 'marca': '100px', 'estoque': '110px',
-      'preco': '95px', 'precoInst': '105px', 'local': '95px',
-      'conferencia': '125px', 'acoes': '130px',
+      'codigo': '145px', 'nome': '', 'marca': '100px', 'estoque': '150px', // estoque: 80px fora do gerenciador (sem OK / a caminho)
+      'preco': '108px', 'precoInst': '112px', 'local': '100px',
+      'conferencia': '105px', 'acoes': '130px',
     };
     // Tablet em pé: larguras menores (o nome quebra linha), para caber sem rolar.
     if (window.innerWidth <= 900) {
-      Object.assign(LARGURAS_PADRAO, { codigo: '125px', nome: '205px', marca: '60px', estoque: '75px', preco: '100px', precoInst: '100px', local: '90px' });
+      Object.assign(LARGURAS_PADRAO, { codigo: '125px', nome: '190px', marca: '90px', estoque: '120px', preco: '100px', precoInst: '100px', local: '90px' });
     }
 
     function pintarSetasOrdenacao() {
@@ -445,13 +450,16 @@
       return '<span class="status-estoque ok">OK</span>';
     }
 
+    // Conferência numa coluna estreita (2026-11-25): a data em cima e só o
+    // primeiro nome embaixo; o nome inteiro aparece ao parar o mouse.
     function textoConferencia(item) {
-      if (item.conferente_nome && item.data_conferencia) {
-        return escapeHtml(item.conferente_nome) + ' · ' + escapeHtml(formatarData(item.data_conferencia));
-      }
-      if (item.conferente_nome) return escapeHtml(item.conferente_nome);
-      if (item.data_conferencia) return escapeHtml(formatarData(item.data_conferencia));
-      return '<span style="color:var(--texto-suave)">—</span>';
+      const nome = item.conferente_nome || '';
+      const data = item.data_conferencia ? formatarData(item.data_conferencia) : '';
+      if (!nome && !data) return '<span style="color:var(--texto-suave)">—</span>';
+      const dica = 'Conferido' + (nome ? ' por ' + nome : '') + (data ? ' em ' + data : '');
+      return '<span class="it-conf" title="' + escapeHtml(dica) + '">' +
+        (data ? '<span class="it-conf-data">' + escapeHtml(data) + '</span>' : '') +
+        (nome ? '<span class="it-conf-quem">' + escapeHtml(nome.split(' ')[0]) + '</span>' : '') + '</span>';
     }
 
     async function buscarItens(reset) {
@@ -526,7 +534,7 @@
           ${celula(formatarMoeda(i.preco), 'col-preco')}
           ${celula(formatarMoeda(i.preco_com_instalacao), 'col-precoInst')}
           ${celula(escapeHtml(i.localizacao || ''), 'col-local')}
-          ${celula(textoConferencia(i), 'col-conferencia rolavel')}
+          ${celula(textoConferencia(i), 'col-conferencia')}
           <td class="celula col-acoes">
             <button class="btn-mini" data-acoes="editar">Editar</button>
             <button class="btn-mini" data-acoes="historico">Histórico</button>
@@ -1202,12 +1210,29 @@
 
         let inicioX = 0;
         let larguraInicial = 0;
+        let larguraTabela = 0;
         let arrastandoEste = false;
+        const tabela = th.closest('table');
+
+        // A "fisgada" (2026-11-25): a tabela tem largura 100% e o Nome não tem
+        // largura fixa; ao mexer numa coluna, o navegador redistribuía a sobra
+        // entre TODAS as colunas e a borda não acompanhava o mouse (pulava).
+        // Agora, ao começar a arrastar, cada coluna fica com a largura que tem
+        // na tela e a tabela fica com a soma delas: só a coluna arrastada muda
+        // e a tabela cresce/encolhe junto (rola de lado se passar da tela).
+        function congelarColunas() {
+          const visiveis = [...th.parentElement.children].filter(c => c.offsetParent !== null);
+          const larguras = visiveis.map(c => c.getBoundingClientRect().width);
+          visiveis.forEach((c, i) => { c.style.width = larguras[i] + 'px'; });
+          larguraTabela = larguras.reduce((soma, l) => soma + l, 0);
+          tabela.style.width = larguraTabela + 'px';
+        }
 
         function mover(e) {
           if (!arrastandoEste) return;
           const nova = Math.max(60, larguraInicial + (e.clientX - inicioX));
           th.style.width = nova + 'px';
+          tabela.style.width = (larguraTabela + nova - larguraInicial) + 'px';
         }
 
         function soltar(e) {
@@ -1223,7 +1248,8 @@
           e.preventDefault();
           e.stopPropagation();
           inicioX = e.clientX;
-          larguraInicial = th.offsetWidth;
+          congelarColunas();
+          larguraInicial = th.getBoundingClientRect().width;
           arrastandoEste = true;
           handle.setPointerCapture(e.pointerId);
           document.body.classList.add('redimensionando');
@@ -1242,10 +1268,18 @@
     function redefinirLarguras() {
       const thead = document.querySelector('#tabelaItens thead tr');
       if (!thead) return;
+      document.getElementById('tabelaItens').style.width = '';
+      const gerente = !!(window.Gerente && Gerente.ativo());
       thead.querySelectorAll('th[data-coluna]').forEach(th => {
-        th.style.width = LARGURAS_PADRAO[th.dataset.coluna] || '';
+        let l = LARGURAS_PADRAO[th.dataset.coluna] || '';
+        // Fora do gerenciador o estoque é só o número (sem OK / a caminho).
+        if (th.dataset.coluna === 'estoque' && !gerente) l = window.innerWidth <= 900 ? '70px' : '80px';
+        // '' virava os 300px do CSS e o navegador esticava TODAS as colunas
+        // na mesma proporção (o Nome nunca ficava com a sobra). 'auto' = sobra.
+        th.style.width = l || 'auto';
       });
     }
+    window.addEventListener('gerente:mudou', redefinirLarguras);
 
     document.getElementById('btnBuscar').addEventListener('click', () => buscarItens(true));
     ['busca', 'busca2', 'busca3'].forEach(id => {
