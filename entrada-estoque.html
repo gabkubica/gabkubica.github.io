@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125145027"></script>
+  <script src="/demo/demo.js?v=20261125150730"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrada de estoque - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125145027">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125150730">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125145027"></script>
-  <script src="/js/celular.js?v=20261125145027"></script>
-  <script src="/js/atalhos.js?v=20261125145027"></script>
-  <script src="/js/gerente.js?v=20261125145027"></script>
+  <script src="/js/tema.js?v=20261125150730"></script>
+  <script src="/js/celular.js?v=20261125150730"></script>
+  <script src="/js/atalhos.js?v=20261125150730"></script>
+  <script src="/js/gerente.js?v=20261125150730"></script>
   <style>
     /* Papel: A4 com margem pequena (cabe mais peça por folha). */
     @page { size: A4 portrait; margin: 8mm; }
@@ -304,7 +304,7 @@
               const total = b.linhas.reduce((s, l) => s + l.quantidade, 0);
               return `
             <tbody class="en-boleto" data-boleto="${b.id}">
-              <tr class="en-grupo"><td colspan="9">
+              <tr class="en-grupo"><td colspan="7">
                 <div class="en-grupo-linha">
                   <span>${b.pedido ? '<a class="en-pedido" href="/pedidos.html?id=' + b.pedido + '">Pedido nº ' + b.pedido + '</a> · ' : ''}<strong>Boleto nº ${escapeHtml(b.codigo)}</strong> · ${escapeHtml(b.fornecedor || 'sem fornecedor')}${b.nf ? ' · NF ' + escapeHtml(b.nf) : ''}
                     <span class="er-sub en-grupo-sub">· lançado em ${dataBR(b.data)} · ${pecas(total)}</span></span>

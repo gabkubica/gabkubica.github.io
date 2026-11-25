@@ -4469,3 +4469,30 @@ button.marca-chip.oculto { display: none; }
   .en-compacta td.en-ok { text-align: center; }
   .en-compacta td.en-ok::after { content: ""; display: inline-block; width: 10px; height: 10px; border: 1.5px solid #000; vertical-align: middle; }
 }
+
+/* (colspan do título da nota = 7 = colunas que aparecem no papel; mais que isso
+   cria colunas fantasma que roubam a largura da Peça.)
+   Papel da conferência, versão calma (2026-11-25: "muito item, agressivo aos
+   olhos"). ~28 peças por folha; cada nota vira um título em cima das peças
+   dela (em vez da coluna estreita à esquerda); sem o código cinza depois do
+   nome; só linhas horizontais finas; caixas de escrever claras. */
+@media print {
+  .en-compacta th.en-p-bol, .en-compacta td.en-p-bol { display: none !important; }
+  .en-compacta tr.en-grupo { display: table-row !important; }
+  .en-compacta tr.en-grupo td { border: 0 !important; border-bottom: 1.5px solid #000 !important; padding: 14px 4px 4px !important;
+    height: auto !important; font-size: 12.5px !important; white-space: normal !important; background: none !important; }
+  .en-compacta tbody.en-boleto { border-top: 0 !important; }
+  .en-compacta tbody.en-boleto:first-of-type tr.en-grupo td { padding-top: 4px !important; }
+  .en-compacta th, .en-compacta td { border: 0 !important; border-bottom: 1px solid #bbb !important; height: 30px !important;
+    font-size: 12px !important; padding: 2px 6px !important; }
+  .en-compacta th { height: auto !important; font-size: 10px !important; border-bottom: 1.5px solid #000 !important; color: #444 !important; }
+  .en-compacta .en-c-peca .er-sub { display: none !important; }
+  .en-compacta .en-qtd, .en-compacta .en-saldo { font-size: 13px !important; }
+  .en-compacta td.en-escrever { border: 1px solid #888 !important; }
+  .en-compacta .en-c-num { width: 52px !important; }
+  .en-compacta .en-c-local { width: 48px !important; }
+  .en-compacta .en-c-qtd { width: 56px !important; }
+  .en-compacta .en-escrever { width: 70px !important; }
+  .en-compacta .en-ok { width: 46px !important; }
+  .en-compacta td.en-ok::after { width: 12px; height: 12px; }
+}
