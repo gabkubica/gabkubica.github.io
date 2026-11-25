@@ -4529,3 +4529,42 @@ html:not([data-gerente="sim"]) #tabelaItens .a-caminho { display: none; }
 }
 /* Marca quebra entre palavras ("Borrachas SC"), não no meio delas. */
 #tabelaItens tbody td.col-marca { overflow-wrap: break-word; }
+
+/* ===== Serviços externos (2026-11-25) =====
+   Calendário com a situação do dia (marcado / atrasado / tudo concluído),
+   aviso de atrasados no topo, "Imprimir todos" no painel de hoje e, em tela
+   estreita, "Serviços para hoje" ANTES do calendário (quem está na rua abre
+   e já vê o dia). Só nesta tela: o calendário de boletos não muda. */
+.ag-externos .cal.cal-grande .cal-dia { min-height: 60px; }
+.ag-externos .cal-dia.tem { border-color: #2f6fb0; }
+.ag-externos .cal-dia .conta { background: #2f6fb0; }
+.ag-externos .cal-dia.tem.atrasado { border-style: solid; border-color: var(--vermelho); border-width: 2px; }
+.ag-externos .cal-dia.tem.atrasado .conta { background: var(--vermelho); }
+.ag-externos .cal-dia.tem.feito { border-style: solid; border-color: #2e7d32; }
+.ag-externos .cal-dia.tem.feito .conta { background: #2e7d32; }
+.cal-legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--texto-suave); }
+.cal-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-legenda i { display: inline-block; width: 12px; height: 12px; border-radius: 999px; }
+.cal-legenda .leg-marcado { background: #2f6fb0; }
+.cal-legenda .leg-atrasado { background: var(--vermelho); }
+.cal-legenda .leg-feito { background: #2e7d32; }
+.lateral-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.btn-imprimir-hoje { padding: 6px 12px; font-size: 14px; }
+.tag-atrasado { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 4px; background: var(--vermelho); color: #fff; font-size: 12px; font-weight: 700; vertical-align: middle; }
+.aviso-atrasados { border: 2px solid var(--vermelho); border-radius: 10px; background: var(--vermelho-claro); padding: 10px 14px; margin-bottom: 14px; }
+.aviso-atrasados summary { cursor: pointer; font-weight: 700; color: var(--vermelho); font-size: 15px; }
+.aviso-atrasados summary small { font-weight: 400; color: var(--texto-suave); font-size: 13px; }
+.aviso-atrasados ul { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.aviso-atrasados li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 8px; padding: 6px 10px; }
+.aviso-atrasados .atr-data { font-weight: 700; color: var(--vermelho); min-width: 170px; }
+.aviso-atrasados .atr-info { flex: 1 1 220px; min-width: 0; }
+.aviso-atrasados .atr-dica { margin: 8px 0 0; font-size: 13px; color: var(--texto-suave); }
+@media (max-width: 1100px) {
+  .ag-externos .painel-lateral { order: -1; max-height: none; }
+}
+@media (max-width: 640px) {
+  .ag-externos .cal.cal-grande .cal-dia { min-height: 48px; }
+  .aviso-atrasados .atr-data { min-width: 0; }
+}
+/* Endereço do externo quebra em 2 linhas em vez de ser cortado. */
+#tabelaExternos td.ext-endereco { white-space: normal; overflow-wrap: anywhere; }

@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125175022"></script>
+  <script src="/demo/demo.js?v=20261125184633"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Serviços externos - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125175022">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125184633">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125175022"></script>
-  <script src="/js/celular.js?v=20261125175022"></script>
-  <script src="/js/atalhos.js?v=20261125175022"></script>
-  <script src="/js/gerente.js?v=20261125175022"></script>
+  <script src="/js/tema.js?v=20261125184633"></script>
+  <script src="/js/celular.js?v=20261125184633"></script>
+  <script src="/js/atalhos.js?v=20261125184633"></script>
+  <script src="/js/gerente.js?v=20261125184633"></script>
 </head>
 <body>
   <header>
@@ -37,8 +37,10 @@
     </div>
 
     <div class="os-secao">
+      <!-- Serviços com a data já passada e ainda abertos (ninguém concluiu). -->
+      <div id="avisoAtrasados"></div>
       <h2>Agenda</h2>
-      <div class="agenda-layout">
+      <div class="agenda-layout ag-externos">
         <div class="cal cal-grande">
           <div class="cal-cab">
             <button id="calAnt" type="button" title="Mês anterior">‹</button>
@@ -49,12 +51,20 @@
             <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
           </div>
           <div id="calDias" class="cal-grade"></div>
+          <div class="cal-legenda" aria-label="Legenda do calendário">
+            <span><i class="leg-marcado"></i>Marcado</span>
+            <span><i class="leg-atrasado"></i>Atrasado (passou do dia e não foi concluído)</span>
+            <span><i class="leg-feito"></i>Tudo concluído</span>
+          </div>
         </div>
 
         <!-- Ao lado do calendário: o que tem para hoje, sem precisar clicar
              em nenhum dia. -->
         <aside class="painel-lateral" aria-labelledby="tituloHoje">
-          <h3 id="tituloHoje">Serviços para hoje</h3>
+          <div class="lateral-cab">
+            <h3 id="tituloHoje">Serviços para hoje</h3>
+            <button id="btnImprimirHoje" class="azul btn-imprimir-hoje oculto" type="button" title="Um PDF com todos os serviços de hoje, cada um numa folha">Imprimir todos</button>
+          </div>
           <p class="painel-data" id="dataHoje"></p>
           <div id="listaHoje"><p class="aviso-vazio">Carregando...</p></div>
         </aside>
@@ -87,11 +97,11 @@
           <thead>
             <tr>
               <th style="width:100px">Número</th>
-              <th style="width:160px">Agendado</th>
-              <th style="width:240px">Cliente</th>
+              <th style="width:195px">Agendado</th>
+              <th style="width:220px">Cliente</th>
               <th style="width:110px">Placa</th>
               <th>Endereço</th>
-              <th style="width:130px">Status</th>
+              <th style="width:185px">Status</th>
               <th style="width:120px">Valor (R$)</th>
               <th style="width:170px">Ações</th>
             </tr>
@@ -194,6 +204,40 @@
       return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
     }
 
+    // Atrasado = o dia marcado já passou e o serviço ainda não foi concluído.
+    function ehAtrasado(a) {
+      if (!a || !a.data_agendamento || a.status === 'concluida' || a.status === 'cancelada') return false;
+      const d = new Date(a.data_agendamento);
+      return isValidDate(d) && padraoDia(d) < padraoDia(new Date());
+    }
+    const TAG_ATRASADO = '<span class="tag-atrasado" title="O dia marcado já passou e o serviço não foi concluído">Atrasado</span>';
+
+    // Caixa no topo com os atrasados: some quando não tem nenhum.
+    async function carregarAtrasados() {
+      const el = document.getElementById('avisoAtrasados');
+      const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+      let lista = [];
+      try {
+        const dados = await lerJson(await fetch('/api/ordens-servico/agenda?abertos=1&fim=' + padraoDia(ontem)));
+        lista = (dados.agendamentos || []).filter(ehAtrasado);
+      } catch (e) {
+        el.innerHTML = '';
+        return;
+      }
+      if (!lista.length) { el.innerHTML = ''; return; }
+      el.innerHTML = '<details class="aviso-atrasados"' + (lista.length <= 5 ? ' open' : '') + '>' +
+        '<summary>⚠ ' + lista.length + (lista.length === 1 ? ' serviço externo atrasado' : ' serviços externos atrasados') +
+        ' <small>(o dia marcado passou e ainda não foram concluídos)</small></summary>' +
+        '<ul>' + lista.map(a => `
+          <li>
+            <span class="atr-data">${escapeHtml(mascaraData(a.data_agendamento))} · ${escapeHtml(rotuloPeriodo(a))}</span>
+            <span class="atr-info"><strong>nº ${escapeHtml(a.codigo)}</strong> · ${escapeHtml(a.cliente_nome || 'Sem cliente')}${a.placa ? ' · ' + escapeHtml(a.placa) : ''}</span>
+            <button type="button" class="btn-mini" data-abrir="${a.id}">Abrir</button>
+          </li>`).join('') + '</ul>' +
+        '<p class="atr-dica">Abra o serviço e conclua, cancele ou mude o dia.</p>' +
+        '</details>';
+    }
+
     async function carregarAgendaMes() {
       const ultimo = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0).getDate();
       const desde = padraoDia(mesAtual);
@@ -244,11 +288,21 @@
         const doMes = dt.getMonth() === mesAtual.getMonth();
         const hojeDia = chave === hojeChave;
         const sel = chave === diaSelecionado;
-        const contagem = (mapa[chave] || []).length;
+        const doDia = mapa[chave] || [];
+        const contagem = doDia.length;
+        // Situação do dia: atrasado (algum ficou aberto num dia que já
+        // passou), tudo concluído, ou só marcado.
+        const atrasados = doDia.filter(ehAtrasado).length;
+        const tudoFeito = contagem > 0 && doDia.every(a => a.status === 'concluida');
+        const situacao = atrasados ? ' atrasado' : tudoFeito ? ' feito' : '';
+        const dica = atrasados
+          ? atrasados + ' atrasado(s) de ' + contagem + ' agendado(s)'
+          : tudoFeito ? contagem + ' concluído(s)' : contagem + ' agendado(s)';
         const celula = document.createElement('div');
-        celula.className = 'cal-dia' + (doMes ? '' : ' fora') + (hojeDia ? ' hoje' : '') + (sel ? ' sel' : '') + (contagem ? ' tem' : '');
+        celula.className = 'cal-dia' + (doMes ? '' : ' fora') + (hojeDia ? ' hoje' : '') + (sel ? ' sel' : '') + (contagem ? ' tem' + situacao : '');
         celula.dataset.dia = chave;
-        celula.innerHTML = '<span class="num">' + dt.getDate() + '</span>' + (contagem ? '<span class="conta" title="' + contagem + ' agendado(s)">' + contagem + '</span>' : '');
+        celula.title = contagem ? dica : '';
+        celula.innerHTML = '<span class="num">' + dt.getDate() + '</span>' + (contagem ? '<span class="conta">' + contagem + '</span>' : '');
         celula.addEventListener('click', () => selecionarDia(chave));
         grade.appendChild(celula);
       }
@@ -275,6 +329,8 @@
         el.innerHTML = '<p class="aviso-vazio">Não foi possível carregar os serviços de hoje.</p>';
         return;
       }
+      // "Imprimir todos" só aparece quando tem serviço hoje.
+      document.getElementById('btnImprimirHoje').classList.toggle('oculto', !lista.length);
       if (!lista.length) {
         el.innerHTML = '<p class="aviso-vazio">Nenhum serviço externo agendado para hoje.</p>';
         return;
@@ -311,7 +367,7 @@
           <div class="cal-agenda">
             <span class="cal-hora">${escapeHtml(rotuloPeriodo(a))}</span>
             <span class="cal-info"><strong>nº ${escapeHtml(a.codigo)}</strong> · ${a.cliente_nome ? (a.cliente_id ? '<a href="/clientes.html?id=' + a.cliente_id + '">' + escapeHtml(a.cliente_nome) + '</a>' : escapeHtml(a.cliente_nome)) : '—'}${a.placa ? ' · ' + escapeHtml(a.placa) : ''}</span>
-            <span class="cal-status">${statusBadge(a.status, a)}</span>
+            <span class="cal-status">${statusBadge(a.status, a)}${ehAtrasado(a) ? TAG_ATRASADO : ''}</span>
             <span class="cal-acoes">
               <button type="button" class="btn-mini" data-abrir="${a.id}">Abrir</button>
               <button type="button" class="btn-mini azul" data-pdf="${a.id}">PDF</button>
@@ -339,8 +395,8 @@
           <td>${formatarDataAgendada(o)}</td>
           <td class="rolavel" title="${escapeHtml(o.cliente_nome || '')}">${o.cliente_nome ? (o.cliente_id ? '<a href="/clientes.html?id=' + o.cliente_id + '">' + escapeHtml(o.cliente_nome) + '</a>' : escapeHtml(o.cliente_nome)) : '—'}</td>
           <td>${o.placa ? escapeHtml(o.placa) : '—'}</td>
-          <td class="rolavel" title="${escapeHtml(o.endereco || '')}">${escapeHtml(o.endereco || '—')}</td>
-          <td>${statusBadge(o.status, o)}</td>
+          <td class="ext-endereco">${escapeHtml(o.endereco || '—')}</td>
+          <td>${statusBadge(o.status, o)}${ehAtrasado(o) ? TAG_ATRASADO : ''}</td>
           <td>${formatarMoeda(o.valor_total)}</td>
           <td>${acoesLinha(o)}</td>
         </tr>`;
@@ -413,6 +469,7 @@
         buscarExternos(true);
         await usuarioTrocouMes();
         carregarHoje();
+        carregarAtrasados();
       } catch (e) {
         mostrarMensagem(e.message, 'erro');
       }
@@ -424,6 +481,9 @@
     }
 
     // ---------- Eventos ----------
+    document.getElementById('btnImprimirHoje').addEventListener('click', () => {
+      window.open('/api/ordens-servico/agenda/dia.pdf?data=' + padraoDia(new Date()), '_blank');
+    });
     document.getElementById('btnNovaExterna').addEventListener('click', () => {
       location.href = '/externa.html';
     });
@@ -454,6 +514,7 @@
     (async function iniciar() {
       await usuarioTrocouMes();
       carregarHoje();
+      carregarAtrasados();
       buscarExternos(true);
     })();
   </script>
