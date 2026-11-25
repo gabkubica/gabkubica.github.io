@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125023742"></script>
+  <script src="/demo/demo.js?v=20261125144308"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrada de estoque - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125023742">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125144308">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125023742"></script>
-  <script src="/js/celular.js?v=20261125023742"></script>
-  <script src="/js/atalhos.js?v=20261125023742"></script>
-  <script src="/js/gerente.js?v=20261125023742"></script>
+  <script src="/js/tema.js?v=20261125144308"></script>
+  <script src="/js/celular.js?v=20261125144308"></script>
+  <script src="/js/atalhos.js?v=20261125144308"></script>
+  <script src="/js/gerente.js?v=20261125144308"></script>
   <style>
     /* Papel: A4 com margem pequena (cabe mais peça por folha). */
     @page { size: A4 portrait; margin: 8mm; }
@@ -40,7 +40,7 @@
       <button type="button" class="secundario" id="btnImprimirTudo">Imprimir tudo (papel)</button>
       <a class="azul" id="btnPedidosReceber" href="/pedidos.html?receber=1" title="Chegou mercadoria de um pedido? Receba por lá: confere, cadastra a nota e imprime os QR">Pedidos a receber</a>
       <span class="en-barra-dir">
-        <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque <span id="contDoDia" class="cf-cont" title="Peças da contagem surpresa de hoje que ainda faltam contar"></span></button>
+        <button type="button" id="btnConferencia" title="Contar uma peça na prateleira e mandar o saldo para o gerente aprovar">Conferência de estoque <span id="contDoDia" class="cf-cont" title="Peças da contagem de hoje que ainda faltam contar"></span></button>
         <button type="button" id="btnAprovar" class="secundario" title="Contagens esperando o gerente aprovar">Conferências para aprovar <span id="contAbaAprovar" class="cf-cont"></span></button>
       </span>
     </div>
@@ -585,7 +585,7 @@
               const mexeu = c.estoqueAgora !== c.saldoSistema;
               return `<tr data-cf="${c.id}">
                 <td class="cf-col-marca"><input type="checkbox" class="cf-marca" value="${c.id}" aria-label="Marcar ${escapeHtml(c.nome)}"></td>
-                <td class="cf-nome"><span class="er-num">${numeroEtiqueta(c.numeroInterno)}</span> <strong>${escapeHtml(c.nome)}</strong>${c.sorteio ? ' <span class="mini-selo pendente" title="Peça da contagem surpresa (sorteada pelo sistema)">sorteio</span>' : ''}
+                <td class="cf-nome"><span class="er-num">${numeroEtiqueta(c.numeroInterno)}</span> <strong>${escapeHtml(c.nome)}</strong>${c.sorteio ? ' <span class="mini-selo pendente" title="Peça da contagem de hoje (sorteada pelo sistema)">sorteio</span>' : ''}
                   <span class="er-sub">${escapeHtml(c.codigo || '')}${c.marca ? ' · ' + escapeHtml(c.marca) : ''}</span>
                   <span class="er-sub">Contou: ${escapeHtml(c.funcionario || '—')} · ${dataHoraBR(c.criadoEm)}</span>
                   ${c.observacao ? '<span class="er-sub cf-obs">“' + escapeHtml(c.observacao) + '”</span>' : ''}</td>
@@ -699,6 +699,10 @@
     // Contagem surpresa de hoje: o sistema sorteia as peças no primeiro acesso
     // do dia (mais chance para as caras e as que já sumiram). Fica fixa no dia.
     let doDia = { total: 0, feitas: 0, itens: [] };
+    let doDiaAberto = false; // a pessoa abriu a lista: continua aberta depois de enviar uma contagem
+    document.getElementById('cfPedidos').addEventListener('toggle', (ev) => {
+      if (ev.target.classList && ev.target.classList.contains('cf-do-dia')) doDiaAberto = ev.target.open;
+    }, true);
     async function carregarDoDia() {
       try {
         const r = await fetch('/api/conferencia-estoque/do-dia', { cache: 'no-store' });
@@ -719,14 +723,16 @@
         '<button type="button" class="cf-pedido" data-item="' + id + '"><span class="er-num">' + numeroEtiqueta(num) + '</span> ' +
         escapeHtml(nome) + (extra || '') + '</button>';
       let html = '';
+      // Recolhida por padrão (pedido do Gabriel): clica no título e abre.
       if (doDia.total) {
-        html += '<div class="cf-pedidos cf-do-dia"><strong>Contagem surpresa de hoje</strong> <span class="cf-do-dia-conta">' +
-          doDia.feitas + ' de ' + doDia.total + ' contadas</span>' +
+        html += '<details class="cf-pedidos cf-do-dia"' + (doDiaAberto ? ' open' : '') + '>' +
+          '<summary><strong>Contagem de hoje</strong> <span class="cf-do-dia-conta">' +
+          doDia.feitas + ' de ' + doDia.total + ' contadas</span></summary>' +
           (faltam.length
             ? '<span class="er-sub">O sistema sorteou estas peças. Conte todas as unidades, em todos os locais.</span>' +
               faltam.map(i => botao(i.itemId, i.numeroInterno, i.nome, i.localizacao ? ' <em>· local ' + escapeHtml(i.localizacao) + '</em>' : '')).join('')
             : '<span class="er-sub">✓ Todas contadas hoje. Amanhã sai outra lista.</span>') +
-          '</div>';
+          '</details>';
       }
       if (rec.length) {
         html += '<div class="cf-pedidos"><strong>O gerente pediu para contar de novo:</strong>' +

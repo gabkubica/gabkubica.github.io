@@ -3978,16 +3978,17 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 .cf-quem select { font-size: 16px; padding: 8px 10px; max-width: 320px; }
 .en-envolve { max-height: none; }
 .en-compacta { table-layout: auto !important; width: 100%; }
-.en-compacta th, .en-compacta td { padding: 4px 8px !important; font-size: 13.5px; line-height: 1.25; }
-.en-compacta .en-c-num { width: 70px; }
-.en-compacta .en-c-local { width: 90px; white-space: nowrap; font-weight: 600; }
-.en-compacta .en-c-qtd { width: 70px; text-align: center; }
-.en-compacta .en-c-acao { width: 104px; text-align: right; }
+/* Na tela as peças ficam grandes (fácil de ler e tocar); pequenas só no papel (regras de print abaixo). */
+.en-compacta th, .en-compacta td { padding: 10px 12px !important; font-size: 15.5px; line-height: 1.3; }
+.en-compacta .en-c-num { width: 84px; }
+.en-compacta .en-c-local { width: 100px; white-space: nowrap; font-weight: 700; }
+.en-compacta .en-c-qtd { width: 84px; text-align: center; }
+.en-compacta .en-c-acao { width: 132px; text-align: right; }
 .en-compacta .en-c-peca .er-sub { display: inline; margin-left: 6px; }
-.en-compacta .en-qtd { font-size: 15px; }
-.en-compacta .en-saldo { font-weight: 600; }
-.en-compacta .btn-mini { padding: 4px 9px; }
-.en-compacta tr.en-grupo td { background: var(--tabela-th); padding: 6px 8px !important; border-top: 2px solid var(--borda); }
+.en-compacta .en-qtd { font-size: 19px; }
+.en-compacta .en-saldo { font-weight: 700; font-size: 17px; }
+.en-compacta .btn-mini { padding: 8px 14px; font-size: 14px; }
+.en-compacta tr.en-grupo td { background: var(--tabela-th); padding: 11px 12px !important; border-top: 2px solid var(--borda); }
 .en-grupo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .en-grupo-sub { display: inline !important; }
 .en-grupo-acoes { display: inline-flex; gap: 6px; flex-wrap: wrap; }
@@ -3996,7 +3997,7 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .en-barra-dir button { flex: 1 1 0; }
   .en-compacta thead { display: none; }
   .en-compacta, .en-compacta tbody, .en-compacta tr, .en-compacta td { display: block; width: auto !important; }
-  .en-compacta tr:not(.en-grupo) { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 12px; padding: 8px 4px; border-bottom: 1px solid var(--borda); align-items: center; }
+  .en-compacta tr:not(.en-grupo) { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 12px; padding: 12px 4px; border-bottom: 1px solid var(--borda); align-items: center; }
   .en-compacta tr:not(.en-grupo) td { border: 0 !important; padding: 0 !important; }
   .en-compacta td.er-num { grid-column: 1; }
   .en-compacta td.en-c-peca { grid-column: 2 / 4; }
@@ -4016,7 +4017,7 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   tbody.en-boleto.en-fora-da-impressao { display: none !important; }
   .en-compacta tbody.en-boleto { break-inside: auto !important; }
 }
-.en-grupo-acoes .btn-mini, .en-grupo-acoes a.btn-mini { font-size: 12px; padding: 4px 10px; line-height: 1.3; min-height: 0; }
+.en-grupo-acoes .btn-mini, .en-grupo-acoes a.btn-mini { font-size: 13px; padding: 6px 12px; line-height: 1.3; min-height: 0; }
 /* Conferência de estoque: "Enviar" grande sozinho; os outros menores ao lado. */
 .cf-dialog .dialog-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .cf-dialog .dialog-acoes #cfEnviar { flex: 1 1 100%; font-size: 16px; padding: 11px; }
@@ -4026,13 +4027,13 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .cf-dialog .dialog-acoes > :not(#cfEnviar) { white-space: normal; }
 }
 
-/* Entrada de estoque no PAPEL: ~55 peças por folha A4. O boleto vira uma
+/* Entrada de estoque no PAPEL: ~45 peças por folha A4 (eram ~55; 2026-11-25 ficou um pouco maior). O boleto vira uma
    coluna estreita à esquerda (uma célula para as peças dele), cada peça
-   numa linha só e altura de ~4,5 mm para escrever à caneta. */
+   numa linha só e altura de ~5,5 mm para escrever à caneta. */
 @media print {
   .en-compacta { table-layout: fixed !important; width: 100% !important; }
   .en-compacta tr.en-grupo { display: none !important; }
-  .en-compacta th, .en-compacta td { padding: 1px 4px !important; font-size: 10px !important; line-height: 1.15 !important; height: 17px;
+  .en-compacta th, .en-compacta td { padding: 2px 4px !important; font-size: 11px !important; line-height: 1.15 !important; height: 21px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .en-compacta th { white-space: normal; height: auto; font-size: 9px !important; }
   .en-compacta .en-p-bol { width: 110px !important; white-space: normal !important; vertical-align: top; font-size: 9px !important; line-height: 1.2 !important; }
@@ -4041,9 +4042,9 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
   .en-compacta .en-c-qtd { width: 36px !important; }
   .en-compacta .en-escrever { width: 50px !important; }
   .en-compacta .en-ok { width: 18px !important; }
-  .en-compacta td.en-escrever, .en-compacta td.en-ok { height: 17px !important; }
-  .en-compacta .en-qtd, .en-compacta .en-saldo { font-size: 10.5px !important; font-weight: 700; text-align: center; }
-  .en-compacta .en-c-peca .er-sub { display: inline !important; font-size: 9px; margin-left: 4px; }
+  .en-compacta td.en-escrever, .en-compacta td.en-ok { height: 21px !important; }
+  .en-compacta .en-qtd, .en-compacta .en-saldo { font-size: 11.5px !important; font-weight: 700; text-align: center; }
+  .en-compacta .en-c-peca .er-sub { display: inline !important; font-size: 9.5px; margin-left: 4px; }
   .en-compacta .mini-selo { font-size: 8px; padding: 0 4px; }
   .en-compacta tbody.en-boleto { border-top: 2px solid #000 !important; }
   .en-compacta .en-p-bol.en-p-uma { white-space: nowrap !important; vertical-align: middle; }
@@ -4051,7 +4052,7 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 }
 
 /* Conferência de estoque: janela em passos (quem -> peça -> quantas). */
-.cf-dialog { width: min(560px, calc(100vw - 24px)) !important; padding: 16px 18px !important; }
+.cf-dialog { width: min(760px, calc(100vw - 24px)) !important; max-width: none !important; padding: 16px 18px !important; }
 .cf-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cf-topo h3 { margin: 0; font-size: 19px; }
 .cf-x { background: none !important; border: 0 !important; color: var(--texto-suave) !important; font-size: 20px; padding: 4px 8px; cursor: pointer; }
@@ -4456,3 +4457,10 @@ button.marca-chip.oculto { display: none; }
 /* Contagem surpresa do dia, dentro da Conferência de estoque. */
 .cf-do-dia .cf-do-dia-conta { float: right; font-size: 13px; font-weight: 700; }
 .cf-do-dia .er-sub { display: block; margin: 2px 0 4px; color: inherit; opacity: .85; }
+/* "Contagem de hoje" recolhida: o título inteiro é o botão de abrir. */
+.cf-do-dia > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.cf-do-dia > summary::-webkit-details-marker { display: none; }
+.cf-do-dia > summary::before { content: "▸"; font-size: 13px; transition: transform .15s; }
+.cf-do-dia[open] > summary::before { transform: rotate(90deg); }
+.cf-do-dia > summary .cf-do-dia-conta { float: none; margin-left: auto; }
+.cf-do-dia[open] > summary { margin-bottom: 4px; }

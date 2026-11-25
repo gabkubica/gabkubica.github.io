@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261125023742"></script>
+  <script src="/demo/demo.js?v=20261125144308"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pedido de compra - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261125023742">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261125144308">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261125023742"></script>
-  <script src="/js/celular.js?v=20261125023742"></script>
-  <script src="/js/atalhos.js?v=20261125023742"></script>
-  <script src="/js/gerente.js?v=20261125023742"></script>
+  <script src="/js/tema.js?v=20261125144308"></script>
+  <script src="/js/celular.js?v=20261125144308"></script>
+  <script src="/js/atalhos.js?v=20261125144308"></script>
+  <script src="/js/gerente.js?v=20261125144308"></script>
   <style>
     .pc-topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
     .pc-topo h2 { margin: 0; font-size: 22px; }
@@ -54,7 +54,15 @@
     .pc-link { background: none !important; border: 0 !important; color: var(--texto-suave) !important; text-decoration: underline; padding: 2px 0 !important; font-size: 13px; cursor: pointer; }
     /* Dados e itens */
     .pc-grade { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; }
-    .pc-grade label, .pc-bloco label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    .pc-grade label, .pc-bloco label, .pc-montagem label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+    /* Montar (vendedor + procurar peças) num quadro de fundo diferente; as
+       peças do pedido num quadro branco com borda forte logo abaixo. */
+    .pc-montagem { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: var(--tabela-th); border: 1px solid var(--borda); }
+    .pc-montagem > div + div:not([hidden]) { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--input-borda); }
+    .pc-sub { margin: 0 0 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); }
+    .pc-pedido-lista { margin-top: 18px; padding: 12px 14px; border: 2px solid var(--input-borda); border-radius: 12px; background: var(--card-bg); }
+    .pc-sub-lista { margin: 0; font-size: 17px; }
+    .pc-pedido-lista .pc-itens { margin-top: 6px; }
     .pc-bloco { margin-top: 14px; padding: 12px; border: 1px dashed var(--input-borda); border-radius: 10px; }
     .pc-linha-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
     .pc-busca { position: relative; flex: 1 1 240px; }
@@ -157,9 +165,14 @@
       <div class="pc-passos" id="passos"></div>
       <div class="pc-proximo" id="proximo"></div>
 
+      <!-- MONTAR O PEDIDO: vendedor + como achar as peças. Fica num quadro de
+           fundo diferente, separado da lista de peças do pedido logo abaixo
+           (pedido do Gabriel, 2026-11-25: "são coisas diferentes"). -->
+      <div class="pc-montagem" id="blocoMontagem">
       <!-- Dados do pedido (editáveis enquanto nada chegou) -->
       <div id="blocoDados">
-        <div class="pc-grade" style="margin-top:14px">
+        <h3 class="pc-sub">Vendedor</h3>
+        <div class="pc-grade">
           <label>Vendedor (da agenda de Contatos)
             <span class="pc-contato-linha">
               <select id="edContato" data-trava-gerente><option value="">— escolher —</option></select>
@@ -174,10 +187,10 @@
           </label>
         </div>
       </div>
-      <p id="linhaDados" class="aviso-vazio" style="margin:12px 0 0" hidden></p>
 
       <!-- Montar a lista (só enquanto nada chegou) -->
-      <div class="pc-bloco" id="blocoMontar">
+      <div id="blocoMontar">
+        <h3 class="pc-sub">Procurar peças para pôr no pedido</h3>
         <div class="pc-linha-acoes">
           <label style="flex:1 1 200px">Puxar o que está abaixo do mínimo
             <select id="edMarca"><option value="">Todas as marcas</option></select>
@@ -202,14 +215,20 @@
         <p class="aviso-vazio" style="margin:8px 0 0;font-size:12.5px">Sem preço: o preço vem na nota. O último custo aparece só como referência.
           <span class="pc-giro muito">Vende muito</span> / <span class="pc-giro pouco">Vende pouco</span> = quanto a peça saiu nos últimos 90 dias.</p>
       </div>
-
-      <div style="overflow-x:auto">
-        <table class="pc-itens">
-          <thead id="edCab"></thead>
-          <tbody id="edItens"></tbody>
-        </table>
       </div>
-      <div class="pc-total" id="edTotal"></div>
+      <p id="linhaDados" class="aviso-vazio" style="margin:12px 0 0" hidden></p>
+
+      <!-- AS PEÇAS DO PEDIDO (o que vai para o vendedor) -->
+      <div class="pc-pedido-lista">
+        <h3 class="pc-sub-lista">Peças do pedido</h3>
+        <div style="overflow-x:auto">
+          <table class="pc-itens">
+            <thead id="edCab"></thead>
+            <tbody id="edItens"></tbody>
+          </table>
+        </div>
+        <div class="pc-total" id="edTotal"></div>
+      </div>
 
       <div class="pc-notas" id="edNotas"></div>
 
@@ -219,9 +238,13 @@
         </label>
       </div>
 
-      <div class="pc-rodape">
+      <!-- Enviar fica aqui embaixo, ao lado do Salvar (pedido do Gabriel, 2026-11-25). -->
+      <div class="pc-rodape" id="rodape">
         <button type="button" class="sucesso" id="btnSalvar" data-trava-gerente>Salvar pedido</button>
+        <button type="button" class="azul" id="btnEnviarEmail" data-acao="email" data-trava-gerente>Enviar por e-mail (PDF anexo)</button>
+        <button type="button" class="secundario" id="btnGmail" data-acao="gmail" data-trava-gerente>Abrir no Gmail</button>
         <button type="button" class="secundario" id="btnPdf" data-trava-gerente>Ver PDF</button>
+        <button type="button" class="pc-link" id="btnJaMandei" data-acao="marcar-enviado" data-trava-gerente>Já mandei de outro jeito</button>
         <span class="pc-espaco"></span>
         <button type="button" class="secundario" id="btnRascunho" hidden data-trava-gerente>Voltar para rascunho</button>
         <button type="button" class="perigo" id="btnExcluir" data-trava-gerente>Excluir pedido</button>
@@ -452,8 +475,14 @@
       }).join('');
       desenharProximo();
       const montar = podeMontar();
+      $('blocoMontagem').hidden = !montar;
       $('blocoDados').hidden = !montar;
       $('blocoMontar').hidden = !montar;
+      // Enviar ao vendedor: só enquanto é rascunho.
+      const rascunho = f === 'rascunho';
+      $('btnEnviarEmail').hidden = !rascunho;
+      $('btnGmail').hidden = !rascunho;
+      $('btnJaMandei').hidden = !rascunho;
       $('blocoObs').hidden = !montar;
       $('linhaDados').hidden = montar || !pedido;
       if (pedido && !montar) {
@@ -475,10 +504,8 @@
       const f = p ? p.fase : 'rascunho';
       let h = '';
       if (f === 'rascunho') {
-        h = '<div><p><strong>Monte a lista e mande para o vendedor.</strong></p><small>Escolha o vendedor, ponha as peças e as quantidades. Não precisa de preço: o preço vem na nota.</small></div>' +
-          '<div class="pc-proximo-acoes"><button type="button" class="azul pc-grande" data-acao="email" data-trava-gerente>Enviar por e-mail (PDF anexo)</button>' +
-          '<button type="button" class="secundario" data-acao="gmail" data-trava-gerente>Abrir no Gmail</button>' +
-          '<button type="button" class="pc-link" data-acao="marcar-enviado" data-trava-gerente>Já mandei de outro jeito</button></div>';
+        h = '<div><p><strong>Monte a lista e mande para o vendedor.</strong></p><small>Escolha o vendedor, ponha as peças e as quantidades. Não precisa de preço: o preço vem na nota. ' +
+          'Quando terminar, use <strong>Enviar por e-mail</strong> lá embaixo, ao lado de Salvar pedido.</small></div>';
       } else if (f === 'enviado' || f === 'parcial') {
         const r = p.resumo;
         h = '<div><p><strong>' + (f === 'parcial' ? 'Chegou parte: faltam ' + r.faltam + ' peça(s).' : 'Pedido enviado. Quando a mercadoria chegar, clique aqui.') + '</strong></p>' +
@@ -498,7 +525,10 @@
       }
       $('proximo').innerHTML = h;
     }
-    $('proximo').addEventListener('click', async (e) => {
+    // Botões do próximo passo (no quadro de cima) e de enviar (no rodapé).
+    $('proximo').addEventListener('click', executarAcao);
+    $('rodape').addEventListener('click', executarAcao);
+    async function executarAcao(e) {
       const b = e.target.closest('[data-acao]');
       if (!b || b.disabled) return;
       const a = b.dataset.acao;
@@ -516,7 +546,7 @@
         } else if (a === 'reabrir') abrir(await api('POST', '/api/pedidos/' + pedido.id + '/encerrar', { encerrado: false }));
         else if (a === 'qr-tudo') abrirEtiquetas(pedido.itens.filter((i) => i.itemId && i.chegou).map((i) => ({ id: i.itemId, copias: i.chegou })));
       } catch (er) { mostrarMensagem(esc(er.message), 'erro'); }
-    });
+    }
 
     function giroHtml(g) {
       if (!g) return '<small>—</small>';
