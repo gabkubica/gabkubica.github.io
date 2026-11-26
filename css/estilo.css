@@ -3575,9 +3575,6 @@ details.nu-sec[open] .nu-sec-abrir::after { content: 'Fechar ▴'; }
 .sg-linha { display: flex; gap: 6px; }
 .sg-linha select { flex: 1; min-width: 0; }
 .sg-conta { margin-top: 10px; font-size: 14px; padding: 8px 10px; border-radius: 8px; background: var(--tabela-th); }
-.sg-link { font-size: 13px; align-self: center; }
-.aviso-bloco.sg-pendente { border-color: #f59e0b; }
-.aviso-bloco.sg-ok { border-color: #16a34a; }
 
 /* Garantia (os.html) */
 .gar-peca { display: block; font-size: 11px; color: var(--texto-suave); }

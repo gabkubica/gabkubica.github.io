@@ -2,20 +2,20 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261126004658"></script>
+  <script src="/demo/demo.js?v=20261126005231"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Análises - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261126004658">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261126005231">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261126004658"></script>
-  <script src="/js/celular.js?v=20261126004658"></script>
-  <script src="/js/atalhos.js?v=20261126004658"></script>
-  <script src="/js/gerente.js?v=20261126004658"></script>
-  <script src="/js/graficos.js?v=20261126004658"></script>
-  <script src="/js/exportar.js?v=20261126004658"></script>
+  <script src="/js/tema.js?v=20261126005231"></script>
+  <script src="/js/celular.js?v=20261126005231"></script>
+  <script src="/js/atalhos.js?v=20261126005231"></script>
+  <script src="/js/gerente.js?v=20261126005231"></script>
+  <script src="/js/graficos.js?v=20261126005231"></script>
+  <script src="/js/exportar.js?v=20261126005231"></script>
 </head>
 <body>
   <header>
@@ -496,14 +496,13 @@
       if (b.atrasados.quantidade) itens.push(['ruim', '<strong>' + b.atrasados.quantidade + ' boleto(s) atrasado(s)</strong> somando ' + moeda(b.atrasados.valor) + '.', '/despesas.html', 'Ver boletos']);
       if (p.resultado < 0) itens.push(['ruim', 'No período, <strong>saiu mais do que entrou</strong>: faltaram ' + moeda(-p.resultado) + '.', '#financeiro', 'Ver financeiro']);
       if (pt.paradas.quantidade) itens.push(['atencao', '<strong>' + pt.paradas.quantidade + ' carro(s) parado(s)</strong> há ' + pt.dias_parada + ' dias ou mais no pátio.', '#servicos/parados', 'Ver carros']);
-      if (n.seguradoras.atrasadas) itens.push(['atencao', '<strong>' + n.seguradoras.atrasadas + ' OS de seguradora</strong> sem receber há mais de 30 dias.', '/seguradoras.html', 'Ver seguradoras']);
       if (orc.aguardando) itens.push(['atencao', '<strong>' + orc.aguardando + ' orçamento(s)</strong> esperando resposta do cliente (' + moeda(orc.valor_aguardando) + ').', '/ordens-servico.html', 'Ver OS']);
       if (est.negativos) itens.push(['atencao', '<strong>' + est.negativos + ' peça(s) com estoque negativo</strong>: saiu mais do que entrou, conferir.', '/itens.html', 'Ver itens']);
       $('resAtencao').innerHTML = '<div class="nu-atencao">' +
         '<h3>' + (itens.length ? 'Precisa de atenção agora' : '✓ Nada urgente agora') + '</h3>' +
         (itens.length
           ? '<ul>' + itens.map(([e, t, href, rot]) => '<li class="nu-at-' + e + '"><span class="nu-at-ico">' + (e === 'ruim' ? '✕' : '⚠') + '</span><span>' + t + '</span><a href="' + href + '">' + rot + ' →</a></li>').join('') + '</ul>'
-          : '<p>Sem boletos atrasados, sem carros parados há muito tempo e nenhuma pendência das seguradoras.</p>') +
+          : '<p>Sem boletos atrasados, sem carros parados há muito tempo.</p>') +
         '</div>';
       graficoFaturamento('gResFat', 'resRitmo', n);
     }
@@ -553,9 +552,7 @@
         kpi('Saiu (despesas)', moeda(p.despesas), variacao(p.despesas, a.despesas, true)) +
         kpi('O que sobrou', '<span class="' + (p.resultado >= 0 ? 'nu-sobe' : 'nu-desce') + '">' + moeda(p.resultado) + '</span>', variacao(p.resultado, a.resultado)) +
         kpi('Boletos atrasados', moeda(b.atrasados.valor), b.atrasados.quantidade ? b.atrasados.quantidade + ' boleto(s) vencido(s) sem pagar' : 'nenhum atrasado',
-          { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' }) +
-        kpi('A receber de seguradoras', moeda(n.seguradoras.aReceber), n.seguradoras.os ? n.seguradoras.os + ' OS' + (n.seguradoras.atrasadas ? ' · ' + n.seguradoras.atrasadas + ' há mais de 30 dias' : '') : 'nada pendente',
-          { alerta: n.seguradoras.atrasadas > 0, href: '/seguradoras.html' });
+          { alerta: b.atrasados.quantidade > 0, href: '/despesas.html' });
       const meses = mesesUteis(n.mensal, ['faturamento', 'despesas']);
       G.barras($('gEntraSai'), {
         ...opcoesMes(meses),
@@ -939,7 +936,6 @@
           ['Faturamento (R$)', p.faturamento], ['Atendimentos', p.documentos], ['Ticket médio (R$)', v.ticket_medio],
           ['Lucro nas peças (R$)', v.lucro_pecas], ['Despesas (R$)', p.despesas], ['O que sobrou (R$)', p.resultado],
           ['Faturamento do período comparado (R$)', n.anterior.faturamento], ['Boletos atrasados (R$)', b.atrasados.valor],
-          ['A receber de seguradoras (R$)', n.seguradoras.aReceber],
           ['OS em aberto', o.etapas.recepcao + o.etapas.orcamento + o.etapas.execucao + o.etapas.outros], ['OS concluídas', o.concluidas],
           ['Tempo médio até concluir (horas)', o.tempo_medio_horas],
         ] },

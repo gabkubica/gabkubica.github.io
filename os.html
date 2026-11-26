@@ -2,26 +2,26 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/demo/demo.js?v=20261126004658"></script>
+  <script src="/demo/demo.js?v=20261126005231"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ordem de Serviço - Auto Vidros Sport</title>
-  <link rel="stylesheet" href="/css/estilo.css?v=20261126004658">
+  <link rel="stylesheet" href="/css/estilo.css?v=20261126005231">
   <link rel="icon" href="/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icone-192.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#c62828">
-  <script src="/js/tema.js?v=20261126004658"></script>
-  <script src="/js/celular.js?v=20261126004658"></script>
-  <script src="/js/atalhos.js?v=20261126004658"></script>
-  <script src="/js/gerente.js?v=20261126004658"></script>
-  <script src="/js/ponte-londrisoft.js?v=20261126004658" defer></script>
-  <script src="/js/estoque-aviso.js?v=20261126004658"></script>
-  <script src="/js/os-cliente-carro.js?v=20261126004658"></script>
-  <script src="/js/modo-orcamento.js?v=20261126004658"></script>
-  <script src="/js/info-peca.js?v=20261126004658"></script>
-  <script src="/js/tabela-lancar.js?v=20261126004658"></script>
-  <script src="/js/garantia-os.js?v=20261126004658"></script>
-  <script src="/js/carro-desenho.js?v=20261126004658"></script>
+  <script src="/js/tema.js?v=20261126005231"></script>
+  <script src="/js/celular.js?v=20261126005231"></script>
+  <script src="/js/atalhos.js?v=20261126005231"></script>
+  <script src="/js/gerente.js?v=20261126005231"></script>
+  <script src="/js/ponte-londrisoft.js?v=20261126005231" defer></script>
+  <script src="/js/estoque-aviso.js?v=20261126005231"></script>
+  <script src="/js/os-cliente-carro.js?v=20261126005231"></script>
+  <script src="/js/modo-orcamento.js?v=20261126005231"></script>
+  <script src="/js/info-peca.js?v=20261126005231"></script>
+  <script src="/js/tabela-lancar.js?v=20261126005231"></script>
+  <script src="/js/garantia-os.js?v=20261126005231"></script>
+  <script src="/js/carro-desenho.js?v=20261126005231"></script>
 </head>
 <body>
   <header>
@@ -84,8 +84,7 @@
         <!-- Garantias de peças já trocadas neste carro (ou cliente) -->
         <div id="boxGarantias"></div>
         <!-- Seguro: a seguradora (um cliente marcado como seguradora) e o nº do
-             sinistro. Ao concluir com a forma "Seguradora", a OS fica a receber
-             (Clientes > Seguradoras). Só aparece com "Pago por seguradora" marcado. -->
+             sinistro. Só aparece com "Pago por seguradora" marcado. -->
         <div class="oculto sg-bloco" id="secaoSeguro">
         <div id="sgCampos" class="oculto">
           <div class="os-grid" style="margin-top:10px">
@@ -95,9 +94,7 @@
             </div>
             <div><label>Nº do sinistro</label><input type="text" id="sgSinistro" maxlength="60" autocomplete="off"></div>
           </div>
-          <div id="sgStatus"></div>
-          <div class="os-acoes"><button type="button" class="secundario" id="btnSalvarSeguro">Salvar seguro</button>
-            <a href="/seguradoras.html" class="sg-link">O que as seguradoras devem →</a></div>
+          <div class="os-acoes"><button type="button" class="secundario" id="btnSalvarSeguro">Salvar seguro</button></div>
         </div>
         </div>
         <!-- Atendente e andamento numa linha só (2026-11-21): cliente avisado,
@@ -633,16 +630,6 @@
       document.getElementById('sgCampos').classList.toggle('oculto', !ligado);
       document.getElementById('sgSeguradora').innerHTML = opcoesSeguradoras(osAtual.seguradora_id);
       document.getElementById('sgSinistro').value = osAtual.seg_sinistro || '';
-      const st = document.getElementById('sgStatus');
-      if (ligado && osAtual.status === 'concluida' && osAtual.paga_pela_seguradora) {
-        st.innerHTML = osAtual.seg_recebido_em
-          ? '<div class="aviso-bloco sg-ok">✓ A seguradora pagou <strong>' + formatarMoeda(osAtual.seg_recebido_valor) + '</strong> em ' + dataBr(osAtual.seg_recebido_em) +
-            (osAtual.seg_recebido_forma ? ' (' + escapeHtml(osAtual.seg_recebido_forma) + ')' : '') + '.</div>'
-          : '<div class="aviso-bloco sg-pendente">A receber da seguradora: <strong>' + formatarMoeda(osAtual.valor_total) +
-            '</strong>. Quando pagar, marque em <a href="/seguradoras.html">Clientes › Seguradoras</a>.</div>';
-      } else {
-        st.innerHTML = '';
-      }
     }
     async function salvarSeguro(silencioso) {
       const ligado = document.getElementById('sgLigado').checked;
@@ -725,7 +712,7 @@
       const pags = osAtual.pagamentos || [];
       if (pags.length > 1) {
         el.innerHTML = '<div class="aviso-bloco">Pago em ' + formatarData(pags[0].data) + ' — ' + pags.map(p =>
-          '<strong>' + escapeHtml(p.forma_pagamento) + '</strong> (' + formatarMoeda(p.valor) + (p.forma_pagamento === 'Seguradora' ? (osAtual.seg_recebido_em ? ', recebido' : ', a receber') : '') + ')' +
+          '<strong>' + escapeHtml(p.forma_pagamento) + '</strong> (' + formatarMoeda(p.valor) + ')' +
           (p.arquivo ? ' · <a href="/' + escapeHtml(p.arquivo) + '" target="_blank">ver anexo</a>' : '')).join(' + ') + '</div>';
         return;
       }
