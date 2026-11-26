@@ -4098,11 +4098,6 @@ details.recolhivel .calculadora-margem { border: 0; background: none; padding: 1
 .en-pedido { display: inline-block; font-weight: 700; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: #e0ecff; color: #1e40af !important; text-decoration: none; }
 [data-tema="escuro"] .en-pedido { background: #1c2b44; color: #a8c8fb !important; }
 
-/* TESTE (pedido do Gabriel, 2026-11-18): botões do Financeiro em verde
-   meio claro. Para voltar ao vermelho, apague este bloco. */
-.setor-financeiro .modulo { background: #3fa648; box-shadow: 0 2px 6px rgba(63, 166, 72, 0.3); }
-.setor-financeiro .modulo:hover { background: #2f8c38; }
-
 /* Filtros do Pedido de compra: pílulas brancas; a escolhida fica vermelha. */
 .pc-chip {
   font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px;
